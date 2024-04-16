@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 
 /*
 for a sorted vector<pair<int,T>>, this dunction conducted binary (divide and conquer) operations on this vector;
