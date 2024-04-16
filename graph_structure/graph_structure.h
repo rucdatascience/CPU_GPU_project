@@ -30,15 +30,16 @@ rm A
 
 */
 
-#include<vector>
-#include<iostream>
+#include <vector>
+#include <iostream>
 #include <string>
 #include <vector>
 #include <cstring>
 #include <fstream>
-#include <text_mining/parse_string.h> 
-#include <tool_functions/sorted_vector_binary_operations.h>
-#include <text_mining/binary_save_read_vector_of_vectors.h>
+#include <unordered_map>
+#include "parse_string.h"
+#include "sorted_vector_binary_operations.h"
+#include "binary_save_read_vector_of_vectors.h"
 
 template <typename weight_type>
 class ARRAY_graph;
@@ -51,19 +52,32 @@ public:
 
 	this class is for undirected and edge-weighted graph
 	*/
+
+	int V = 0; // number of vertices
+	long long int E = 0; // number of edges
+
+	// ADJs[u] = v means there is an edge starting from u to v
 	std::vector<std::vector<std::pair<int, weight_type>>> ADJs;
+	// ADJs_T is transpose of ADJs. ADJs_T[u] = v means there is an edge starting from v to u
+	std::vector<std::vector<std::pair<int, weight_type>>> ADJs_T;
+
+	std::unordered_map<std::string, int> vertex_id_map; // vertex_id_map[vertex_name] = vertex_id
 
 	/*constructors*/
 	graph_structure() {}
 	graph_structure(int n) {
+		V = n;
 		ADJs.resize(n); // initialize n vertices
+		ADJs_T.resize(n);
 	}
 	int size() {
-		return ADJs.size();
+		return V;
 	}
 	std::vector<std::pair<int, weight_type>>& operator[](int i) {
 		return ADJs[i];
 	}
+
+	void load_LDBC(std::string v_path, std::string e_path);
 
 	/*class member functions*/
 	inline void add_edge(int, int, weight_type); // this function can change edge weights
@@ -74,7 +88,8 @@ public:
 	inline long long int edge_number(); // the total number of edges
 	inline void print();
 	inline void clear();
-	inline int degree(int);
+	inline int out_degree(int);
+	inline int in_degree(int);
 	inline int search_adjv_by_weight(int, weight_type); // return first e2 such that w(e1,e2) = ec; if there is no such e2, return -1
 	inline void txt_save(std::string);
 	inline void txt_read(std::string);
@@ -93,15 +108,16 @@ void graph_structure<weight_type>::add_edge(int e1, int e2, weight_type ec) {
 	 this function can update edge weight; there will be no redundent edge*/
 
 	 /*
-	 Add the edges (e1,e2) and (e2,e1) with the weight ec
+	 Add the edges (e1,e2) with the weight ec
 	 When the edge exists, it will update its weight.
 	 Time complexity:
 		 O(log n) When edge already exists in graph
 		 O(n) When edge doesn't exist in graph
 	 */
 
+	E++;
 	sorted_vector_binary_operations_insert(ADJs[e1], e2, ec);
-	sorted_vector_binary_operations_insert(ADJs[e2], e1, ec);
+	sorted_vector_binary_operations_insert(ADJs_T[e2], e1, ec);
 }
 
 template <typename weight_type>
@@ -109,13 +125,14 @@ void graph_structure<weight_type>::remove_edge(int e1, int e2) {
 
 	/*we assume that the size of g is larger than e1 or e2*/
 	/*
-	 Remove the edges (e1,e2) and (e2,e1)
+	 Remove the edges (e1,e2)
 	 If the edge does not exist, it will do nothing.
 	 Time complexity: O(n)
 	*/
 
+	E--;
 	sorted_vector_binary_operations_erase(ADJs[e1], e2);
-	sorted_vector_binary_operations_erase(ADJs[e2], e1);
+	sorted_vector_binary_operations_erase(ADJs_T[e2], e1);
 }
 
 template <typename weight_type>
@@ -125,7 +142,15 @@ void graph_structure<weight_type>::remove_all_adjacent_edges(int v) {
 		sorted_vector_binary_operations_erase(ADJs[it->first], v);
 	}
 
+	for (auto it = ADJs_T[v].begin(); it != ADJs_T[v].end(); it++) {
+		sorted_vector_binary_operations_erase(ADJs_T[it->first], v);
+	}
+
+	E -= ADJs[v].size();
+	E -= ADJs_T[v].size();
+
 	std::vector<std::pair<int, weight_type>>().swap(ADJs[v]);
+	std::vector<std::pair<int, weight_type>>().swap(ADJs_T[v]);
 }
 
 template <typename weight_type>
@@ -156,24 +181,17 @@ long long int graph_structure<weight_type>::edge_number() {
 
 	/*
 	Returns the number of edges in the figure
-	(e1,e2) and (e2,e1) will be counted only once
 	Time complexity: O(n)
 	*/
-
-	int num = 0;
-	for (auto it : ADJs) {
-		num = num + it.size();
-	}
-
-	return num / 2;
+	return E;
 }
 
 template <typename weight_type>
 void graph_structure<weight_type>::print() {
 
 	std::cout << "graph_structure_print:" << std::endl;
-	int size = ADJs.size();
-	for (int i = 0; i < size; i++) {
+
+	for (int i = 0; i < V; i++) {
 		std::cout << "Vertex " << i << " Adj List: ";
 		int v_size = ADJs[i].size();
 		for (int j = 0; j < v_size; j++) {
@@ -187,14 +205,18 @@ void graph_structure<weight_type>::print() {
 
 template <typename weight_type>
 void graph_structure<weight_type>::clear() {
-
-	return std::vector<std::vector<std::pair<int, weight_type>>>().swap(ADJs);
+	std::vector<std::vector<std::pair<int, weight_type>>>().swap(ADJs);
+	std::vector<std::vector<std::pair<int, weight_type>>>().swap(ADJs_T);
 }
 
 template <typename weight_type>
-int graph_structure<weight_type>::degree(int v) {
-
+int graph_structure<weight_type>::out_degree(int v) {
 	return ADJs[v].size();
+}
+
+template <typename weight_type>
+int graph_structure<weight_type>::in_degree(int v) {
+	return ADJs_T[v].size();
 }
 
 template <typename weight_type>
@@ -218,12 +240,11 @@ void graph_structure<weight_type>::txt_save(std::string save_name) {
 	outputFile.setf(std::ios::showpoint);
 	outputFile.open(save_name);
 
-	outputFile << "|V|= " << ADJs.size() << std::endl;
-	outputFile << "|E|= " << graph_structure<weight_type>::edge_number() << std::endl;
+	outputFile << "|V|= " << V << std::endl;
+	outputFile << "|E|= " << E << std::endl;
 	outputFile << std::endl;
 
-	int size = ADJs.size();
-	for (int i = 0; i < size; i++) {
+	for (int i = 0; i < V; i++) {
 		int v_size = ADJs[i].size();
 		for (int j = 0; j < v_size; j++) {
 			if (i < ADJs[i][j].first) {
@@ -251,7 +272,9 @@ void graph_structure<weight_type>::txt_read(std::string save_name) {
 
 			if (!Parsed_content[0].compare("|V|=")) // when it's equal, compare returns 0
 			{
-				ADJs.resize(std::stoi(Parsed_content[1]));
+				V = std::stoi(Parsed_content[1]);
+				ADJs.resize(V);
+				ADJs_T.resize(V);
 			}
 			else if (!Parsed_content[0].compare("Edge"))
 			{
@@ -271,6 +294,51 @@ void graph_structure<weight_type>::txt_read(std::string save_name) {
 		getchar(); // keep the console window
 		exit(1); // end the program
 	}
+}
+
+template <typename weight_type>
+void graph_structure<weight_type>::load_LDBC(std::string v_path, std::string e_path) {
+	this->clear();
+
+	std::string line_content;
+	std::ifstream myfile(v_path);
+
+	if (myfile.is_open()) {
+		while (getline(myfile, line_content)) {
+			if (vertex_id_map.find(line_content) == vertex_id_map.end())
+				vertex_id_map[line_content] = V++;
+		}
+		myfile.close();
+	}
+	else {
+		std::cout << "Unable to open file " << v_path << std::endl
+			<< "Please check the file location or file name." << std::endl;
+		getchar();
+		exit(1);
+	}
+
+	ADJs.resize(V);
+	ADJs_T.resize(V);
+
+	myfile.open(e_path);
+
+	if (myfile.is_open()) {
+		while (getline(myfile, line_content)) {
+			std::vector<std::string> Parsed_content = parse_string(line_content, " ");
+			int v1 = vertex_id_map[Parsed_content[0]];
+			int v2 = vertex_id_map[Parsed_content[1]];
+			weight_type ec = Parsed_content.size() > 2 ? std::stod(Parsed_content[2]) : 1;
+			graph_structure<weight_type>::add_edge(v1, v2, ec);
+		}
+		myfile.close();
+	}
+	else {
+		std::cout << "Unable to open file " << e_path << std::endl
+			<< "Please check the file location or file name." << std::endl;
+		getchar();
+		exit(1);
+	}
+
 }
 
 template <typename weight_type>
@@ -301,19 +369,17 @@ public:
 template <typename weight_type>
 ARRAY_graph<weight_type> graph_structure<weight_type>::toARRAY() {
 
-	int N = ADJs.size();
-
 	ARRAY_graph<weight_type> ARRAY;
 	auto& Neighbor_start_pointers = ARRAY.Neighbor_start_pointers;
 	auto& Neighbor_sizes = ARRAY.Neighbor_sizes;
 	auto& Edges = ARRAY.Edges;
 	auto& Edge_weights = ARRAY.Edge_weights;
 
-	Neighbor_start_pointers.resize(N + 1);
-	Neighbor_sizes.resize(N);
+	Neighbor_start_pointers.resize(V + 1);
+	Neighbor_sizes.resize(V);
 
 	int pointer = 0;
-	for (int i = 0; i < N; i++) {
+	for (int i = 0; i < V; i++) {
 		Neighbor_start_pointers[i] = pointer;
 		Neighbor_sizes[i] = ADJs[i].size();
 		for (auto& xx : ADJs[i]) {
@@ -322,7 +388,7 @@ ARRAY_graph<weight_type> graph_structure<weight_type>::toARRAY() {
 		}
 		pointer += ADJs[i].size();
 	}
-	Neighbor_start_pointers[N] = pointer;
+	Neighbor_start_pointers[V] = pointer;
 
 	return ARRAY;
 }
