@@ -10,7 +10,7 @@ a cpp file (try.cpp) for running the following example code:
 #include <fstream>
 using namespace std;
 
-#include <build_in_progress\CPU_GPU_project\graph_structure.h>
+#include <graph_structure/graph_structure.h>
 
 
 int main()
@@ -21,7 +21,7 @@ int main()
 ------------------------------------------------------------------------------------------
 Commends for running the above cpp file on Linux:
 
-g++ -std=c++17 -I/home/boost_1_75_0 -I/root/rucgraph try.cpp -lpthread -O3 -o A
+g++ -std=c++17 -I/home/boost_1_75_0 -I/root/CPU_GPU_project try.cpp -lpthread -O3 -o A
 ./A
 rm A
 
@@ -48,33 +48,29 @@ template <typename weight_type> // weight_type may be int, long long int, float,
 class graph_structure {
 public:
 	/*
-	this class only suits ideal vertex IDs: from 0 to V-1;
-
-	this class is for undirected and edge-weighted graph
+	this class is for directed and edge-weighted graph
 	*/
 
 	int V = 0; // number of vertices
 	long long int E = 0; // number of edges
 
-	// ADJs[u] = v means there is an edge starting from u to v
-	std::vector<std::vector<std::pair<int, weight_type>>> ADJs;
-	// ADJs_T is transpose of ADJs. ADJs_T[u] = v means there is an edge starting from v to u
-	std::vector<std::vector<std::pair<int, weight_type>>> ADJs_T;
+	// OUTs[u] = v means there is an edge starting from u to v
+	std::vector<std::vector<std::pair<int, weight_type>>> OUTs;
+	// INs is transpose of OUTs. INs[u] = v means there is an edge starting from v to u
+	std::vector<std::vector<std::pair<int, weight_type>>> INs;
 
-	std::unordered_map<std::string, int> vertex_id_map; // vertex_id_map[vertex_name] = vertex_id
+	std::unordered_map<std::string, int> vertex_id_string2int; // vertex_id_string2int[vertex_name] = vertex_id
+	std::unordered_map<int, std::string> vertex_id_int2string;
 
 	/*constructors*/
 	graph_structure() {}
 	graph_structure(int n) {
 		V = n;
-		ADJs.resize(n); // initialize n vertices
-		ADJs_T.resize(n);
+		OUTs.resize(n); // initialize n vertices
+		INs.resize(n);
 	}
 	int size() {
 		return V;
-	}
-	std::vector<std::pair<int, weight_type>>& operator[](int i) {
-		return ADJs[i];
 	}
 
 	void load_LDBC(std::string v_path, std::string e_path);
@@ -116,8 +112,8 @@ void graph_structure<weight_type>::add_edge(int e1, int e2, weight_type ec) {
 	 */
 
 	E++;
-	sorted_vector_binary_operations_insert(ADJs[e1], e2, ec);
-	sorted_vector_binary_operations_insert(ADJs_T[e2], e1, ec);
+	sorted_vector_binary_operations_insert(OUTs[e1], e2, ec);
+	sorted_vector_binary_operations_insert(INs[e2], e1, ec);
 }
 
 template <typename weight_type>
@@ -131,26 +127,26 @@ void graph_structure<weight_type>::remove_edge(int e1, int e2) {
 	*/
 
 	E--;
-	sorted_vector_binary_operations_erase(ADJs[e1], e2);
-	sorted_vector_binary_operations_erase(ADJs_T[e2], e1);
+	sorted_vector_binary_operations_erase(OUTs[e1], e2);
+	sorted_vector_binary_operations_erase(INs[e2], e1);
 }
 
 template <typename weight_type>
 void graph_structure<weight_type>::remove_all_adjacent_edges(int v) {
 
-	for (auto it = ADJs[v].begin(); it != ADJs[v].end(); it++) {
-		sorted_vector_binary_operations_erase(ADJs[it->first], v);
+	for (auto it = OUTs[v].begin(); it != OUTs[v].end(); it++) {
+		sorted_vector_binary_operations_erase(OUTs[it->first], v);
 	}
 
-	for (auto it = ADJs_T[v].begin(); it != ADJs_T[v].end(); it++) {
-		sorted_vector_binary_operations_erase(ADJs_T[it->first], v);
+	for (auto it = INs[v].begin(); it != INs[v].end(); it++) {
+		sorted_vector_binary_operations_erase(INs[it->first], v);
 	}
 
-	E -= ADJs[v].size();
-	E -= ADJs_T[v].size();
+	E -= OUTs[v].size();
+	E -= INs[v].size();
 
-	std::vector<std::pair<int, weight_type>>().swap(ADJs[v]);
-	std::vector<std::pair<int, weight_type>>().swap(ADJs_T[v]);
+	std::vector<std::pair<int, weight_type>>().swap(OUTs[v]);
+	std::vector<std::pair<int, weight_type>>().swap(INs[v]);
 }
 
 template <typename weight_type>
@@ -161,7 +157,7 @@ bool graph_structure<weight_type>::contain_edge(int e1, int e2) {
 	Time complexity: O(logn)
 	*/
 
-	return sorted_vector_binary_operations_search(ADJs[e1], e2);
+	return sorted_vector_binary_operations_search(OUTs[e1], e2);
 }
 
 template <typename weight_type>
@@ -173,7 +169,7 @@ weight_type graph_structure<weight_type>::edge_weight(int e1, int e2) {
 	Time complexity: O(logn)
 	*/
 
-	return sorted_vector_binary_operations_search_weight(ADJs[e1], e2);
+	return sorted_vector_binary_operations_search_weight(OUTs[e1], e2);
 }
 
 template <typename weight_type>
@@ -193,9 +189,9 @@ void graph_structure<weight_type>::print() {
 
 	for (int i = 0; i < V; i++) {
 		std::cout << "Vertex " << i << " Adj List: ";
-		int v_size = ADJs[i].size();
+		int v_size = OUTs[i].size();
 		for (int j = 0; j < v_size; j++) {
-			std::cout << "<" << ADJs[i][j].first << "," << ADJs[i][j].second << "> ";
+			std::cout << "<" << OUTs[i][j].first << "," << OUTs[i][j].second << "> ";
 		}
 		std::cout << std::endl;
 	}
@@ -205,30 +201,18 @@ void graph_structure<weight_type>::print() {
 
 template <typename weight_type>
 void graph_structure<weight_type>::clear() {
-	std::vector<std::vector<std::pair<int, weight_type>>>().swap(ADJs);
-	std::vector<std::vector<std::pair<int, weight_type>>>().swap(ADJs_T);
+	std::vector<std::vector<std::pair<int, weight_type>>>().swap(OUTs);
+	std::vector<std::vector<std::pair<int, weight_type>>>().swap(INs);
 }
 
 template <typename weight_type>
 int graph_structure<weight_type>::out_degree(int v) {
-	return ADJs[v].size();
+	return OUTs[v].size();
 }
 
 template <typename weight_type>
 int graph_structure<weight_type>::in_degree(int v) {
-	return ADJs_T[v].size();
-}
-
-template <typename weight_type>
-int graph_structure<weight_type>::search_adjv_by_weight(int e1, weight_type ec) {
-
-	for (auto& xx : ADJs[e1]) {
-		if (xx.second == ec) {
-			return xx.first;
-		}
-	}
-
-	return -1;
+	return INs[v].size();
 }
 
 template <typename weight_type>
@@ -245,10 +229,10 @@ void graph_structure<weight_type>::txt_save(std::string save_name) {
 	outputFile << std::endl;
 
 	for (int i = 0; i < V; i++) {
-		int v_size = ADJs[i].size();
+		int v_size = OUTs[i].size();
 		for (int j = 0; j < v_size; j++) {
-			if (i < ADJs[i][j].first) {
-				outputFile << "Edge " << i << " " << ADJs[i][j].first << " " << ADJs[i][j].second << '\n';
+			if (i < OUTs[i][j].first) {
+				outputFile << "Edge " << i << " " << OUTs[i][j].first << " " << OUTs[i][j].second << '\n';
 			}
 		}
 	}
@@ -273,8 +257,8 @@ void graph_structure<weight_type>::txt_read(std::string save_name) {
 			if (!Parsed_content[0].compare("|V|=")) // when it's equal, compare returns 0
 			{
 				V = std::stoi(Parsed_content[1]);
-				ADJs.resize(V);
-				ADJs_T.resize(V);
+				OUTs.resize(V);
+				INs.resize(V);
 			}
 			else if (!Parsed_content[0].compare("Edge"))
 			{
@@ -305,8 +289,8 @@ void graph_structure<weight_type>::load_LDBC(std::string v_path, std::string e_p
 
 	if (myfile.is_open()) {
 		while (getline(myfile, line_content)) {
-			if (vertex_id_map.find(line_content) == vertex_id_map.end())
-				vertex_id_map[line_content] = V++;
+			if (vertex_id_string2int.find(line_content) == vertex_id_string2int.end())
+				vertex_id_string2int[line_content] = V++;
 		}
 		myfile.close();
 	}
@@ -317,16 +301,16 @@ void graph_structure<weight_type>::load_LDBC(std::string v_path, std::string e_p
 		exit(1);
 	}
 
-	ADJs.resize(V);
-	ADJs_T.resize(V);
+	OUTs.resize(V);
+	INs.resize(V);
 
 	myfile.open(e_path);
 
 	if (myfile.is_open()) {
 		while (getline(myfile, line_content)) {
 			std::vector<std::string> Parsed_content = parse_string(line_content, " ");
-			int v1 = vertex_id_map[Parsed_content[0]];
-			int v2 = vertex_id_map[Parsed_content[1]];
+			int v1 = vertex_id_string2int[Parsed_content[0]];
+			int v2 = vertex_id_string2int[Parsed_content[1]];
 			weight_type ec = Parsed_content.size() > 2 ? std::stod(Parsed_content[2]) : 1;
 			graph_structure<weight_type>::add_edge(v1, v2, ec);
 		}
@@ -344,13 +328,13 @@ void graph_structure<weight_type>::load_LDBC(std::string v_path, std::string e_p
 template <typename weight_type>
 void graph_structure<weight_type>::binary_save(std::string save_name) {
 
-	binary_save_vector_of_vectors(save_name, ADJs);
+	binary_save_vector_of_vectors(save_name, OUTs);
 }
 
 template <typename weight_type>
 void graph_structure<weight_type>::binary_read(std::string save_name) {
 
-	binary_read_vector_of_vectors(save_name, ADJs);
+	binary_read_vector_of_vectors(save_name, OUTs);
 }
 
 template <typename weight_type>
@@ -381,12 +365,12 @@ ARRAY_graph<weight_type> graph_structure<weight_type>::toARRAY() {
 	int pointer = 0;
 	for (int i = 0; i < V; i++) {
 		Neighbor_start_pointers[i] = pointer;
-		Neighbor_sizes[i] = ADJs[i].size();
-		for (auto& xx : ADJs[i]) {
+		Neighbor_sizes[i] = OUTs[i].size();
+		for (auto& xx : OUTs[i]) {
 			Edges.push_back(xx.first);
 			Edge_weights.push_back(xx.second);
 		}
-		pointer += ADJs[i].size();
+		pointer += OUTs[i].size();
 	}
 	Neighbor_start_pointers[V] = pointer;
 
@@ -467,5 +451,4 @@ void graph_structure_example() {
 	g.print(); // print the graph
 
 	std::cout << "g.size()= " << g.size() << '\n';
-	std::cout << "g[2].size()= " << g[2].size() << '\n';
 }

@@ -14,7 +14,7 @@ using namespace std;
 #include <boost/random.hpp>
 boost::random::mt19937 boost_random_time_seed{ static_cast<std::uint32_t>(std::time(0)) };
 
-#include <build_in_progress/CPU_GPU_project/test_CPU.h>
+#include <CPU_GPU_project/test_CPU.h>
 
 
 int main()
@@ -25,7 +25,7 @@ int main()
 ------------------------------------------------------------------------------------------
 Commends for running the above cpp file on Linux:
 
-g++ -std=c++17 -I/home/boost_1_75_0 -I/root/rucgraph try.cpp -lpthread -Ofast -o A
+g++ -std=c++17 -I/home/boost_1_75_0 -I/root/CPU_GPU_project try.cpp -lpthread -Ofast -o A
 ./A
 rm A
 
