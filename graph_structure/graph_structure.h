@@ -62,6 +62,7 @@ public:
 	std::vector<std::vector<std::pair<int, weight_type>>> ADJs_T;
 
 	std::unordered_map<std::string, int> vertex_id_map; // vertex_id_map[vertex_name] = vertex_id
+	std::vector<std::string> vertex_name_map; // vertex_name_map[vertex_id] = vertex_name
 
 	/*constructors*/
 	graph_structure() {}
@@ -80,7 +81,9 @@ public:
 	void load_LDBC(std::string v_path, std::string e_path);
 
 	/*class member functions*/
+	inline void add_vertice(std::string); // add a vertice with name
 	inline void add_edge(int, int, weight_type); // this function can change edge weights
+	inline void add_edge(std::string, std::string, weight_type);
 	inline void remove_edge(int, int);
 	inline void remove_all_adjacent_edges(int);
 	inline bool contain_edge(int, int); // whether there is an edge
@@ -102,6 +105,14 @@ public:
 /*class member functions*/
 
 template <typename weight_type>
+void graph_structure<weight_type>::add_vertice(std::string line_content) {
+	if (vertex_id_map.find(line_content) == vertex_id_map.end()) {
+		vertex_name_map.push_back(line_content);
+		vertex_id_map[line_content] = V++;
+	}
+}
+
+template <typename weight_type>
 void graph_structure<weight_type>::add_edge(int e1, int e2, weight_type ec) {
 
 	/*we assume that the size of g is larger than e1 or e2;
@@ -121,6 +132,17 @@ void graph_structure<weight_type>::add_edge(int e1, int e2, weight_type ec) {
 }
 
 template <typename weight_type>
+void graph_structure<weight_type>::add_edge(std::string e1, std::string e2, weight_type ec) {
+	E++;
+	add_vertice(e1);
+	add_vertice(e2);
+	int v1 = vertex_id_map[e1];
+	int v2 = vertex_id_map[e2];
+	sorted_vector_binary_operations_insert(ADJs[v1], v2, ec);
+	sorted_vector_binary_operations_insert(ADJs_T[v2], v1, ec);
+}
+
+template <typename weight_type>
 void graph_structure<weight_type>::remove_edge(int e1, int e2) {
 
 	/*we assume that the size of g is larger than e1 or e2*/
@@ -137,7 +159,6 @@ void graph_structure<weight_type>::remove_edge(int e1, int e2) {
 
 template <typename weight_type>
 void graph_structure<weight_type>::remove_all_adjacent_edges(int v) {
-
 	for (auto it = ADJs[v].begin(); it != ADJs[v].end(); it++) {
 		sorted_vector_binary_operations_erase(ADJs[it->first], v);
 	}
@@ -247,9 +268,8 @@ void graph_structure<weight_type>::txt_save(std::string save_name) {
 	for (int i = 0; i < V; i++) {
 		int v_size = ADJs[i].size();
 		for (int j = 0; j < v_size; j++) {
-			if (i < ADJs[i][j].first) {
+			if (i < ADJs[i][j].first)
 				outputFile << "Edge " << i << " " << ADJs[i][j].first << " " << ADJs[i][j].second << '\n';
-			}
 		}
 	}
 	outputFile << std::endl;
@@ -304,10 +324,8 @@ void graph_structure<weight_type>::load_LDBC(std::string v_path, std::string e_p
 	std::ifstream myfile(v_path);
 
 	if (myfile.is_open()) {
-		while (getline(myfile, line_content)) {
-			if (vertex_id_map.find(line_content) == vertex_id_map.end())
-				vertex_id_map[line_content] = V++;
-		}
+		while (getline(myfile, line_content))
+			add_vertice(line_content);
 		myfile.close();
 	}
 	else {
