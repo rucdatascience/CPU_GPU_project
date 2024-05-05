@@ -59,8 +59,8 @@ public:
 	// INs is transpose of OUTs. INs[u] = v means there is an edge starting from v to u
 	std::vector<std::vector<std::pair<int, weight_type>>> INs;
 
-	std::unordered_map<std::string, int> vertex_id_map; // vertex_id_map[vertex_name] = vertex_id
-	std::vector<std::string> vertex_name_map; // vertex_name_map[vertex_id] = vertex_name
+	std::unordered_map<std::string, int> vertex_str_to_id; // vertex_str_to_id[vertex_name] = vertex_id
+	std::vector<std::string> vertex_id_to_str; // vertex_id_to_str[vertex_id] = vertex_name
 
 	/*constructors*/
 	graph_structure() {}
@@ -101,9 +101,9 @@ public:
 
 template <typename weight_type>
 void graph_structure<weight_type>::add_vertice(std::string line_content) {
-	if (vertex_id_map.find(line_content) == vertex_id_map.end()) {
-		vertex_name_map.push_back(line_content);
-		vertex_id_map[line_content] = V++;
+	if (vertex_str_to_id.find(line_content) == vertex_str_to_id.end()) {
+		vertex_id_to_str.push_back(line_content);
+		vertex_str_to_id[line_content] = V++;
 	}
 }
 
@@ -131,8 +131,8 @@ void graph_structure<weight_type>::add_edge(std::string e1, std::string e2, weig
 	E++;
 	add_vertice(e1);
 	add_vertice(e2);
-	int v1 = vertex_id_map[e1];
-	int v2 = vertex_id_map[e2];
+	int v1 = vertex_str_to_id[e1];
+	int v2 = vertex_str_to_id[e2];
 	sorted_vector_binary_operations_insert(ADJs[v1], v2, ec);
 	sorted_vector_binary_operations_insert(ADJs_T[v2], v1, ec);
 }
