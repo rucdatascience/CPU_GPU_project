@@ -14,17 +14,22 @@ int GRAPHSIZE;
 vector<int> row_ptr, col_indices; 
 vector<int> labels;
 
-void make_csr(graph_structure &graph) {
-    GRAPHSIZE = graph.ADJs.size();
+template <typename T>
+void make_csr(graph_structure<T> &graph) {
+    GRAPHSIZE = graph.size();
     // cout<<GRAPHSIZE<<endl;
     row_ptr.resize(GRAPHSIZE + 1);
     row_ptr[0] = 0;
-    for (int i = 0; i < GRAPHSIZE; i++) {
-        for (int j :graph.ADJs[i]) {
-            col_indices.push_back(j.first);
-        }
-        row_ptr[i + 1] = row_ptr[i] + graph.ADJs[i].size();
-    }
+    CSR_graph<int> ARRAY_graph;
+    ARRAY_graph=graph.toCSR();
+    row_ptr=ARRAY_graph.OUTs_Neighbor_start_pointers;
+    col_indices=ARRAY_graph.OUTs_Edges;
+    // for (int i = 0; i < GRAPHSIZE; i++) {
+    //     for (int j :graph.ADJs[i]) {
+    //         col_indices.push_back(j.first);
+    //     }
+    //     row_ptr[i + 1] = row_ptr[i] + graph.ADJs[i].size();
+    // }
 
     cout << "CSR matrix created" << endl;
 }
@@ -70,7 +75,8 @@ void labelPropagation() {
     }
 }
 
-int Community_Detection(graph_structure& graph) {
+template <typename T>
+int Community_Detection(graph_structure<T>& graph) {
     make_csr(graph, GRAPHSIZE);
     double CPUtime = 0;
     init_label();

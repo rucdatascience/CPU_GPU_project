@@ -12,8 +12,8 @@ int *smallOffset, *normalOffset;
 double *Rank, *diff_array, *reduce_array;
 double *newRank, *F, *temp;
 
-
-int PageRank(graph_structure &graph)
+template <typename T>
+int PageRank(graph_structure<T> &graph)
 {
     cudaMallocManaged(&edgeSize, sizeof(int));
     cudaMallocManaged(&graphSize, sizeof(int));
@@ -28,7 +28,9 @@ int PageRank(graph_structure &graph)
     cudaMallocManaged(&reduce_array, GRAPHSIZE * sizeof(double));
     cudaMallocManaged(&Rank, GRAPHSIZE * sizeof(double));
     cudaMallocManaged(&verticeOrder, GRAPHSIZE * sizeof(int));
+
     makeCSR(graph,GRAPHSIZE);
+
     cudaMallocManaged(&row_value, row_value_vec.size() * sizeof(double));
     std::copy(row_value_vec.begin(), row_value_vec.end(), row_value);
     cudaMallocManaged(&val_col, val_col_vec.size() * sizeof(int));
@@ -100,32 +102,37 @@ bool cmp(const std::vector<pair<int, int>> &a, const std::vector<pair<int, int>>
     return a.size() > b.size();
 }
 
-void makeCSR(graph_structure &graph, int &GRAPHSIZE)
+template <typename T>
+void makeCSR(graph_structure<T> &graph, int &GRAPHSIZE)
 {
     // cout << "makeCSR" << endl;
     int cont_value = 0;
+    GRAPHSIZE=graph.size();
+    CSR_graph<double> ARRAY_graph;
+    ARRAY_graph=graph.toCSR();
+    row_point=ARRAY_graph.INs_Neighbor_start_pointers;
     for (int i = 0; i < GRAPHSIZE; i++)
     {
-        if (i == 0)
-        {
-            row_point[i] = 0;
-        }
-        else
-        {
-            row_point[i] = row_point[i - 1] + graph.ADJs_T[i - 1].size();
-        }
+        // if (i == 0)
+        // {
+        //     row_point[i] = 0;
+        // }
+        // else
+        // {
+        //     row_point[i] = row_point[i - 1] + graph.INs[i - 1].size();
+        // }
 
-        row_size[i] = graph.ADJs_T[i].size();
+        // row_size[i] = graph.ADJs_T[i].size();
 
-        for (auto it : graph.ADJs_T[i])
+        for (auto it : graph.INs[i])
         {
-            row_value_vec.push_back(1.0 / (graph.ADJs[it.first].size()));
-            val_col_vec.push_back(it.first);
+            row_value_vec.push_back(1.0 / (graph.OUTs[it].size()));
+            val_col_vec.push_back(it);
             cont_value++;
         }
     }
 
-    row_point[GRAPHSIZE] = cont_value;
+    // row_point[GRAPHSIZE] = cont_value;
     *edgeSize = cont_value;
     return;
 }
@@ -206,12 +213,12 @@ __global__ void reduce_kernel(double *input, double *output)
 }
 
 
-int main(){
-    std::string file_path;
-    std::cout << "Please input the file path of the graph: ";
-    std::cin >> file_path;
-    graph_structure graph;
-    graph.read_txt(file_path);
-    PageRank(graph);
-    return 0;
-}
+// int main(){
+//     std::string file_path;
+//     std::cout << "Please input the file path of the graph: ";
+//     std::cin >> file_path;
+//     graph_structure<double> graph;
+//     graph.read_txt(file_path);
+//     PageRank(graph);
+//     return 0;
+// }

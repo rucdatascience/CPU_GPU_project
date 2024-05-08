@@ -3,11 +3,13 @@
 #include <vector>
 #include <fstream>
 #include <chrono>
+#include "./graph_structure/graph_structure.h"
 using namespace std;
 #define ALPHA 0.85
 #define TOLERANCE 0.00001
 
 int GRAPHSIZE;
+template <typename T>
 class CSR
 {
 private:
@@ -19,7 +21,8 @@ private:
     vector<int> row_size;
 
 public:
-    void makeCSR(string fileName);
+
+    void makeCSR(graph_structure<T> &graph, int &GRAPHSIZE);
     inline vector<double> *multi_d_M_R(vector<double> *rankVector, double scaling);
     int get_edge_size()
     {
@@ -30,30 +33,34 @@ public:
         return graphSize;
     }
 };
-void CSR::makeCSR(graph_structure &graph, int &GRAPHSIZE)
+
+template <typename T>
+void CSR::makeCSR(graph_structure<T> &graph, int &GRAPHSIZE)
 {
     // cout << "makeCSR" << endl;
     int sumEdge = 0;
-    GRAPHSIZE = graph.ADJs.size();
-
+    GRAPHSIZE = graph.size();
+    CSR_graph<double> ARRAY_graph;
+    ARRAY_graph=graph.toCSR();
+    row_point=ARRAY_graph.INs_Neighbor_start_pointers;
     for (int i = 0; i < GRAPHSIZE; i++)
     {
-        if (i == 0)
+        // if (i == 0)
+        // {
+        //     row_point.push_back(0);
+        // }
+        // else
+        // {
+        //     row_point.push_back(row_point[i - 1] + graph.ADJs_T[i - 1].size());
+        // }
+        for (auto it : graph.INs[i])
         {
-            row_point.push_back(0);
+            value.push_back(1.0 / (graph.OUTs[it].size()));
+            val_col.push_back(it);
         }
-        else
-        {
-            row_point.push_back(row_point[i - 1] + graph.ADJs_T[i - 1].size());
-        }
-        for (auto it : graph.ADJs_T[i])
-        {
-            value.push_back(1.0 / (graph.ADJs[it.first].size()));
-            val_col.push_back(it.first);
-        }
-        sumEdge += graph.ADJs_T[i].size();
+        sumEdge += graph.INs[i].size();
     }
-    row_point.push_back(row_point[GRAPHSIZE - 1] + graph.ADJs_T[GRAPHSIZE - 1].size());
+    // row_point.push_back(row_point[GRAPHSIZE - 1] + graph.ADJs_T[GRAPHSIZE - 1].size());
     edgeSize = sumEdge;
     return;
 }

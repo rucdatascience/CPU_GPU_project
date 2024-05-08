@@ -29,7 +29,8 @@ extern double *newRank, *F, *temp;
 
 // Function prototypes
 bool cmp(const std::vector<pair<int, int>>& a, const std::vector<pair<int, int>>& b);
-void makeCSR(graph_structure &graph, int &GRAPHSIZE);
+template <typename T>
+void makeCSR(graph_structure<T> &graph, int &GRAPHSIZE);
 double Method(double *rank, int &iteration);
 
 // CUDA kernels
@@ -37,7 +38,7 @@ __global__ void add_scaling(double *newRank, double *oldRank, double scaling);
 __global__ void tinySolve(double *newRank, double *rank, double scaling, int *row_point, int *row_size, double *row_value, int *val_col);
 __global__ void vec_diff(double *diff, double *newRank, double *oldRank);
 __global__ void reduce_kernel(double *input, double *output);
-
-int PageRank(graph_structure &graph);
+template <typename T>
+int PageRank(graph_structure<T> &graph);
 
 #endif // PAGERANK_CUH_

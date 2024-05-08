@@ -28,9 +28,10 @@ __global__ void init_label(int* labels_gpu,int GRAPHSIZE);
 __global__ void LPA(int* row_ptr_gpu, int* labels_gpu, int* neighbor_gpu, int* reduce_label, int* reduce_label_count,int GRAPHSIZE,int BLOCK_PER_VER);
 __global__ void Updating_label(int* reduce_label, int* reduce_label_count, int* updating, int* labels_gpu,int GRAPHSIZE,int BLOCK_PER_VER);
 
-
-void make_csr(graph_structure & graph, int& GRAPHSIZE);
-int Community_Detection(graph_structure & graph);
+template <typename T>
+void make_csr(graph_structure<T> & graph, int& GRAPHSIZE);
+template <typename T>
+int Community_Detection(graph_structure<T> & graph);
 
 
 #endif

@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.cpp": "cpp",
+        "vector": "cpp",
+        "xutility": "cpp",
+        "xmemory": "cpp"
+    }
+}

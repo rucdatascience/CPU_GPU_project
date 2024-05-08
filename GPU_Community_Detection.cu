@@ -11,22 +11,28 @@ int* reduce_label, * reduce_label_count;
 int* updating;
 int* edge_size;
 
-void make_csr(graph_structure &graph, int& GRAPHSIZE)
+template <typename T>
+void make_csr(graph_structure<T> &graph, int& GRAPHSIZE)
 {
-    GRAPHSIZE = graph.ADJs.size();
+    GRAPHSIZE = graph.size();
     cout<<GRAPHSIZE<<endl;
     row_ptr.resize(GRAPHSIZE + 1);
     row_ptr[0] = 0;
-    for (int i = 0; i < GRAPHSIZE; i++)
-    {
-        for (auto& edge : graph.ADJs[i])
-        {
-            int neighbor_vertex = edge.first;
-            neighbor.push_back(neighbor_vertex);
-            col_indices.push_back(neighbor_vertex);
-        }
-        row_ptr[i + 1] = row_ptr[i] + graph.ADJs[i].size();
-    }
+    CSR_graph<int> ARRAY_graph;
+    ARRAY_graph=graph.toCSR();
+    row_ptr=ARRAY_graph.OUTs_Neighbor_start_pointers;
+    neighbor=ARRAY_graph.OUTs_Edges;
+    col_indices=neighbor;
+    // for (int i = 0; i < GRAPHSIZE; i++)
+    // {
+    //     for (auto& edge : graph.OUTs[i])
+    //     {
+    //         int neighbor_vertex = edge.first;
+    //         neighbor.push_back(neighbor_vertex);
+    //         col_indices.push_back(neighbor_vertex);
+    //     }
+    //     row_ptr[i + 1] = row_ptr[i] + graph.ADJs[i].size();
+    // }
     cout << "CSR 矩阵已创建" << endl;
 }
 
@@ -117,7 +123,7 @@ __global__ void Updating_label(int* reduce_label, int* reduce_label_count, int* 
     return;
 }
 
-int Community_Detection(graph_structure& graph)
+int Community_Detection(graph_structure<int>& graph)
 {
     make_csr(graph,GRAPHSIZE);
 
