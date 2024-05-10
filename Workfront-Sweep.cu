@@ -33,9 +33,9 @@ __global__ void CompactQueue(int V, int* next_queue, int* next_queue_size, int* 
     }
 }
 
-void Workfront_Sweep(ARRAY_graph<int>& input_graph, int source, std::vector<int>& distance, int max_dis) {
-    int V = input_graph.Neighbor_start_pointers.size() - 1;
-    int E = input_graph.Edges.size();
+void Workfront_Sweep(CSR_graph<int>& input_graph, int source, std::vector<int>& distance, int max_dis) {
+    int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
+    int E = input_graph.OUTs_Edges.size();
 
     int* dis;
     int* edges;
@@ -61,9 +61,9 @@ void Workfront_Sweep(ARRAY_graph<int>& input_graph, int source, std::vector<int>
 		visited[i] = 0;
 	}
     dis[source] = 0;
-    cudaMemcpy(offsets, input_graph.Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(edges, input_graph.Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(weights, input_graph.Edge_weights.data(), E * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(offsets, input_graph.OUTs_Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(edges, input_graph.OUTs_Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(weights, input_graph.OUTs_Edge_weights.data(), E * sizeof(int), cudaMemcpyHostToDevice);
 
     *queue_size = 1;
     queue[0] = source;
@@ -127,7 +127,7 @@ void Workfront_Sweep(ARRAY_graph<int>& input_graph, int source, std::vector<int>
     return;
 }
 
-int main()
+/*int main()
 {
     std::string file_path;
     std::cout << "Please input the file path of the graph: ";
@@ -146,7 +146,7 @@ int main()
     }
     printf("GPU average time: %f ms\n", sum / V);
     return 0;
-}
+}*/
 
 /*
 

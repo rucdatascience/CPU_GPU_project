@@ -20,9 +20,9 @@ __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int
 float elapsedTime = 0.0;
 
 template <typename T>
-std::vector<int> cuda_bfs(ARRAY_graph<T>& input_graph, int source_vertex, int max_depth) {
-    int V = input_graph.Neighbor_start_pointers.size() - 1;
-    int E = input_graph.Edges.size();
+std::vector<int> cuda_bfs(CSR_graph<T>& input_graph, int source_vertex, int max_depth) {
+    int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
+    int E = input_graph.OUTs_Edges.size();
 
     std::vector<int> depth(V, max_depth);
 
@@ -45,8 +45,8 @@ std::vector<int> cuda_bfs(ARRAY_graph<T>& input_graph, int source_vertex, int ma
     cudaMallocManaged((void**)&edges, E * sizeof(int));
     cudaMallocManaged((void**)&start, V * sizeof(int));
 
-    cudaMemcpy(edges, input_graph.Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(start, input_graph.Neighbor_start_pointers.data(), V * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(edges, input_graph.OUTs_Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(start, input_graph.OUTs_Neighbor_start_pointers.data(), V * sizeof(int), cudaMemcpyHostToDevice);
 
     queue[0] = source_vertex;
     for (int i = 0; i < V; i++)
@@ -99,7 +99,7 @@ std::vector<int> cuda_bfs(ARRAY_graph<T>& input_graph, int source_vertex, int ma
     return depth;
 }
 
-int main()
+/*int main()
 {
     std::string file_path;
     std::cout << "Please input the file path of the graph: ";
@@ -117,7 +117,7 @@ int main()
     }
     printf("GPU average cost time: %f ms\n", sum / V);
     return 0;
-}
+}*/
 
 /*
 
