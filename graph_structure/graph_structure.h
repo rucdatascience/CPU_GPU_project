@@ -51,6 +51,9 @@ public:
 	this class is for directed and edge-weighted graph
 	*/
 
+	int V = 0; // the number of vertices
+	long long E = 0; // the number of edges
+
 	// OUTs[u] = v means there is an edge starting from u to v
 	std::vector<std::vector<std::pair<int, weight_type>>> OUTs;
 	// INs is transpose of OUTs. INs[u] = v means there is an edge starting from v to u
@@ -104,30 +107,35 @@ public:
 
 	
 	*/
+	bool is_directed = true;
+	bool is_weight = false;
+	bool is_sssp_weight = true;
+
+	bool sup_bfs = false;
+	bool sup_cdlp = false;
+	bool sup_pr = false;
+	bool sup_wcc = false;
+	bool sup_sssp = false;
+
+	int id = 0;
+	int bfs_src = 0;
+	int cdlp_max_its = 10;
+	int pr_its = 10;
+	int sssp_src = 0;
+	double pr_damping = 0.85;
+
 	void load_LDBC(std::string v_path, std::string e_path);
 	std::unordered_map<std::string, int> vertex_str_to_id; // vertex_str_to_id[vertex_name] = vertex_id
 	std::vector<std::string> vertex_id_to_str; // vertex_id_to_str[vertex_id] = vertex_name
 
-	
+	int add_vertice(std::string);
+	void add_edge(std::string, std::string, weight_type);
 
-	
+	std::string vertex_file, edge_file;
 
-	
-
-	
-	
-	
-
-
+	void read_config(std::string config_path);
 	
 };
-
-
-
-
-
-
-
 
 /*class member functions*/
 
@@ -166,13 +174,11 @@ void graph_structure<weight_type>::remove_edge(int e1, int e2) {
 template <typename weight_type>
 void graph_structure<weight_type>::remove_all_adjacent_edges(int v) {
 
-	for (auto it = OUTs[v].begin(); it != OUTs[v].end(); it++) {
-		sorted_vector_binary_operations_erase(OUTs[it->first], v);
-	}
-
-	for (auto it = INs[v].begin(); it != INs[v].end(); it++) {
+	for (auto it = OUTs[v].begin(); it != OUTs[v].end(); it++)
 		sorted_vector_binary_operations_erase(INs[it->first], v);
-	}
+
+	for (auto it = INs[v].begin(); it != INs[v].end(); it++)
+		sorted_vector_binary_operations_erase(OUTs[it->first], v);
 
 	std::vector<std::pair<int, weight_type>>().swap(OUTs[v]);
 	std::vector<std::pair<int, weight_type>>().swap(INs[v]);
@@ -250,22 +256,18 @@ void graph_structure<weight_type>::print() {
 
 }
 
-
-
-
-
 /*for GPU*/
 
 template <typename weight_type>
 class CSR_graph {
-public:
-	std::vector<int> INs_Neighbor_start_pointers, OUTs_Neighbor_start_pointers; // Neighbor_start_pointers[i] is the start point of neighbor information of vertex i in Edges and Edge_weights
-	/*
-		Now, Neighbor_sizes[i] = Neighbor_start_pointers[i + 1] - Neighbor_start_pointers[i].
-		And Neighbor_start_pointers[V] = Edges.size() = Edge_weights.size() = the total number of edges.
-	*/
-	std::vector<int> INs_Edges, OUTs_Edges;  // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
-	std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
+	public:
+		std::vector<int> INs_Neighbor_start_pointers, OUTs_Neighbor_start_pointers; // Neighbor_start_pointers[i] is the start point of neighbor information of vertex i in Edges and Edge_weights
+		/*
+			Now, Neighbor_sizes[i] = Neighbor_start_pointers[i + 1] - Neighbor_start_pointers[i].
+			And Neighbor_start_pointers[V] = Edges.size() = Edge_weights.size() = the total number of edges.
+		*/
+		std::vector<int> INs_Edges, OUTs_Edges;  // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
+		std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
 };
 
 template <typename weight_type>
@@ -281,54 +283,175 @@ CSR_graph<weight_type> graph_structure<weight_type>::toCSR() {
 	for (int i = 0; i < V; i++) {
 		ARRAY.INs_Neighbor_start_pointers[i] = pointer;
 		for (auto& xx : INs[i]) {
-			INs_Edges.push_back(xx.first);
-			INs_Edge_weights.push_back(xx.second);
+			ARRAY.INs_Edges.push_back(xx.first);
+			ARRAY.INs_Edge_weights.push_back(xx.second);
 		}
 		pointer += INs[i].size();
 	}
-	INs_Neighbor_start_pointers[V] = pointer;
+	ARRAY.INs_Neighbor_start_pointers[V] = pointer;
 
 	pointer = 0;
 	for (int i = 0; i < V; i++) {
 		ARRAY.OUTs_Neighbor_start_pointers[i] = pointer;
 		for (auto& xx : OUTs[i]) {
-			OUTs_Edges.push_back(xx.first);
-			OUTs_Edge_weights.push_back(xx.second);
+			ARRAY.OUTs_Edges.push_back(xx.first);
+			ARRAY.OUTs_Edge_weights.push_back(xx.second);
 		}
 		pointer += OUTs[i].size();
 	}
-	OUTs_Neighbor_start_pointers[V] = pointer;
+	ARRAY.OUTs_Neighbor_start_pointers[V] = pointer;
 
 	return ARRAY;
 }
 
+template <typename weight_type>
+void graph_structure<weight_type>::read_config(std::string config_path) {
+	std::ifstream file(config_path);
+    std::string line;
 
+    if (!file.is_open()) {
+        std::cerr << "Unable to open file: " << config_path << std::endl;
+        return;
+    }
 
+	std::cout << "Reading config file..." << std::endl;
 
+    while (getline(file, line)) {
+		if (line.empty() || line[0] == '#')
+			continue;
 
+		auto split_str = parse_string(line, " = ");
 
+		if (split_str.size() != 2) {
+			std::cerr << "Invalid line: " << line << std::endl;
+			continue;
+		}
 
+        auto key = split_str[0];
+		auto value = split_str[1];
 
-
-
+        auto parts = parse_string(key, ".");
+        if (parts.size() >= 2) {
+			if (parts.back() == "vertex-file") {
+				vertex_file = value;
+				std::cout << "vertex_file: " << vertex_file << std::endl;
+			}
+			else if (parts.back() == "edge-file") {
+				edge_file = value;
+				std::cout << "edge_file: " << edge_file << std::endl;
+			}
+			else if (parts.back() == "vertices") {
+				V = stoi(value);
+				std::cout << "V: " << V << std::endl;
+			}
+			else if (parts.back() == "edges") {
+				E = stoi(value);
+				std::cout << "E: " << E << std::endl;
+			}
+			else if (parts.back() == "directed") {
+				if (value == "false")
+					is_directed = false;
+				else
+					is_directed = true;
+				std::cout << "is_directed: " << is_directed << std::endl;
+			}
+			else if (parts.back() == "names") {
+				if (value == "weight")
+					is_weight = true;
+				else
+					is_weight = false;
+				std::cout << "is_weight: " << is_weight << std::endl;
+			}
+			else if (parts.back() == "algorithms") {
+				auto algorithms = parse_string(value, ", ");
+				for (auto& algorithm : algorithms) {
+					if (algorithm == "bfs")
+						sup_bfs = true;
+					else if (algorithm == "cdlp")
+						sup_cdlp = true;
+					else if (algorithm == "pr")
+						sup_pr = true;
+					else if (algorithm == "sssp")
+						sup_sssp = true;
+					else if (algorithm == "wcc")
+						sup_wcc = true;
+				}
+				std::cout << "bfs: " << sup_bfs << std::endl;
+				std::cout << "cdlp: " << sup_cdlp << std::endl;
+				std::cout << "pr: " << sup_pr << std::endl;
+				std::cout << "sssp: " << sup_sssp << std::endl;
+				std::cout << "wcc: " << sup_wcc << std::endl;
+			}
+			else if (parts.back() == "cdlp-max-iterations") {
+				cdlp_max_its = stoi(value);
+				std::cout << "cdlp_max_its: " << cdlp_max_its << std::endl;
+			}
+			else if (parts.back() == "pr-damping-factor") {
+				pr_damping = stod(value);
+				std::cout << "pr_damping: " << pr_damping << std::endl;
+			}
+			else if (parts.back() == "pr-num-iterations") {
+				pr_its = stoi(value);
+				std::cout << "pr_its: " << pr_its << std::endl;
+			}
+			else if (parts.back() == "sssp-weight-property") {
+				if (value == "weight")
+					is_sssp_weight = true;
+				else
+					is_sssp_weight = false;
+				std::cout << "is_sssp_weight: " << is_sssp_weight << std::endl;
+			}
+			else if (parts.back() == "max-iterations") {
+				cdlp_max_its = stoi(value);
+				std::cout << "cdlp_max_its: " << cdlp_max_its << std::endl;
+			}
+			else if (parts.back() == "damping-factor") {
+				pr_damping = stod(value);
+				std::cout << "pr_damping: " << pr_damping << std::endl;
+			}
+			else if (parts.back() == "num-iterations") {
+				pr_its = stoi(value);
+				std::cout << "pr_its: " << pr_its << std::endl;
+			}
+			else if (parts.back() == "weight-property") {
+				if (value == "weight")
+					is_sssp_weight = true;
+				else
+					is_sssp_weight = false;
+				std::cout << "is_sssp_weight: " << is_sssp_weight << std::endl;
+			}
+            else if (parts.back() == "source-vertex") {
+				if (parts[parts.size() - 2] == "bfs") {
+					bfs_src = add_vertice(value);
+					std::cout << "bfs_source_vertex: " << value << " id: " << bfs_src << std::endl;
+				}
+				else {
+					sssp_src = add_vertice(value);
+					std::cout << "sssp_source_vertex: " << value << " id: " << sssp_src << std::endl;
+				}
+            }
+        }
+    }
+	std::cout << "Done." << std::endl; 
+    file.close();
+}
 
 template <typename weight_type>
-void graph_structure<weight_type>::add_vertice(std::string line_content) {
+int graph_structure<weight_type>::add_vertice(std::string line_content) {
 	if (vertex_str_to_id.find(line_content) == vertex_str_to_id.end()) {
 		vertex_id_to_str.push_back(line_content);
-		vertex_str_to_id[line_content] = V++;
+		vertex_str_to_id[line_content] = id++;
 	}
+	return vertex_str_to_id[line_content];
 }
 
 template <typename weight_type>
 void graph_structure<weight_type>::add_edge(std::string e1, std::string e2, weight_type ec) {
 	E++;
-	add_vertice(e1);
-	add_vertice(e2);
-	int v1 = vertex_str_to_id[e1];
-	int v2 = vertex_str_to_id[e2];
-	sorted_vector_binary_operations_insert(ADJs[v1], v2, ec);
-	sorted_vector_binary_operations_insert(ADJs_T[v2], v1, ec);
+	int v1 = add_vertice(e1);
+	int v2 = add_vertice(e2);
+	sorted_vector_binary_operations_insert(INs[v1], v2, ec);
+	sorted_vector_binary_operations_insert(OUTs[v2], v1, ec);
 }
 
 
@@ -359,8 +482,8 @@ void graph_structure<weight_type>::load_LDBC(std::string v_path, std::string e_p
 	if (myfile.is_open()) {
 		while (getline(myfile, line_content)) {
 			std::vector<std::string> Parsed_content = parse_string(line_content, " ");
-			int v1 = vertex_id_string2int[Parsed_content[0]];
-			int v2 = vertex_id_string2int[Parsed_content[1]];
+			int v1 = add_vertice(Parsed_content[0]);
+			int v2 = add_vertice(Parsed_content[1]);
 			weight_type ec = Parsed_content.size() > 2 ? std::stod(Parsed_content[2]) : 1;
 			graph_structure<weight_type>::add_edge(v1, v2, ec);
 		}
@@ -372,7 +495,6 @@ void graph_structure<weight_type>::load_LDBC(std::string v_path, std::string e_p
 		getchar();
 		exit(1);
 	}
-
 }
 
 
@@ -446,9 +568,6 @@ void graph_structure_example() {
 	g.print(); // print the graph
 
 	g.remove_all_adjacent_edges(1);
-
-	g.txt_save("ss.txt");
-	g.txt_read("ss.txt");
 
 	g.print(); // print the graph
 
