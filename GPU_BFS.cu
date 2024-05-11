@@ -17,10 +17,8 @@ __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int
     }
 }
 
-float elapsedTime = 0.0;
-
 template <typename T>
-std::vector<int> cuda_bfs(CSR_graph<T>& input_graph, int source_vertex, int max_depth) {
+std::vector<int> cuda_bfs(CSR_graph<T>& input_graph, int source_vertex, int max_depth, float* elapsedTime) {
     int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
 
@@ -82,7 +80,7 @@ std::vector<int> cuda_bfs(CSR_graph<T>& input_graph, int source_vertex, int max_
 
     cudaEventRecord(stop_clock, 0);
     cudaEventSynchronize(stop_clock);
-    cudaEventElapsedTime(&elapsedTime, start_clock, stop_clock);
+    cudaEventElapsedTime(elapsedTime, start_clock, stop_clock);
 
     cudaEventDestroy(start_clock);
     cudaEventDestroy(stop_clock);
