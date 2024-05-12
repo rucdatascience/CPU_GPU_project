@@ -3,6 +3,7 @@
         "*.cpp": "cpp",
         "vector": "cpp",
         "xutility": "cpp",
-        "xmemory": "cpp"
+        "xmemory": "cpp",
+        "type_traits": "cpp"
     }
 }

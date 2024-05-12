@@ -30,7 +30,8 @@ int PageRank(graph_structure<T> &graph)
     cudaMallocManaged(&verticeOrder, GRAPHSIZE * sizeof(int));
 
     makeCSR(graph,GRAPHSIZE);
-
+    ALPHA=graph.pr_damping;
+    ITERATION=graph.cdlp_max_its;
     cudaMallocManaged(&row_value, row_value_vec.size() * sizeof(double));
     std::copy(row_value_vec.begin(), row_value_vec.end(), row_value);
     cudaMallocManaged(&val_col, val_col_vec.size() * sizeof(int));
@@ -56,27 +57,24 @@ int PageRank(graph_structure<T> &graph)
         cudaEventCreate(&GPUstop);
         cudaEventRecord(GPUstart, 0);
 
-        while (diff > TOLERANCE)
+        while (iteraion<ITERATION)
         {
             tinySolve<<<blockPerGrid, threadPerGrid>>>(F, Rank, d, row_point, row_size, row_value, val_col);
             cudaDeviceSynchronize();
             add_scaling<<<blockPerGrid, threadPerGrid>>>(newRank, F, d_ops);
             cudaDeviceSynchronize();
-            vec_diff<<<blockPerGrid, threadPerGrid, 2 * 512 * sizeof(double)>>>(diff_array, newRank, Rank);
-            cudaDeviceSynchronize();
-            //  for(int i=0;i<GRAPHSIZE;i++){
-            //  	diff_array[i]=abs(newRank[i]-Rank[i]);
-            //  }
-            reduce_kernel<<<blockPerGrid, threadPerGrid, 512 * sizeof(double)>>>(diff_array, reduce_array);
-            cudaDeviceSynchronize();
-            diff = -1;
-            for (int i = 0; i < (GRAPHSIZE + THREAD_PER_BLOCK) / THREAD_PER_BLOCK; i++)
-            {
-                if (reduce_array[i] > diff)
-                {
-                    diff = reduce_array[i];
-                }
-            }
+            // vec_diff<<<blockPerGrid, threadPerGrid, 2 * 512 * sizeof(double)>>>(diff_array, newRank, Rank);
+            // cudaDeviceSynchronize();
+            // reduce_kernel<<<blockPerGrid, threadPerGrid, 512 * sizeof(double)>>>(diff_array, reduce_array);
+            // cudaDeviceSynchronize();
+            // diff = -1;
+            // for (int i = 0; i < (GRAPHSIZE + THREAD_PER_BLOCK) / THREAD_PER_BLOCK; i++)
+            // {
+            //     if (reduce_array[i] > diff)
+            //     {
+            //         diff = reduce_array[i];
+            //     }
+            // }
             temp = newRank;
             newRank = Rank;
             Rank = temp;

@@ -15,9 +15,8 @@ using namespace std;
 #define SMALL_BOUND 6
 #define NORMAL_BOUND 96
 #define THREAD_PER_BLOCK 512
-#define TOLERANCE 0.00001
-#define ALPHA 0.85
-
+extern int ITERATION;
+extern int ALPHA;
 // External global variables
 extern int GRAPHSIZE;
 extern int *graphSize, *edgeSize;

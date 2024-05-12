@@ -5,8 +5,8 @@
 #include <chrono>
 #include "./graph_structure/graph_structure.h"
 using namespace std;
-#define ALPHA 0.85
-#define TOLERANCE 0.00001
+int ALPHA=0.85;
+int ITERATION=10;
 
 int GRAPHSIZE;
 template <typename T>
@@ -136,11 +136,11 @@ vector<double> *Method(CSR *csr, vector<double> *rankVec, int &iteration)
     double d = ALPHA, d_ops = (1 - ALPHA) / graphSize;
     vector<double> *newRankVec = new vector<double>(graphSize);
     vector<double> *F = new vector<double>(graphSize);
-    while (diff > TOLERANCE)
+    while (iteration<ITERATION)
     {
         F = csr->multi_d_M_R(rankVec, d);
         newRankVec = add_scaling(F, d_ops);
-        diff = vec_diff(rankVec, newRankVec);
+        // diff = vec_diff(rankVec, newRankVec);
         rankVec = newRankVec;
         iteration++;
         // cout << "diff :" << diff <<"  iteration : "<<iteration << endl;
@@ -156,7 +156,8 @@ int PageRank(graph_structure &graph)
     csr->makeCSR(graph,GRAPHSIZE);
     int size = csr->get_graph_size();
     double total = 0;
-
+    ALPHA=graph.pr_damping;
+    ITERATION=graph.cdlp_max_its;
     vector<double> *rank = new vector<double>(size, 1.0 / size);
     vector<double> *ans = new vector<double>(size);
     int iteration = 0;
