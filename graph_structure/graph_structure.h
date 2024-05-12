@@ -37,9 +37,9 @@ rm A
 #include <cstring>
 #include <fstream>
 #include <unordered_map>
-#include "parse_string.h"
-#include "sorted_vector_binary_operations.h"
-#include "binary_save_read_vector_of_vectors.h"
+#include "parse_string.hpp"
+#include "sorted_vector_binary_operations.hpp"
+#include "binary_save_read_vector_of_vectors.hpp"
 
 template <typename weight_type>
 class CSR_graph;
@@ -83,9 +83,6 @@ public:
 	inline int in_degree(int);
 	inline CSR_graph<weight_type> toCSR();
 
-
-
-
 	/* 
 	LDBC 
 
@@ -98,14 +95,8 @@ public:
 
 	先读V，再读E
 
-
-
-
 	LDBC的结果测试方法：      https://www.jianguoyun.com/p/DW-YrpAQvbHvCRiO_bMFIAA      2.4 Output Validation 章节
 
-
-
-	
 	*/
 	bool is_directed = true;
 	bool is_weight = false;
@@ -124,7 +115,7 @@ public:
 	int sssp_src = 0;
 	double pr_damping = 0.85;
 
-	void load_LDBC(std::string v_path, std::string e_path);
+	void load_LDBC();
 	std::unordered_map<std::string, int> vertex_str_to_id; // vertex_str_to_id[vertex_name] = vertex_id
 	std::vector<std::string> vertex_id_to_str; // vertex_id_to_str[vertex_id] = vertex_name
 
@@ -136,6 +127,51 @@ public:
 	void read_config(std::string config_path);
 	
 };
+
+/*for GPU*/
+
+template <typename weight_type>
+class CSR_graph {
+	public:
+		std::vector<int> INs_Neighbor_start_pointers, OUTs_Neighbor_start_pointers; // Neighbor_start_pointers[i] is the start point of neighbor information of vertex i in Edges and Edge_weights
+		/*
+			Now, Neighbor_sizes[i] = Neighbor_start_pointers[i + 1] - Neighbor_start_pointers[i].
+			And Neighbor_start_pointers[V] = Edges.size() = Edge_weights.size() = the total number of edges.
+		*/
+		std::vector<int> INs_Edges, OUTs_Edges;  // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
+		std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
+};
+
+
+/*the following codes are for testing
+
+---------------------------------------------------
+a cpp file (try.cpp) for running the following example code:
+----------------------------------------
+
+#include <iostream>
+#include <fstream>
+using namespace std;
+
+#include <graph_structure/graph_structure.h>
+
+
+int main()
+{
+	graph_structure_example();
+}
+
+------------------------------------------------------------------------------------------
+Commends for running the above cpp file on Linux:
+
+g++ -std=c++17 -I/home/boost_1_75_0 -I/root/CPU_GPU_project try.cpp -lpthread -O3 -o A
+./A
+rm A
+
+(optional to put the above commends in run.sh, and then use the comment: sh run.sh)
+
+
+*/
 
 /*class member functions*/
 
@@ -257,18 +293,6 @@ void graph_structure<weight_type>::print() {
 }
 
 /*for GPU*/
-
-template <typename weight_type>
-class CSR_graph {
-	public:
-		std::vector<int> INs_Neighbor_start_pointers, OUTs_Neighbor_start_pointers; // Neighbor_start_pointers[i] is the start point of neighbor information of vertex i in Edges and Edge_weights
-		/*
-			Now, Neighbor_sizes[i] = Neighbor_start_pointers[i + 1] - Neighbor_start_pointers[i].
-			And Neighbor_start_pointers[V] = Edges.size() = Edge_weights.size() = the total number of edges.
-		*/
-		std::vector<int> INs_Edges, OUTs_Edges;  // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
-		std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
-};
 
 template <typename weight_type>
 CSR_graph<weight_type> graph_structure<weight_type>::toCSR() {
@@ -456,11 +480,12 @@ void graph_structure<weight_type>::add_edge(std::string e1, std::string e2, weig
 
 
 template <typename weight_type>
-void graph_structure<weight_type>::load_LDBC(std::string v_path, std::string e_path) {
+void graph_structure<weight_type>::load_LDBC() {
 	this->clear();
 
+	std::cout << "Loading vertices..." << std::endl;
 	std::string line_content;
-	std::ifstream myfile(v_path);
+	std::ifstream myfile("../data/" + vertex_file);
 
 	if (myfile.is_open()) {
 		while (getline(myfile, line_content))
@@ -468,16 +493,19 @@ void graph_structure<weight_type>::load_LDBC(std::string v_path, std::string e_p
 		myfile.close();
 	}
 	else {
-		std::cout << "Unable to open file " << v_path << std::endl
+		std::cout << "Unable to open file " << vertex_file << std::endl
 			<< "Please check the file location or file name." << std::endl;
 		getchar();
 		exit(1);
 	}
 
+	std::cout << "Done." << std::endl;
+
 	OUTs.resize(V);
 	INs.resize(V);
 
-	myfile.open(e_path);
+	std::cout << "Loading edges..." << std::endl;
+	myfile.open("../data/" + edge_file);
 
 	if (myfile.is_open()) {
 		while (getline(myfile, line_content)) {
@@ -490,29 +518,15 @@ void graph_structure<weight_type>::load_LDBC(std::string v_path, std::string e_p
 		myfile.close();
 	}
 	else {
-		std::cout << "Unable to open file " << e_path << std::endl
+		std::cout << "Unable to open file " << edge_file << std::endl
 			<< "Please check the file location or file name." << std::endl;
 		getchar();
 		exit(1);
 	}
+	std::cout << "Done." << std::endl;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-void graph_structure_example() {
+inline void graph_structure_example() {
 
 	/*
 	Create a complete graph of 10 nodes

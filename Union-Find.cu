@@ -1,9 +1,9 @@
 #include "Union-Find.cuh"
 
-template std::vector<std::vector<int>> gpu_connected_components<int>(CSR_graph<int>&);
+/*template std::vector<std::vector<int>> gpu_connected_components<int>(CSR_graph<int>&);
 template std::vector<std::vector<int>> gpu_connected_components<float>(CSR_graph<float>&);
 template std::vector<std::vector<int>> gpu_connected_components<double>(CSR_graph<double>&);
-template std::vector<std::vector<int>> gpu_connected_components<long long>(CSR_graph<long long>&);
+template std::vector<std::vector<int>> gpu_connected_components<long long>(CSR_graph<long long>&);*/
 
 __device__ int findRoot(int* parent, int i) {
     while (i != parent[i])
@@ -34,10 +34,8 @@ __global__ void Hook(int* parent, int* Start_v, int* End_v, int E) {
     }
 }
 
-float elapsedTime = 0.0;
-
-template <typename T>
-std::vector<std::vector<int>> gpu_connected_components(CSR_graph<T>& input_graph) {
+//template <typename T>
+std::vector<std::vector<int>> gpu_connected_components(CSR_graph<double>& input_graph, float* elapsedTime) {
     int N = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
 
@@ -56,7 +54,7 @@ std::vector<std::vector<int>> gpu_connected_components(CSR_graph<T>& input_graph
     for (int i = 0; i < N; i++) {
         for (int j = input_graph.OUTs_Neighbor_start_pointers[i]; j < input_graph.OUTs_Neighbor_start_pointers[i + 1]; j++) {
 			Start_v[j] = i;
-			End_v[j] = input_graph.Edges[j];
+			End_v[j] = input_graph.OUTs_Edges[j];
 		}
         Parent[i] = i;
     }
@@ -101,7 +99,7 @@ std::vector<std::vector<int>> gpu_connected_components(CSR_graph<T>& input_graph
 
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
+    cudaEventElapsedTime(elapsedTime, start, stop);
     //printf("Cost time is %f\n", elapsedTime);
 
     cudaEventDestroy(start);
