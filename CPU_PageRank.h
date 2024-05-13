@@ -12,13 +12,13 @@ int GRAPHSIZE;
 
 vector<double> outVec;
 vector<double> value;
-vector<int> val_col;
-vector<int> row_point;
+vector<int> val_col_cpu;
+vector<int> row_point_cpu;
 
 vector<double> *multi_d_M_R(vector<double> *rankVector, double scaling);
 
 
-vector<double> *CSR::multi_d_M_R(vector<double> *rankVector, double scaling)
+vector<double> *multi_d_M_R(vector<double> *rankVector, double scaling)
 {
     // cout << "multi_d_M_R" << endl;
     int sizeOfRankVec = rankVector->size();
@@ -27,9 +27,9 @@ vector<double> *CSR::multi_d_M_R(vector<double> *rankVector, double scaling)
 
     for (int i = 0; i < sizeOfRankVec; i++)
     {
-        for (int j = row_point[i]; j < row_point[i + 1]; j++)
+        for (int j = row_point_cpu[i]; j < row_point_cpu[i + 1]; j++)
         {
-            colIndex = val_col[j];
+            colIndex = val_col_cpu[j];
             double valueInRow = value[j];
             (*outVec)[i] = (*outVec)[i] + (valueInRow * (*rankVector)[colIndex]);
             // cout << "i  j :" <<i<<"  " << j << "  colIndex : " << colIndex << "  valueInrRow : " << valueInRow << " *outVec[i] : " << (*outVec)[i] << "   rankVector[colIndex] : " << (*rankVector)[colIndex] << endl;
@@ -96,14 +96,14 @@ void PageRank(graph_structure &graph)
     CSR_graph<double> ARRAY_graph = graph.toCSR();
     GRAPHSIZE = ARRAY_graph.OUTs_Neighbor_start_pointers.size() - 1;
 
-    row_point = ARRAY_graph.INs_Neighbor_start_pointers;
+    row_point_cpu = ARRAY_graph.INs_Neighbor_start_pointers;
     
     for (int i = 0; i < GRAPHSIZE; i++)
     {
         for (auto it : graph.INs[i])
         {
             value.push_back(1.0 / (graph.OUTs[it.first].size()));
-            val_col.push_back(it.first);
+            val_col_cpu.push_back(it.first);
         }
        
     }
