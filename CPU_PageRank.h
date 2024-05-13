@@ -14,9 +14,8 @@ vector<double> outVec;
 vector<double> value;
 vector<int> val_col_cpu;
 vector<int> row_point_cpu;
-
-vector<double> *multi_d_M_R(vector<double> *rankVector, double scaling);
-
+vector<int> N_out_zero;
+vector<int> row_out_point_cpu;
 
 vector<double> *multi_d_M_R(vector<double> *rankVector, double scaling)
 {
@@ -71,16 +70,20 @@ vector<double> *add_scaling(vector<double> *rankVector, double scaling)
 vector<double> *Method( vector<double> *rankVec, int &iteration)
 {
     // cout << "Method" << endl;
-    double diff = 1;
-
 
     double d = ALPHA, d_ops = (1 - ALPHA) / GRAPHSIZE;
     vector<double> *newRankVec = new vector<double>(GRAPHSIZE);
     vector<double> *F = new vector<double>(GRAPHSIZE);
     while (iteration < ITERATION)
     {
+        double sink_sum=0
+        for(int i=0;i<N_out_zero.size();i++)
+        {
+            sink_sum+=rankVec->at(N_out_zero[i]);
+        }
+
         F = multi_d_M_R(rankVec, d);
-        newRankVec = add_scaling(F, d_ops);
+        newRankVec = add_scaling(F, d_ops+(ALPHA/GRAPHSIZE)*sink_sum);
         // diff = vec_diff(rankVec, newRankVec);
         rankVec = newRankVec;
         iteration++;
@@ -97,13 +100,17 @@ void PageRank(graph_structure &graph)
     GRAPHSIZE = ARRAY_graph.OUTs_Neighbor_start_pointers.size() - 1;
 
     row_point_cpu = ARRAY_graph.INs_Neighbor_start_pointers;
-    
+    row_out_point_cpu = ARRAY_graph.OUTs_Neighbor_start_pointers;
     for (int i = 0; i < GRAPHSIZE; i++)
     {
         for (auto it : graph.INs[i])
         {
             value.push_back(1.0 / (graph.OUTs[it.first].size()));
             val_col_cpu.push_back(it.first);
+        }
+        if(row_out_point_cpu[i] == row_out_point_cpu[i + 1])
+        {
+            N_out_zero.push_back(i);
         }
        
     }

@@ -25,6 +25,10 @@
         "new": "cpp",
         "tuple": "cpp",
         "typeinfo": "cpp",
-        "xtr1common": "cpp"
+        "xtr1common": "cpp",
+        "array": "cpp",
+        "xstring": "cpp",
+        "xtree": "cpp",
+        "format": "cpp"
     }
 }
