@@ -15,16 +15,7 @@ using namespace std;
 #define SMALL_BOUND 6
 #define NORMAL_BOUND 96
 #define THREAD_PER_BLOCK 512
-extern int ITERATION;
-extern int ALPHA;
-// External global variables
-extern int GRAPHSIZE;
-extern int *graphSize;
-extern int *row_point, *val_col;
-extern int *row_size;
-extern double *row_value;
-extern double *Rank, *diff_array, *reduce_array;
-extern double *newRank, *F, *temp;
+
 
 // Function prototypes
 bool cmp(const std::vector<pair<int, int>>& a, const std::vector<pair<int, int>>& b);

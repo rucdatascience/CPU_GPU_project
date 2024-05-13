@@ -1,5 +1,7 @@
 #include <GPU_PageRank.cuh>
 
+int ITERATION;
+int ALPHA;
 int GRAPHSIZE;
 int *graphSize;
 int *row_point, *val_col;

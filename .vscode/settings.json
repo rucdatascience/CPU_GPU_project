@@ -6,6 +6,25 @@
         "xmemory": "cpp",
         "type_traits": "cpp",
         "initializer_list": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "atomic": "cpp",
+        "cmath": "cpp",
+        "compare": "cpp",
+        "concepts": "cpp",
+        "cstdarg": "cpp",
+        "cstddef": "cpp",
+        "cstdint": "cpp",
+        "cstdio": "cpp",
+        "cstdlib": "cpp",
+        "ctime": "cpp",
+        "cwchar": "cpp",
+        "exception": "cpp",
+        "functional": "cpp",
+        "iosfwd": "cpp",
+        "memory": "cpp",
+        "new": "cpp",
+        "tuple": "cpp",
+        "typeinfo": "cpp",
+        "xtr1common": "cpp"
     }
 }
