@@ -1,8 +1,12 @@
 #include "Workfront-Sweep.cuh"
 
-float elapsedTime = 0.0;
+__device__ __forceinline__ double atomicMinDouble (double * addr, double value) {
+    double old;
+    old = __longlong_as_double(atomicMin((long long *)addr, __double_as_longlong(value)));
+    return old;
+}
 
-__global__ void Relax(int* offsets, int* edges, int* weights, int* dis, int* queue, int* queue_size, int* visited) {
+__global__ void Relax(int* offsets, int* edges, double* weights, double* dis, int* queue, int* queue_size, int* visited) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < *queue_size) {
@@ -10,11 +14,11 @@ __global__ void Relax(int* offsets, int* edges, int* weights, int* dis, int* que
 
         for (int i = offsets[v]; i < offsets[v + 1]; i++) {
             int new_v = edges[i];
-            int weight = weights[i];
+            double weight = weights[i];
 
-            int new_w = dis[v] + weight;
+            double new_w = dis[v] + weight;
 
-            int old = atomicMin(&dis[new_v], new_w);
+            double old = atomicMinDouble(&dis[new_v], (long long)new_w);
 
             if (old <= new_w)
 				continue;
@@ -33,22 +37,22 @@ __global__ void CompactQueue(int V, int* next_queue, int* next_queue_size, int* 
     }
 }
 
-void Workfront_Sweep(ARRAY_graph<int>& input_graph, int source, std::vector<int>& distance, int max_dis) {
-    int V = input_graph.Neighbor_start_pointers.size() - 1;
-    int E = input_graph.Edges.size();
+void Workfront_Sweep(CSR_graph<double>& input_graph, int source, std::vector<double>& distance, float* elapsedTime ,double max_dis) {
+    int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
+    int E = input_graph.OUTs_Edges.size();
 
-    int* dis;
+    double* dis;
     int* edges;
-    int* weights;
+    double* weights;
     int* offsets;
     int* visited;
     
     int* queue, * next_queue;
     int* queue_size, * next_queue_size;
 
-    cudaMallocManaged((void**)&dis, V * sizeof(int));
+    cudaMallocManaged((void**)&dis, V * sizeof(double));
     cudaMallocManaged((void**)&edges, E * sizeof(int));
-    cudaMallocManaged((void**)&weights, E * sizeof(int));
+    cudaMallocManaged((void**)&weights, E * sizeof(double));
     cudaMallocManaged((void**)&offsets, (V + 1) * sizeof(int));
     cudaMallocManaged((void**)&visited, V * sizeof(int));
     cudaMallocManaged((void**)&queue, V * sizeof(int));
@@ -61,9 +65,9 @@ void Workfront_Sweep(ARRAY_graph<int>& input_graph, int source, std::vector<int>
 		visited[i] = 0;
 	}
     dis[source] = 0;
-    cudaMemcpy(offsets, input_graph.Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(edges, input_graph.Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(weights, input_graph.Edge_weights.data(), E * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(offsets, input_graph.OUTs_Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(edges, input_graph.OUTs_Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(weights, input_graph.OUTs_Edge_weights.data(), E * sizeof(double), cudaMemcpyHostToDevice);
 
     *queue_size = 1;
     queue[0] = source;
@@ -107,12 +111,12 @@ void Workfront_Sweep(ARRAY_graph<int>& input_graph, int source, std::vector<int>
 
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
-    cudaEventElapsedTime(&elapsedTime, start, stop);
+    cudaEventElapsedTime(elapsedTime, start, stop);
 
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
 
-    cudaMemcpy(distance.data(), dis, V * sizeof(int), cudaMemcpyDeviceToHost);
+    cudaMemcpy(distance.data(), dis, V * sizeof(double), cudaMemcpyDeviceToHost);
 
     cudaFree(dis);
     cudaFree(edges);
@@ -120,24 +124,24 @@ void Workfront_Sweep(ARRAY_graph<int>& input_graph, int source, std::vector<int>
     cudaFree(offsets);
     cudaFree(visited);
     cudaFree(queue);
-	cudaFree(next_queue);
-	cudaFree(queue_size);
-	cudaFree(next_queue_size);
+    cudaFree(next_queue);
+    cudaFree(queue_size);
+    cudaFree(next_queue_size);
 
     return;
 }
 
-int main()
+/*int main()
 {
     std::string file_path;
     std::cout << "Please input the file path of the graph: ";
     std::cin >> file_path;
-    graph_v_of_v<int> graph;
+    graph_v_of_v<double> graph;
     graph.txt_read(file_path);
-    ARRAY_graph<int> arr_graph = graph.toARRAY();
+    ARRAY_graph<double> arr_graph = graph.toARRAY();
     float sum = 0;
     int V = arr_graph.Neighbor_start_pointers.size() - 1;
-    std::vector<int> distance(V, 0);
+    std::vector<double> distance(V, 0);
     Workfront_Sweep(arr_graph, 0, distance, 1000000);
     for (int i = 0; i < V; i++) {
         Workfront_Sweep(arr_graph, i, distance, 1000000);
@@ -146,12 +150,4 @@ int main()
     }
     printf("GPU average time: %f ms\n", sum / V);
     return 0;
-}
-
-/*
-
-nvcc -O3 -std=c++17 -o Workfront-Sweep.out Workfront-Sweep.cu
-./Workfront-Sweep.out
-rm Workfront-Sweep.out
-
-*/
+}*/

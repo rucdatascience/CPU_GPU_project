@@ -1,6 +1,4 @@
 #pragma once
-#ifndef LPA_CUDA_BLOCK
-#define LPA_CUDA_BLOCK
 
 #include "cuda_runtime.h"
 #include <cuda.h>
@@ -16,21 +14,18 @@
 #include <fstream>
 #include <algorithm>
 #include <chrono>
-#include<string.h>
-#include "./graph_structure/graph_structure.h"
+#include <string.h>
+#include <graph_structure/graph_structure.hpp>
 
 using namespace std;
-#define THREAD_PER_BLOCK 1024
-
-
+#define CD_THREAD_PER_BLOCK 1024
 
 __global__ void init_label(int* labels_gpu,int GRAPHSIZE);
 __global__ void LPA(int* row_ptr_gpu, int* labels_gpu, int* neighbor_gpu, int* reduce_label, int* reduce_label_count,int GRAPHSIZE,int BLOCK_PER_VER);
 __global__ void Updating_label(int* reduce_label, int* reduce_label_count, int* updating, int* labels_gpu,int GRAPHSIZE,int BLOCK_PER_VER);
 
+template <typename T>
+void make_csr(graph_structure<T> & graph, int& GRAPHSIZE);
 
-void make_csr(graph_structure & graph, int& GRAPHSIZE);
-int Community_Detection(graph_structure & graph);
-
-
-#endif
+extern "C"
+int Community_Detection(graph_structure<double> & graph, float* elapsedTime);

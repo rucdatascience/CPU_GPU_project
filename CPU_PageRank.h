@@ -3,62 +3,21 @@
 #include <vector>
 #include <fstream>
 #include <chrono>
+#include "./graph_structure/graph_structure.h"
 using namespace std;
-#define ALPHA 0.85
-#define TOLERANCE 0.00001
+int ALPHA = 0.85;
+int ITERATION = 10;
 
 int GRAPHSIZE;
-class CSR
-{
-private:
-    int edgeSize, graphSize;
-    vector<double> outVec;
-    vector<double> value;
-    vector<int> val_col;
-    vector<int> row_point;
-    vector<int> row_size;
 
-public:
-    void makeCSR(string fileName);
-    inline vector<double> *multi_d_M_R(vector<double> *rankVector, double scaling);
-    int get_edge_size()
-    {
-        return edgeSize;
-    }
-    int get_graph_size()
-    {
-        return graphSize;
-    }
-};
-void CSR::makeCSR(graph_structure &graph, int &GRAPHSIZE)
-{
-    // cout << "makeCSR" << endl;
-    int sumEdge = 0;
-    GRAPHSIZE = graph.ADJs.size();
+vector<double> outVec;
+vector<double> value;
+vector<int> val_col_cpu;
+vector<int> row_point_cpu;
+vector<int> N_out_zero;
+vector<int> row_out_point_cpu;
 
-    for (int i = 0; i < GRAPHSIZE; i++)
-    {
-        if (i == 0)
-        {
-            row_point.push_back(0);
-        }
-        else
-        {
-            row_point.push_back(row_point[i - 1] + graph.ADJs_T[i - 1].size());
-        }
-        for (auto it : graph.ADJs_T[i])
-        {
-            value.push_back(1.0 / (graph.ADJs[it.first].size()));
-            val_col.push_back(it.first);
-        }
-        sumEdge += graph.ADJs_T[i].size();
-    }
-    row_point.push_back(row_point[GRAPHSIZE - 1] + graph.ADJs_T[GRAPHSIZE - 1].size());
-    edgeSize = sumEdge;
-    return;
-}
-
-inline vector<double> *CSR::multi_d_M_R(vector<double> *rankVector, double scaling)
+vector<double> *multi_d_M_R(vector<double> *rankVector, double scaling)
 {
     // cout << "multi_d_M_R" << endl;
     int sizeOfRankVec = rankVector->size();
@@ -67,9 +26,9 @@ inline vector<double> *CSR::multi_d_M_R(vector<double> *rankVector, double scali
 
     for (int i = 0; i < sizeOfRankVec; i++)
     {
-        for (int j = row_point[i]; j < row_point[i + 1]; j++)
+        for (int j = row_point_cpu[i]; j < row_point_cpu[i + 1]; j++)
         {
-            colIndex = val_col[j];
+            colIndex = val_col_cpu[j];
             double valueInRow = value[j];
             (*outVec)[i] = (*outVec)[i] + (valueInRow * (*rankVector)[colIndex]);
             // cout << "i  j :" <<i<<"  " << j << "  colIndex : " << colIndex << "  valueInrRow : " << valueInRow << " *outVec[i] : " << (*outVec)[i] << "   rankVector[colIndex] : " << (*rankVector)[colIndex] << endl;
@@ -91,49 +50,41 @@ vector<double> *add_scaling(vector<double> *rankVector, double scaling)
     return outVec;
 }
 
-vector<double> *add_vec(vector<double> *firVec, vector<double> *secVec)
-{
-    vector<double> *outVec = new vector<double>;
-    int size = firVec->size();
-    for (int i = 0; i < size; i++)
-    {
-        outVec->push_back((*firVec)[i] + (*secVec)[i]);
-    }
-    return outVec;
-}
+// double vec_diff(vector<double> *oldRankVec, vector<double> *newRankVec)
+// {
+//     // cout << "vec_diff" << endl;
+//     int size = oldRankVec->size();
+//     double avgDiff = 0;
+//     double tempDiff = 0;
+//     for (int i = 0; i < size; i++)
+//     {
+//         tempDiff = abs((*newRankVec)[i] - (*oldRankVec)[i]);
+//         if (tempDiff > avgDiff)
+//         {
+//             avgDiff = tempDiff;
+//         }
+//     }
+//     return avgDiff;
+// }
 
-double vec_diff(vector<double> *oldRankVec, vector<double> *newRankVec)
-{
-    // cout << "vec_diff" << endl;
-    int size = oldRankVec->size();
-    double avgDiff = 0;
-    double tempDiff = 0;
-    for (int i = 0; i < size; i++)
-    {
-        tempDiff = abs((*newRankVec)[i] - (*oldRankVec)[i]);
-        if (tempDiff > avgDiff)
-        {
-            avgDiff = tempDiff;
-        }
-    }
-    return avgDiff;
-}
-
-vector<double> *Method(CSR *csr, vector<double> *rankVec, int &iteration)
+vector<double> *Method( vector<double> *rankVec, int &iteration)
 {
     // cout << "Method" << endl;
-    double diff = 1;
 
-    int graphSize = csr->get_graph_size();
-    int edgeSize = csr->get_edge_size();
-    double d = ALPHA, d_ops = (1 - ALPHA) / graphSize;
-    vector<double> *newRankVec = new vector<double>(graphSize);
-    vector<double> *F = new vector<double>(graphSize);
-    while (diff > TOLERANCE)
+    double d = ALPHA, d_ops = (1 - ALPHA) / GRAPHSIZE;
+    vector<double> *newRankVec = new vector<double>(GRAPHSIZE);
+    vector<double> *F = new vector<double>(GRAPHSIZE);
+    while (iteration < ITERATION)
     {
-        F = csr->multi_d_M_R(rankVec, d);
-        newRankVec = add_scaling(F, d_ops);
-        diff = vec_diff(rankVec, newRankVec);
+        double sink_sum=0
+        for(int i=0;i<N_out_zero.size();i++)
+        {
+            sink_sum+=rankVec->at(N_out_zero[i]);
+        }
+
+        F = multi_d_M_R(rankVec, d);
+        newRankVec = add_scaling(F, d_ops+(ALPHA/GRAPHSIZE)*sink_sum);
+        // diff = vec_diff(rankVec, newRankVec);
         rankVec = newRankVec;
         iteration++;
         // cout << "diff :" << diff <<"  iteration : "<<iteration << endl;
@@ -143,23 +94,42 @@ vector<double> *Method(CSR *csr, vector<double> *rankVec, int &iteration)
     return rankVec;
 }
 
-int PageRank(graph_structure &graph)
+void PageRank(graph_structure &graph)
 {
-    CSR *csr = new CSR;
-    csr->makeCSR(graph,GRAPHSIZE);
-    int size = csr->get_graph_size();
-    double total = 0;
+    CSR_graph<double> ARRAY_graph = graph.toCSR();
+    GRAPHSIZE = ARRAY_graph.OUTs_Neighbor_start_pointers.size() - 1;
 
-    vector<double> *rank = new vector<double>(size, 1.0 / size);
-    vector<double> *ans = new vector<double>(size);
+    row_point_cpu = ARRAY_graph.INs_Neighbor_start_pointers;
+    row_out_point_cpu = ARRAY_graph.OUTs_Neighbor_start_pointers;
+    for (int i = 0; i < GRAPHSIZE; i++)
+    {
+        for (auto it : graph.INs[i])
+        {
+            value.push_back(1.0 / (graph.OUTs[it.first].size()));
+            val_col_cpu.push_back(it.first);
+        }
+        if(row_out_point_cpu[i] == row_out_point_cpu[i + 1])
+        {
+            N_out_zero.push_back(i);
+        }
+       
+    }
+
+    double total = 0;
+    ALPHA = graph.pr_damping;
+    ITERATION = graph.cdlp_max_its;
+    vector<double> *rank = new vector<double>(GRAPHSIZE, 1.0 / GRAPHSIZE);
+    vector<double> *ans = new vector<double>(GRAPHSIZE);
+    
     int iteration = 0;
     auto CPUstart = std::chrono::high_resolution_clock::now();
-    ans = Method(csr, rank, iteration);
+
+    ans = Method( rank, iteration);
+
     auto CPUstop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration<double, std::milli>(CPUstop - CPUstart);
     auto CPUtime = duration.count();
     total += CPUtime;
 
-    cout << "CPU time : " << total << " ms" << endl;
-    return 0;
+    // cout << "CPU time : " << total << " ms" << endl;
 }

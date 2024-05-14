@@ -1,136 +1,111 @@
-#include"GPU_PageRank.cuh"
+#include <GPU_PageRank.cuh>
 
+int ITERATION;
+int ALPHA;
 int GRAPHSIZE;
-int *graphSize, *edgeSize;
+int *graphSize;
 int *row_point, *val_col;
 int *row_size;
 double *row_value;
+vector<int> N_out_zero;
+int *N_out_zero_gpu;
+int * row_out_ptr;
 vector<double> row_value_vec;
 vector<int> val_col_vec;
 int *verticeOrder;
 int *smallOffset, *normalOffset;
 double *Rank, *diff_array, *reduce_array;
 double *newRank, *F, *temp;
-
-
-int PageRank(graph_structure &graph)
+int out_zero_size;
+double *sink_sum;
+void PageRank(graph_structure<double> &graph, float *elapsedTime)
 {
-    cudaMallocManaged(&edgeSize, sizeof(int));
+    CSR_graph<double> ARRAY_graph = graph.toCSR();
+    GRAPHSIZE = ARRAY_graph.OUTs_Neighbor_start_pointers.size() - 1;
     cudaMallocManaged(&graphSize, sizeof(int));
     cudaMallocManaged(&smallOffset, sizeof(int));
     cudaMallocManaged(&normalOffset, sizeof(int));
     cudaMallocManaged(&temp, sizeof(double *));
     cudaMallocManaged(&row_size, GRAPHSIZE * sizeof(int));
-    cudaMallocManaged(&row_point, GRAPHSIZE * sizeof(int));
+    cudaMallocManaged(&row_point, (GRAPHSIZE+1) * sizeof(int));
+    cudaMallocManaged(&row_out_ptr, (GRAPHSIZE+1) * sizeof(int));
+    cudaMallocManaged(&sink_sum, sizeof(double));
     cudaMallocManaged(&newRank, GRAPHSIZE * sizeof(double));
     cudaMallocManaged(&F, GRAPHSIZE * sizeof(double));
     cudaMallocManaged(&diff_array, GRAPHSIZE * sizeof(double));
     cudaMallocManaged(&reduce_array, GRAPHSIZE * sizeof(double));
     cudaMallocManaged(&Rank, GRAPHSIZE * sizeof(double));
     cudaMallocManaged(&verticeOrder, GRAPHSIZE * sizeof(int));
-    makeCSR(graph,GRAPHSIZE);
+    cudaMemcpy(row_point, ARRAY_graph.INs_Neighbor_start_pointers.data(), (GRAPHSIZE+1) * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(row_out_ptr, ARRAY_graph.OUTs_Neighbor_start_pointers.data(), (GRAPHSIZE+1) * sizeof(int), cudaMemcpyHostToDevice);
+    for (int i = 0; i < GRAPHSIZE; i++)
+    {
+        for (auto it : graph.INs[i])
+        {
+            row_value_vec.push_back(1.0 / (graph.OUTs[it.first].size()));
+            val_col_vec.push_back(it.first);
+        }
+        if(row_out_ptr[i]==row_out_ptr[i+1]){
+            N_out_zero.push_back(i);
+        }
+    }
+    cudaMallocManaged(&N_out_zero_gpu, N_out_zero.size() * sizeof(int));
+    cudaMemcpy(N_out_zero_gpu, N_out_zero.data(),  N_out_zero.size() * sizeof(int), cudaMemcpyHostToDevice);
+    out_zero_size=N_out_zero.size();
+    ALPHA = graph.pr_damping;
+    ITERATION = graph.cdlp_max_its;
     cudaMallocManaged(&row_value, row_value_vec.size() * sizeof(double));
     std::copy(row_value_vec.begin(), row_value_vec.end(), row_value);
     cudaMallocManaged(&val_col, val_col_vec.size() * sizeof(int));
     std::copy(val_col_vec.begin(), val_col_vec.end(), val_col);
-    // cout << "row_value:" << endl;
-    // for (int i = 0; i < *edgeSize; i++) {
-    //	cout << row_value[i] << "  ";
-    // }
-    double total = 0;
-    dim3 blockPerGrid((GRAPHSIZE + THREAD_PER_BLOCK) / THREAD_PER_BLOCK, 1, 1);
+    dim3 blockPerGrid((GRAPHSIZE + THREAD_PER_BLOCK-1) / THREAD_PER_BLOCK, 1, 1);
     dim3 threadPerGrid(THREAD_PER_BLOCK, 1, 1);
-    for (int kk = 0; kk < 1000; kk++)
+
+    for (int i = 0; i < GRAPHSIZE; i++)
     {
-        for (int i = 0; i < GRAPHSIZE; i++)
-        {
-            Rank[i] = 1.0 / GRAPHSIZE;
-        }
-        int iteration = 0;
-        double diff = 1;
-        double d = ALPHA, d_ops = (1 - ALPHA) / GRAPHSIZE;
-        cudaEvent_t GPUstart, GPUstop;
-        cudaEventCreate(&GPUstart);
-        cudaEventCreate(&GPUstop);
-        cudaEventRecord(GPUstart, 0);
-
-        while (diff > TOLERANCE)
-        {
-            tinySolve<<<blockPerGrid, threadPerGrid>>>(F, Rank, d, row_point, row_size, row_value, val_col);
-            cudaDeviceSynchronize();
-            add_scaling<<<blockPerGrid, threadPerGrid>>>(newRank, F, d_ops);
-            cudaDeviceSynchronize();
-            vec_diff<<<blockPerGrid, threadPerGrid, 2 * 512 * sizeof(double)>>>(diff_array, newRank, Rank);
-            cudaDeviceSynchronize();
-            //  for(int i=0;i<GRAPHSIZE;i++){
-            //  	diff_array[i]=abs(newRank[i]-Rank[i]);
-            //  }
-            reduce_kernel<<<blockPerGrid, threadPerGrid, 512 * sizeof(double)>>>(diff_array, reduce_array);
-            cudaDeviceSynchronize();
-            diff = -1;
-            for (int i = 0; i < (GRAPHSIZE + THREAD_PER_BLOCK) / THREAD_PER_BLOCK; i++)
-            {
-                if (reduce_array[i] > diff)
-                {
-                    diff = reduce_array[i];
-                }
-            }
-            temp = newRank;
-            newRank = Rank;
-            Rank = temp;
-            iteration++;
-            // cout << "diff : " << diff << "  iteration : " << iteration<<endl;
-        }
-        cudaEventRecord(GPUstop, 0);
-        cudaEventSynchronize(GPUstop);
-
-        float CUDAtime = 0;
-        cudaEventElapsedTime(&CUDAtime, GPUstart, GPUstop);
-        total += CUDAtime;
-        cudaEventDestroy(GPUstart);
-        cudaEventDestroy(GPUstop);
+        Rank[i] = 1.0 / GRAPHSIZE;
     }
+    int iteration = 0;
+    double d = ALPHA, d_ops = (1 - ALPHA) / GRAPHSIZE;
+    cudaEvent_t GPUstart, GPUstop;
+    cudaEventCreate(&GPUstart);
+    cudaEventCreate(&GPUstop);
+    cudaEventRecord(GPUstart, 0);
 
-    cout << "CUDA time :" << total / 1000 << " ms" << endl;
-    // cout << "diff : " << diff << "  iteration : " << iteration;
+    while (iteration < ITERATION)
+    {
+        *sink_sum=0;
+        caculate_sink<<<blockPerGrid, threadPerGrid,THREAD_PER_BLOCK*sizeof(double)>>>(rank, N_out_zero_gpu,out_zero_size,sink_sum);
+        cudaDeviceSynchronize();
+        
+        tinySolve<<<blockPerGrid, threadPerGrid>>>(F, Rank, d, row_point, row_size, row_value, val_col, GRAPHSIZE);
+        cudaDeviceSynchronize();
+        
+        add_scaling<<<blockPerGrid, threadPerGrid>>>(newRank, F, (ALPHA/GRAPHSIZE)*(*sink_sum)+d_ops, GRAPHSIZE);
+        cudaDeviceSynchronize();
+
+        temp = newRank;
+        newRank = Rank;
+        Rank = temp;
+        iteration++;
+    }
+    cudaEventRecord(GPUstop, 0);
+    cudaEventSynchronize(GPUstop);
+
+    float CUDAtime = 0;
+    cudaEventElapsedTime(&CUDAtime, GPUstart, GPUstop);
+    *elapsedTime += CUDAtime;
+    cudaEventDestroy(GPUstart);
+    cudaEventDestroy(GPUstop);
 }
+
 
 bool cmp(const std::vector<pair<int, int>> &a, const std::vector<pair<int, int>> &b)
 {
     return a.size() > b.size();
 }
 
-void makeCSR(graph_structure &graph, int &GRAPHSIZE)
-{
-    // cout << "makeCSR" << endl;
-    int cont_value = 0;
-    for (int i = 0; i < GRAPHSIZE; i++)
-    {
-        if (i == 0)
-        {
-            row_point[i] = 0;
-        }
-        else
-        {
-            row_point[i] = row_point[i - 1] + graph.ADJs_T[i - 1].size();
-        }
-
-        row_size[i] = graph.ADJs_T[i].size();
-
-        for (auto it : graph.ADJs_T[i])
-        {
-            row_value_vec.push_back(1.0 / (graph.ADJs[it.first].size()));
-            val_col_vec.push_back(it.first);
-            cont_value++;
-        }
-    }
-
-    row_point[GRAPHSIZE] = cont_value;
-    *edgeSize = cont_value;
-    return;
-}
-
-__global__ void add_scaling(double *newRank, double *oldRank, double scaling)
+__global__ void add_scaling(double *newRank, double *oldRank, double scaling, int GRAPHSIZE)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid >= 0 && tid < GRAPHSIZE)
@@ -140,14 +115,14 @@ __global__ void add_scaling(double *newRank, double *oldRank, double scaling)
     return;
 }
 
-__global__ void tinySolve(double *newRank, double *rank, double scaling, int *row_point, int *row_size, double *row_value, int *val_col)
+__global__ void tinySolve(double *newRank, double *rank, double scaling, int *row_point, int *row_size, double *row_value, int *val_col, int GRAPHSIZE)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid >= 0 && tid < GRAPHSIZE)
     {
         int rbegin = row_point[tid];
         int rend = row_point[tid + 1];
-        // int rend = row_point[tid + 1];
+
         double acc = 0;
         for (int c = rbegin; c < rend; c++)
         {
@@ -159,59 +134,85 @@ __global__ void tinySolve(double *newRank, double *rank, double scaling, int *ro
     return;
 }
 
-__global__ void vec_diff(double *diff, double *newRank, double *oldRank)
+__global__ double caculate_sink(double* rank,int* N_out_zero_gpu,int out_zero_size,double *sink_sum)
 {
+    extern __shared__ double sink[];
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    int stid=threadIdx.x;
 
-    __shared__ double s_newRank[512];
-    __shared__ double s_oldRank[512];
-
-    int idx = threadIdx.x + blockIdx.x * blockDim.x;
-
-    // 确保没有越界
-    if (idx < GRAPHSIZE)
+    if(tid<out_zero_size)
     {
-
-        s_newRank[threadIdx.x] = newRank[idx];
-        s_oldRank[threadIdx.x] = oldRank[idx];
-
-        __syncthreads();
-
-        diff[idx] = abs(s_newRank[threadIdx.x] - s_oldRank[threadIdx.x]);
+        sink[stid]=rank[N_out_zero_gpu[tid]];
+    }else{
+        sink[stid]=0;
     }
-}
-
-__global__ void reduce_kernel(double *input, double *output)
-{
-    extern __shared__ double sdata[];
-    unsigned int tid = threadIdx.x;
-    unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
-    if (i < GRAPHSIZE)
-        sdata[tid] = input[i];
-    else
-        sdata[tid] = 0.0;
     __syncthreads();
-
-    for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+    for(int i=blockDim.x/2;i>0;i>>=1)
     {
-        if (tid < s)
+        if(stid<i)
         {
-            // sdata[tid] += sdata[tid + s];
-            sdata[tid] = sdata[tid] > sdata[tid + s] ? sdata[tid] : sdata[tid + s];
+            sink[stid]+=sink[stid+i];
         }
         __syncthreads();
     }
+    if(stid==0){
+        atomicAdd(sink_sum,sink[0]);
+    }
 
-    if (tid == 0)
-        output[blockIdx.x] = sdata[0];
 }
 
+// __global__ void vec_diff(double *diff, double *newRank, double *oldRank)
+// {
 
-int main(){
-    std::string file_path;
-    std::cout << "Please input the file path of the graph: ";
-    std::cin >> file_path;
-    graph_structure graph;
-    graph.read_txt(file_path);
-    PageRank(graph);
-    return 0;
-}
+//     __shared__ double s_newRank[512];
+//     __shared__ double s_oldRank[512];
+
+//     int idx = threadIdx.x + blockIdx.x * blockDim.x;
+
+//    
+//     if (idx < GRAPHSIZE)
+//     {
+
+//         s_newRank[threadIdx.x] = newRank[idx];
+//         s_oldRank[threadIdx.x] = oldRank[idx];
+
+//         __syncthreads();
+
+//         diff[idx] = abs(s_newRank[threadIdx.x] - s_oldRank[threadIdx.x]);
+//     }
+// }
+
+// __global__ void reduce_kernel(double *input, double *output)
+// {
+//     extern __shared__ double sdata[];
+//     unsigned int tid = threadIdx.x;
+//     unsigned int i = blockIdx.x * blockDim.x + threadIdx.x;
+//     if (i < GRAPHSIZE)
+//         sdata[tid] = input[i];
+//     else
+//         sdata[tid] = 0.0;
+//     __syncthreads();
+
+//     for (unsigned int s = blockDim.x / 2; s > 0; s >>= 1)
+//     {
+//         if (tid < s)
+//         {
+//             // sdata[tid] += sdata[tid + s];
+//             sdata[tid] = sdata[tid] > sdata[tid + s] ? sdata[tid] : sdata[tid + s];
+//         }
+//         __syncthreads();
+//     }
+
+//     if (tid == 0)
+//         output[blockIdx.x] = sdata[0];
+// }
+
+// int main(){
+//     std::string file_path;
+//     std::cout << "Please input the file path of the graph: ";
+//     std::cin >> file_path;
+//     graph_structure<double> graph;
+//     graph.read_txt(file_path);
+//     PageRank(graph);
+//     return 0;
+// }
