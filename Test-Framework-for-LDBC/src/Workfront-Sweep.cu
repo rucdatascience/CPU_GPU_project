@@ -18,7 +18,7 @@ __global__ void Relax(int* offsets, int* edges, double* weights, double* dis, in
 
             double new_w = dis[v] + weight;
 
-            double old = atomicMinDouble(&dis[new_v], (long long)new_w);
+            double old = atomicMinDouble(&dis[new_v], new_w);
 
             if (old <= new_w)
 				continue;
@@ -37,7 +37,7 @@ __global__ void CompactQueue(int V, int* next_queue, int* next_queue_size, int* 
     }
 }
 
-void Workfront_Sweep(CSR_graph<double>& input_graph, int source, std::vector<double>& distance, float* elapsedTime ,double max_dis) {
+void Workfront_Sweep(CSR_graph<double>& input_graph, int source, std::vector<double>& distance, float* elapsedTime, double max_dis) {
     int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
 
@@ -131,23 +131,3 @@ void Workfront_Sweep(CSR_graph<double>& input_graph, int source, std::vector<dou
     return;
 }
 
-/*int main()
-{
-    std::string file_path;
-    std::cout << "Please input the file path of the graph: ";
-    std::cin >> file_path;
-    graph_v_of_v<double> graph;
-    graph.txt_read(file_path);
-    ARRAY_graph<double> arr_graph = graph.toARRAY();
-    float sum = 0;
-    int V = arr_graph.Neighbor_start_pointers.size() - 1;
-    std::vector<double> distance(V, 0);
-    Workfront_Sweep(arr_graph, 0, distance, 1000000);
-    for (int i = 0; i < V; i++) {
-        Workfront_Sweep(arr_graph, i, distance, 1000000);
-        sum += elapsedTime;
-        elapsedTime = 0;
-    }
-    printf("GPU average time: %f ms\n", sum / V);
-    return 0;
-}*/
