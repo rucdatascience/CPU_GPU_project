@@ -13,12 +13,13 @@
 #include <checker.hpp>
 
 #include <time.h>
-
+#include<math.h>
 int main()
 {
     std::string config_file;
     std::cout << "Enter the name of the configuration file:" << std::endl;
-    std::cin >> config_file;
+    // std::cin >> config_file;
+    config_file="cit-Patents.properties";
     config_file = "../data/" + config_file;
 
     graph_structure<double> graph;
@@ -30,7 +31,8 @@ int main()
     std::cout << "Number of edges: " << csr_graph.OUTs_Edges.size() << std::endl;
 
     float elapsedTime = 0;
-
+    float cpu_time=0;
+    float gpu_time=0;
     clock_t start = clock(), end = clock();
 
     if (graph.sup_bfs) {
@@ -81,28 +83,35 @@ int main()
         sssp_checker(graph, cpu_sssp_result, gpu_sssp_result);
     }
 
-    if (graph.sup_pr) {
+    if (graph.sup_cdlp) {
         start = clock();
-        CPU_PageRank(graph);
+        vector<int> ans_cpu;
+        CPU_Community_Detection(graph,ans_cpu);
         end = clock();
-        printf("CPU PageRank cost time: %f ms\n", (double)(end - start) / CLOCKS_PER_SEC * 1000);
+        cpu_time=(double)(end - start) / CLOCKS_PER_SEC * 1000;
 
+        // start = clock();
+        // CPU_Community_Detection(graph);
+        // end = clock();
+        // cpu_time=min(cpu_time,(float)(end - start) / CLOCKS_PER_SEC * 1000);
+
+        // start = clock();
+        // CPU_Community_Detection(graph);
+        // end = clock();
+        // cpu_time=min(cpu_time,(float)(end - start) / CLOCKS_PER_SEC * 1000);
+        printf("CPU Community Detection cost time: %f ms\n", cpu_time);
+        vector<int> ans_gpu;
         elapsedTime = 0;
-        PageRank(graph, &elapsedTime);
-        printf("GPU PageRank cost time: %f ms\n", elapsedTime);
-    }
-
-    /*if (graph.sup_cdlp) {
-        start = clock();
-        CPU_Community_Detection(graph);
-        end = clock();
-        printf("CPU Community Detection cost time: %f ms\n", (double)(end - start) / CLOCKS_PER_SEC * 1000);
-
-        elapsedTime = 0;
-        Community_Detection(graph, &elapsedTime);
+        Community_Detection(graph, &elapsedTime,ans_gpu);
         printf("GPU Community Detection cost time: %f ms\n", elapsedTime);
         elapsedTime = 0;
-    }*/
+        
+        for(int i=0;i<3774768;i++){
+            if(ans_cpu[i]!=ans_gpu[i])
+                cout<<"diffrent at point : "<<i<<"  "<<ans_cpu[i]<<"   "<<ans_gpu[i]<<endl;
+        }
+
+    }
 
     return 0;
 }
