@@ -100,7 +100,6 @@ std::vector<std::vector<int>> gpu_connected_components(CSR_graph<double>& input_
     cudaEventRecord(stop, 0);
     cudaEventSynchronize(stop);
     cudaEventElapsedTime(elapsedTime, start, stop);
-    //printf("Cost time is %f\n", elapsedTime);
 
     cudaEventDestroy(start);
     cudaEventDestroy(stop);
@@ -112,28 +111,3 @@ std::vector<std::vector<int>> gpu_connected_components(CSR_graph<double>& input_
 
     return components;
 }
-
-/*int main()
-{
-    graph_v_of_v<int> graph;
-    graph.txt_read("example_graph.txt");
-    ARRAY_graph<int> arr_graph = graph.toARRAY();
-    float sum = 0;
-    int it_cnt = 100;
-    for (int i = 0; i < it_cnt; i++) {
-        gpu_connected_components<int>(arr_graph);
-        if (i > 0)
-            sum += elapsedTime;
-        elapsedTime = 0;
-    }
-    printf("average cost time is %f ms\n", sum / it_cnt);
-    return 0;
-}*/
-
-/*
-
-nvcc -O3 -std=c++17 -o Union-Find.out Union-Find.cu
-./Union-Find.out
-rm Union-Find.out
-
-*/

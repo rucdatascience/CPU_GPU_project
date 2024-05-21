@@ -16,11 +16,13 @@ struct node {
   bool operator>(const node& a) const { return dis > a.dis; }
 };
 
-void CPU_shortest_paths(std::vector<std::vector<std::pair<int, double>>>& input_graph, int source, std::vector<double>& distances) {
+std::vector<double> CPU_shortest_paths(std::vector<std::vector<std::pair<int, double>>>& input_graph, int source) {
 
 	double inf = std::numeric_limits<double>::max();
 
 	int N = input_graph.size();
+
+	std::vector<double> distances;
 	distances.resize(N, inf); // initial distance from source is inf
 	distances[source] = 0;
 	std::vector<int> vis(N, 0);
@@ -47,4 +49,6 @@ void CPU_shortest_paths(std::vector<std::vector<std::pair<int, double>>>& input_
 		}
 
 	}
+
+	return distances;
 }
