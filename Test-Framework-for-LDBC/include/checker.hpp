@@ -1,3 +1,5 @@
+#pragma once
+
 #include <graph_structure/graph_structure.hpp>
 #include <algorithm>
 #include <cmath>
