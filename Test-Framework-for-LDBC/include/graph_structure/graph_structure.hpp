@@ -108,6 +108,9 @@ public:
 	bool sup_wcc = false;
 	bool sup_sssp = false;
 
+	std::string bfs_src_name;
+	std::string sssp_src_name;
+
 	int id = 0;
 	int bfs_src = 0;
 	int cdlp_max_its = 10;
@@ -454,12 +457,12 @@ void graph_structure<weight_type>::read_config(std::string config_path) {
 			}
             else if (parts.back() == "source-vertex") {
 				if (parts[parts.size() - 2] == "bfs") {
-					bfs_src = add_vertice(value);
-					std::cout << "bfs_source_vertex: " << value << " id: " << bfs_src << std::endl;
+					bfs_src_name = value;
+					std::cout << "bfs_source_vertex: " << value << std::endl;
 				}
 				else {
-					sssp_src = add_vertice(value);
-					std::cout << "sssp_source_vertex: " << value << " id: " << sssp_src << std::endl;
+					sssp_src_name = value;
+					std::cout << "sssp_source_vertex: " << value  << std::endl;
 				}
             }
         }
@@ -512,6 +515,27 @@ void graph_structure<weight_type>::load_LDBC() {
 	}
 
 	std::cout << "Done." << std::endl;
+
+	if (sup_bfs) {
+		if (vertex_str_to_id.find(bfs_src_name) == vertex_str_to_id.end()) {
+			std::cout << "Invalid source vertex for BFS" << std::endl;
+			getchar();
+			exit(1);
+		}
+		else
+			bfs_src = vertex_str_to_id[bfs_src_name];
+	}
+		
+	
+	if (sup_sssp) {
+		if (vertex_str_to_id.find(sssp_src_name) == vertex_str_to_id.end()) {
+			std::cout << "Invalid source vertex for SSSP" << std::endl;
+			getchar();
+			exit(1);
+		}
+		else
+			sssp_src = vertex_str_to_id[sssp_src_name];
+	}
 
 	OUTs.resize(V);
 	INs.resize(V);
