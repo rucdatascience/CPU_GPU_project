@@ -1,3 +1,4 @@
+//#include "../include/GPU_BFS.cuh"
 #include <GPU_BFS.cuh>
 #include <Union-Find.cuh>
 #include <Workfront-Sweep.cuh>
@@ -9,8 +10,6 @@
 #include <CPU_shortest_paths.hpp>
 #include <CPU_PageRank.hpp>
 #include <CPU_Community_Detection.hpp>
-
-#include <checker.hpp>
 
 #include <time.h>
 #include<math.h>
@@ -34,54 +33,145 @@ int main()
     float cpu_time=0;
     float gpu_time=0;
     clock_t start = clock(), end = clock();
+    int V=graph.V;
+    // if (graph.sup_bfs) {
+    //     start = clock();
+    //     CPU_BFS<double>(graph.OUTs, graph.bfs_src);
+    //     end = clock();
+    //     cpu_time=(double)(end - start) / CLOCKS_PER_SEC * 1000;
+        
+    //     start = clock();
+    //     CPU_BFS<double>(graph.OUTs, graph.bfs_src);
+    //     end = clock();
+    //     cpu_time=min(cpu_time,(float)(end - start) / CLOCKS_PER_SEC * 1000);
+        
+    //     start = clock();
+    //     CPU_BFS<double>(graph.OUTs, graph.bfs_src);
+    //     end = clock();
+    //     cpu_time=min(cpu_time,(float)(end - start) / CLOCKS_PER_SEC * 1000);
+        
+    //     printf("CPU BFS cost time: %f ms\n", (double)cpu_time);
 
-    if (graph.sup_bfs) {
-        std::vector<int> cpu_bfs_result;
-        start = clock();
-        cpu_bfs_result = CPU_BFS<double>(graph.OUTs, graph.bfs_src);
-        end = clock();
-        printf("CPU BFS cost time: %f ms\n", (double)(end - start) / CLOCKS_PER_SEC * 1000);
+    //     cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
+        
+    //     elapsedTime = 0;
+    //     cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
+    //     gpu_time=elapsedTime;
+        
+    //     elapsedTime = 0;
+    //     cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
+    //     gpu_time=min(gpu_time,elapsedTime);
+        
+    //     elapsedTime = 0;
+    //     cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
+    //     gpu_time=min(gpu_time,elapsedTime);
+        
+    //     printf("GPU BFS cost time: %f ms\n", gpu_time);
+    //     elapsedTime = 0;
+    // }
 
-        std::vector<int> gpu_bfs_result;
-        gpu_bfs_result = cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
-        elapsedTime = 0;
-        cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
-        printf("GPU BFS cost time: %f ms\n", elapsedTime);
-        elapsedTime = 0;
+    // if (graph.sup_wcc) {
+    //     start = clock();
+    //     CPU_connected_components<double>(graph.OUTs);
+    //     end = clock();
+    //     cpu_time=(double)(end - start) / CLOCKS_PER_SEC * 1000;
 
-        bfs_checker(graph, cpu_bfs_result, gpu_bfs_result);
-    }
+    //     start = clock();
+    //     CPU_connected_components<double>(graph.OUTs);
+    //     end = clock();
+    //     cpu_time=min(cpu_time,(float)(end - start) / CLOCKS_PER_SEC * 1000);
 
-    if (graph.sup_wcc) {
-        std::vector<std::vector<int>> cpu_wcc_result;
-        start = clock();
-        cpu_wcc_result = CPU_connected_components<double>(graph.OUTs);
-        end = clock();
-        printf("CPU WCC cost time: %f ms\n", (double)(end - start) / CLOCKS_PER_SEC * 1000);
+    //     start = clock();
+    //     CPU_connected_components<double>(graph.OUTs);
+    //     end = clock();
+    //     cpu_time=min(cpu_time,(float)(end - start) / CLOCKS_PER_SEC * 1000);
+    //     printf("CPU WCC cost time: %f ms\n", cpu_time);
 
-        std::vector<std::vector<int>> gpu_wcc_result;
-        gpu_wcc_result = gpu_connected_components(csr_graph, &elapsedTime);
-        elapsedTime = 0;
-        gpu_connected_components(csr_graph, &elapsedTime);
-        printf("GPU WCC cost time: %f ms\n", elapsedTime);
-        elapsedTime = 0;
+    //     gpu_connected_components(csr_graph, &elapsedTime);
+    //     elapsedTime = 0;
+    //     gpu_connected_components(csr_graph, &elapsedTime);
+    //     gpu_time=elapsedTime;
 
-        wcc_checker(graph, cpu_wcc_result, gpu_wcc_result);
-    }
+    //     elapsedTime = 0;
+    //     gpu_connected_components(csr_graph, &elapsedTime);
+    //     gpu_time=min(gpu_time,elapsedTime);
 
-    if (graph.sup_sssp) {
-        start = clock();
-        std::vector<double> cpu_sssp_result = CPU_shortest_paths(graph.OUTs, graph.sssp_src);
-        end = clock();
-        printf("CPU SSSP cost time: %f ms\n", (double)(end - start) / CLOCKS_PER_SEC * 1000);
+    //     elapsedTime = 0;
+    //     gpu_connected_components(csr_graph, &elapsedTime);
+    //     gpu_time=min(gpu_time,elapsedTime);
+
+    //     printf("GPU WCC cost time: %f ms\n", gpu_time);
+    //     elapsedTime = 0;
+    // }
+
+    // if (graph.sup_sssp) {
+    //     start = clock();
+    //     std::vector<double> sssp_result;
+    //     CPU_shortest_paths(graph.OUTs, graph.sssp_src, sssp_result);
+    //     end = clock();
+    //     cpu_time=(double)(end - start) / CLOCKS_PER_SEC * 1000;
+
+    //     start = clock();
+    //     std::vector<double> sssp_result1;
+    //     CPU_shortest_paths(graph.OUTs, graph.sssp_src, sssp_result1);
+    //     end = clock();
+    //     cpu_time=min(cpu_time,(float)(end - start) / CLOCKS_PER_SEC * 1000);
+
+    //     start = clock();
+    //     std::vector<double> sssp_result2;
+    //     CPU_shortest_paths(graph.OUTs, graph.sssp_src, sssp_result2);
+    //     end = clock();  
+    //     cpu_time=min(cpu_time,(float)(end - start) / CLOCKS_PER_SEC * 1000);
+    //     printf("CPU SSSP cost time: %f ms\n", cpu_time);
     
-        elapsedTime = 0;
-        std::vector<double> gpu_sssp_result(graph.V, 0);
-        Workfront_Sweep(csr_graph, graph.sssp_src, gpu_sssp_result, &elapsedTime);
-        printf("GPU SSSP cost time: %f ms\n", elapsedTime);
+    //     elapsedTime = 0;
+    //     std::vector<double> gpu_sssp_result(graph.V, 0);
+    //     Workfront_Sweep(csr_graph, graph.sssp_src, gpu_sssp_result, &elapsedTime);
+    //     gpu_time=elapsedTime;
 
-        sssp_checker(graph, cpu_sssp_result, gpu_sssp_result);
-    }
+    //     elapsedTime = 0;
+    //     std::vector<double> gpu_sssp_result1(graph.V, 0);
+    //     Workfront_Sweep(csr_graph, graph.sssp_src, gpu_sssp_result1, &elapsedTime);
+    //     gpu_time=min(gpu_time,elapsedTime);
+
+    //     elapsedTime = 0;
+    //     std::vector<double> gpu_sssp_result2(graph.V, 0);
+    //     Workfront_Sweep(csr_graph, graph.sssp_src, gpu_sssp_result2, &elapsedTime);
+    //     gpu_time=min(gpu_time,elapsedTime);
+
+    //     printf("GPU SSSP cost time: %f ms\n", gpu_time);
+    // }
+
+    // if (graph.sup_pr) {
+    //     start = clock();
+    //     CPU_PageRank(graph);
+    //     end = clock();
+    //     cpu_time=(double)(end - start) / CLOCKS_PER_SEC * 1000;
+        
+    //     start = clock();
+    //     CPU_PageRank(graph);
+    //     end = clock();
+    //     cpu_time=min(cpu_time,(float)(end - start) / CLOCKS_PER_SEC * 1000);
+
+    //     start = clock();
+    //     CPU_PageRank(graph);
+    //     end = clock();
+    //     cpu_time=min(cpu_time,(float)(end - start) / CLOCKS_PER_SEC * 1000);
+    //     printf("CPU PageRank cost time: %f ms\n", cpu_time);
+
+    //     elapsedTime = 0;
+    //     PageRank(graph, &elapsedTime);
+    //     gpu_time=elapsedTime;
+
+    //     elapsedTime = 0;
+    //     PageRank(graph, &elapsedTime);
+    //     gpu_time=min(gpu_time,elapsedTime);
+
+    //     elapsedTime = 0;
+    //     PageRank(graph, &elapsedTime);
+    //     gpu_time=min(gpu_time,elapsedTime);
+    //     printf("GPU PageRank cost time: %f ms\n", gpu_time);
+    // }
 
     if (graph.sup_cdlp) {
         start = clock();
@@ -105,11 +195,13 @@ int main()
         Community_Detection(graph, &elapsedTime,ans_gpu);
         printf("GPU Community Detection cost time: %f ms\n", elapsedTime);
         elapsedTime = 0;
-        
-        for(int i=0;i<3774768;i++){
+        int c=0;        
+        for(int i=0;i<V;i++){
             if(ans_cpu[i]!=ans_gpu[i])
-                cout<<"diffrent at point : "<<i<<"  "<<ans_cpu[i]<<"   "<<ans_gpu[i]<<endl;
+                c++;
+                // cout<<"diffrent at point : "<<i<<"  "<<ans_cpu[i]<<"   "<<ans_gpu[i]<<endl;
         }
+        cout<<"diff : "<<(flota)c/V<<endl;
 
     }
 

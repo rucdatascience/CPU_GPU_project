@@ -61,16 +61,17 @@ void pre_set(graph_structure<T> &graph, int &CD_GRAPHSIZE)
     // CD_SET_THREAD = t > 10000 ? 10000 : t;
 }
 
-__global__ void init_label(int *labels_gpu, int CD_GRAPHSIZE)
+__global__ void init_label(int *labels_gpu,int *new_labels_gpu, int CD_GRAPHSIZE)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid >= 0 && tid < CD_GRAPHSIZE)
     {
         labels_gpu[tid] = tid;
+        new_labels_gpu[tid]=tid;
     }
 }
 
-__global__ void extract_labels(int *in_out_ptr_gpu, int *ins_ptr_gpu, int *outs_ptr_gpu, int *ins_neighbor_gpu, int *outs_neighbor_gpu, int *labels_gpu, int *labels_out, int CD_GRAPHSIZE)
+__global__ void extract_labels(int *in_out_ptr_gpu, int *ins_ptr_gpu, int *outs_ptr_gpu, int *ins_neighbor_gpu, int *outs_neighbor_gpu, int *labels, int *labels_out, int CD_GRAPHSIZE)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid >= CD_GRAPHSIZE)
@@ -80,27 +81,56 @@ __global__ void extract_labels(int *in_out_ptr_gpu, int *ins_ptr_gpu, int *outs_
     int len_out = outs_ptr_gpu[tid + 1] - outs_ptr_gpu[tid];
     int len_in = ins_ptr_gpu[tid + 1] - ins_ptr_gpu[tid];
     // int end = in_out_ptr_gpu[tid + 1];
-    for (int i = 0; i < len_out; ++i)
-    {
-        labels_out[start + i] = labels_gpu[outs_neighbor_gpu[outs_ptr_gpu[tid] + i]];
-    }
     for (int i = 0; i < len_in; ++i)
     {
-        labels_out[start + len_out + i] = labels_gpu[ins_neighbor_gpu[ins_ptr_gpu[tid] + i]];
+        labels_out[start + i] = labels[ins_neighbor_gpu[ins_ptr_gpu[tid] + i]];
     }
-    labels_out[start + len_out + len_in] = labels_gpu[tid];
+    
+    for (int i = 0; i < len_out; ++i)
+    {
+        labels_out[start + len_in + i] = labels[outs_neighbor_gpu[outs_ptr_gpu[tid] + i]];
+    }
+    labels_out[start + len_in+len_out ] = labels[tid];
+
     return;
 }
 
 __global__ void parallel_sort_labels(int *in_out_ptr_gpu, int *labels_out, int CD_GRAPHSIZE)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
-    if (tid >= CD_GRAPHSIZE)
+    if (tid >= 10)
         return;
 
     int start = in_out_ptr_gpu[tid];
     int end = in_out_ptr_gpu[tid + 1];
     thrust::sort(thrust::device, labels_out + start, labels_out + end);
+    __syncthreads();
+}
+
+inline void swap(int &a, int &b) {
+    int temp = a;
+    a = b;
+    b = temp;
+}
+
+// QuickSort function for raw pointers
+void quickSort(int* arr, int low, int high) {
+    if (low < high) {
+        int pivot = arr[high]; // choosing the last element as pivot
+        int i = low - 1;
+
+        for (int j = low; j < high; j++) {
+            if (arr[j] < pivot) {
+                i++;
+                swap(arr[i], arr[j]);
+            }
+        }
+        swap(arr[i + 1], arr[high]);
+        int pi = i + 1;
+
+        quickSort(arr, low, pi - 1);
+        quickSort(arr, pi + 1, high);
+    }
 }
 
 void checkCudaError(cudaError_t err, const char *msg)
@@ -202,14 +232,14 @@ int Community_Detection(graph_structure<double> &graph, float *elapsedTime, vect
     // dim3 LPA_thread(CD_THREAD_PER_BLOCK, 1, 1);
 
     // cout << 1 << endl;
-    cudaMallocManaged(&outs_ptr_gpu, (CD_GRAPHSIZE + 1) * sizeof(int));
-    cudaMallocManaged(&ins_ptr_gpu, (CD_GRAPHSIZE + 1) * sizeof(int));
+    cudaMalloc(&outs_ptr_gpu, (CD_GRAPHSIZE + 1) * sizeof(int));
+    cudaMalloc(&ins_ptr_gpu, (CD_GRAPHSIZE + 1) * sizeof(int));
     cudaMallocManaged(&labels_gpu, CD_GRAPHSIZE * sizeof(int));
     cudaMallocManaged(&new_labels_gpu, CD_GRAPHSIZE * sizeof(int));
     cudaMalloc(&outs_neighbor_gpu, outs_neighbor.size() * sizeof(int));
     cudaMalloc(&ins_neighbor_gpu, ins_neighbor.size() * sizeof(int));
     cudaMallocManaged(&global_space_for_label, (outs_neighbor.size() + ins_neighbor.size() + CD_GRAPHSIZE) * sizeof(int));
-    cudaMallocManaged(&in_out_ptr_gpu, (CD_GRAPHSIZE + 1) * sizeof(int));
+    cudaMalloc(&in_out_ptr_gpu, (CD_GRAPHSIZE + 1) * sizeof(int));
 
     cudaMemcpy(outs_ptr_gpu, outs_ptr.data(), outs_ptr.size() * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(ins_ptr_gpu, ins_ptr.data(), ins_ptr.size() * sizeof(int), cudaMemcpyHostToDevice);
@@ -221,7 +251,7 @@ int Community_Detection(graph_structure<double> &graph, float *elapsedTime, vect
     // get_size();
     // cout << 2 << endl;
     cudaError_t err;
-    init_label<<<init_label_block, init_label_thread>>>(labels_gpu, CD_GRAPHSIZE);
+    init_label<<<init_label_block, init_label_thread>>>(labels_gpu,new_labels_gpu, CD_GRAPHSIZE);
     err = cudaDeviceSynchronize();
     checkCudaError(err, "cudaDeviceSynchronize after init_label");
     // cout << 3 << endl;
@@ -233,20 +263,37 @@ int Community_Detection(graph_structure<double> &graph, float *elapsedTime, vect
 
     int it = 0;
     // cout << 4 << endl;
-    // cout << "total epoch_iteration : " << (CD_GRAPHSIZE + CD_SET_THREAD - 1) / CD_SET_THREAD << endl;
+
+    // CD_ITERATION=3;
     while (it < CD_ITERATION)
     {
         if (it % 2 == 0)
         {
-
             extract_labels<<<init_label_block, init_label_thread>>>(in_out_ptr_gpu, ins_ptr_gpu, outs_ptr_gpu, ins_neighbor_gpu, outs_neighbor_gpu, labels_gpu, global_space_for_label, CD_GRAPHSIZE);
             err = cudaDeviceSynchronize();
             checkCudaError(err, "cudaDeviceSynchronize after extract_labels");
-            // cout << 5 << endl;
-            parallel_sort_labels<<<init_label_block, init_label_thread>>>(in_out_ptr_gpu, global_space_for_label, CD_GRAPHSIZE);
-            err = cudaDeviceSynchronize();
-            checkCudaError(err, "cudaDeviceSynchronize after parallel_sort_labels");
-            // cout << 6 << endl;
+            // for(int i=0;i<10;++i){
+            //     //cout<<ins_ptr[i+1]<<"  "<<ins_ptr[i]<<"  "<<outs_ptr[i+1]<<"  "<<outs_ptr[i]<<"  "<<ins_ptr[i+1]-ins_ptr[i]<<"  "<<outs_ptr[i+1]-outs_ptr[i]<<"  "<<in_out_ptr[i]<<"  "<<in_out_ptr[i+1]<<endl;
+            //     for(int j=in_out_ptr[i];j<in_out_ptr[i+1];j++){
+            //         cout<<global_space_for_label[j]<<"   ";
+            //     }
+            //     cout<<endl<<"--------------------------------------------------------------"<<endl;
+            // }
+            // cout<<"************************************************"<<endl;
+            // parallel_sort_labels<<<init_label_block, init_label_thread>>>(in_out_ptr_gpu, global_space_for_label, CD_GRAPHSIZE);
+            // err = cudaDeviceSynchronize();
+            // checkCudaError(err, "cudaDeviceSynchronize after parallel_sort_labels");
+            for(int i=0;i<CD_GRAPHSIZE;++i){
+                quickSort(global_space_for_label,in_out_ptr[i],  in_out_ptr[i+1]-1);
+            }
+            
+            // for(int i=0;i<10;++i){
+            //     //cout<<ins_ptr[i+1]<<"  "<<ins_ptr[i]<<"  "<<outs_ptr[i+1]<<"  "<<outs_ptr[i]<<"  "<<ins_ptr[i+1]-ins_ptr[i]<<"  "<<outs_ptr[i+1]-outs_ptr[i]<<"  "<<in_out_ptr[i]<<"  "<<in_out_ptr[i+1]<<endl;
+            //     for(int j=in_out_ptr[i];j<in_out_ptr[i+1];j++){
+            //         cout<<global_space_for_label[j]<<"   ";
+            //     }
+            //     cout<<endl<<"--------------------------------------------------------------"<<endl;
+            // }
             LPA<<<init_label_block, init_label_thread>>>(global_space_for_label, in_out_ptr_gpu, labels_gpu, new_labels_gpu, CD_GRAPHSIZE);
             err = cudaDeviceSynchronize();
             checkCudaError(err, "cudaDeviceSynchronize after LPA");
@@ -256,9 +303,28 @@ int Community_Detection(graph_structure<double> &graph, float *elapsedTime, vect
             extract_labels<<<init_label_block, init_label_thread>>>(in_out_ptr_gpu, ins_ptr_gpu, outs_ptr_gpu, ins_neighbor_gpu, outs_neighbor_gpu, new_labels_gpu, global_space_for_label, CD_GRAPHSIZE);
             err = cudaDeviceSynchronize();
             checkCudaError(err, "cudaDeviceSynchronize after extract_labels");
-            parallel_sort_labels<<<init_label_block, init_label_thread>>>(in_out_ptr_gpu, global_space_for_label, CD_GRAPHSIZE);
-            err = cudaDeviceSynchronize();
-            checkCudaError(err, "cudaDeviceSynchronize after parallel_sort_labels");
+            // cout<<new_labels_gpu[1852854]<<endl;
+            // for(int i=1000;i<1010;++i){
+            //     cout<<ins_ptr[i+1]<<"  "<<ins_ptr[i]<<"  "<<outs_ptr[i+1]<<"  "<<outs_ptr[i]<<"  "<<ins_ptr[i+1]-ins_ptr[i]<<"  "<<outs_ptr[i+1]-outs_ptr[i]<<"  "<<in_out_ptr[i]<<"  "<<in_out_ptr[i+1]<<endl;
+            //     for(int j=in_out_ptr[i];j<in_out_ptr[i+1];j++){
+            //         cout<<global_space_for_label[j]<<"   ";
+            //     }
+            //     cout<<endl<<"--------------------------------------------------------------"<<endl;
+            // }
+            // cout<<"************************************************"<<endl;
+            // parallel_sort_labels<<<init_label_block, init_label_thread>>>(in_out_ptr_gpu, global_space_for_label, CD_GRAPHSIZE);
+            // err = cudaDeviceSynchronize();
+            // checkCudaError(err, "cudaDeviceSynchronize after parallel_sort_labels");
+            for(int i=0;i<CD_GRAPHSIZE;++i){
+                quickSort(global_space_for_label,in_out_ptr[i],  in_out_ptr[i+1]-1);
+            }
+            // for(int i=1000;i<1010;++i){
+            //     cout<<ins_ptr[i+1]<<"  "<<ins_ptr[i]<<"  "<<outs_ptr[i+1]<<"  "<<outs_ptr[i]<<"  "<<ins_ptr[i+1]-ins_ptr[i]<<"  "<<outs_ptr[i+1]-outs_ptr[i]<<"  "<<in_out_ptr[i]<<"  "<<in_out_ptr[i+1]<<endl;
+            //     for(int j=in_out_ptr[i];j<in_out_ptr[i+1];j++){
+            //         cout<<global_space_for_label[j]<<"   ";
+            //     }
+            //     cout<<endl<<"--------------------------------------------------------------"<<endl;
+            // }
             LPA<<<init_label_block, init_label_thread>>>(global_space_for_label, in_out_ptr_gpu, new_labels_gpu, labels_gpu, CD_GRAPHSIZE);
             err = cudaDeviceSynchronize();
             checkCudaError(err, "cudaDeviceSynchronize after LPA");
@@ -275,8 +341,12 @@ int Community_Detection(graph_structure<double> &graph, float *elapsedTime, vect
     cudaEventDestroy(GPUstop);
 
     ans.resize(CD_GRAPHSIZE);
-    cudaMemcpy(ans.data(), labels_gpu, CD_GRAPHSIZE * sizeof(int), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
+    if(CD_ITERATION%2==0){
+        cudaMemcpy(ans.data(), labels_gpu, CD_GRAPHSIZE * sizeof(int), cudaMemcpyDeviceToHost);
+    }else{
+        cudaMemcpy(ans.data(), new_labels_gpu, CD_GRAPHSIZE * sizeof(int), cudaMemcpyDeviceToHost);
+    }
+    
     cudaFree(outs_ptr_gpu);
     cudaFree(ins_ptr_gpu);
     cudaFree(labels_gpu);
