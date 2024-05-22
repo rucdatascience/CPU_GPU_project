@@ -24,6 +24,12 @@ std::vector<double> CPU_shortest_paths(std::vector<std::vector<std::pair<int, do
 
 	std::vector<double> distances;
 	distances.resize(N, inf); // initial distance from source is inf
+
+	if (source < 0 || source >= N) {
+		std::cout << "Invalid source vertex" << std::endl;
+		return distances;
+	}
+
 	distances[source] = 0;
 	std::vector<int> vis(N, 0);
 
