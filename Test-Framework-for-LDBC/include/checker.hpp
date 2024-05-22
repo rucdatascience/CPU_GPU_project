@@ -49,14 +49,17 @@ void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std:
         tokens = parse_string(line, " ");
         if (tokens.size() != 2) {
             std::cout << "Baseline file format error!" << std::endl;
+            base_line.close();
             return;
         }
         if (id >= size) {
             std::cout << "Size of baseline file is larger than the result!" << std::endl;
+            base_line.close();
             return;
         }
         if (graph.vertex_str_to_id.find(tokens[0]) == graph.vertex_str_to_id.end()) {
             std::cout << "Baseline file contains a vertex that is not in the graph!" << std::endl;
+            base_line.close();
             return;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
@@ -64,16 +67,19 @@ void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std:
             std::cout << "Baseline file and GPU BFS results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
             std::cout << "GPU BFS result: " << graph.vertex_id_to_str[gpu_res[v_id]] << " " << gpu_res[v_id] << std::endl;
+            base_line.close();
             return;
         }
         id++;
     }
     if (id != size) {
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
+        base_line.close();
         return;
     }
 
     std::cout << "BFS results are correct!" << std::endl;
+    base_line.close();
 }
 
 bool compare(std::vector<int>& a, std::vector<int>& b) {
@@ -126,7 +132,6 @@ void wcc_checker(graph_structure<double>& graph, std::vector<std::vector<int>>& 
     }
 
     std::string base_line_file = "../results/" + graph.vertex_file;
-    // remove the last two char
 
     base_line_file.pop_back();
     base_line_file.pop_back();
@@ -152,6 +157,7 @@ void wcc_checker(graph_structure<double>& graph, std::vector<std::vector<int>>& 
         tokens = parse_string(line, " ");
         if (tokens.size() != 2) {
             std::cout << "Baseline file format error!" << std::endl;
+            base_line.close();
             return;
         }
         component[graph.vertex_str_to_id[tokens[0]]] = graph.vertex_str_to_id[tokens[1]];
@@ -170,12 +176,14 @@ void wcc_checker(graph_structure<double>& graph, std::vector<std::vector<int>>& 
 
     if (base_res.size() != gpu_res.size()) {
         std::cout << "Baseline file and GPU WCC results are not the same in size!" << std::endl;
+        base_line.close();
         return;
     }
 
     for (auto &v : base_res) {
         if (!v.size()) {
             std::cout << "One of baseline WCC results is empty!" << std::endl;
+            base_line.close();
             return;
         }
         std::sort(v.begin(), v.end());
@@ -188,18 +196,21 @@ void wcc_checker(graph_structure<double>& graph, std::vector<std::vector<int>>& 
             std::cout << "Baseline file and GPU WCC results are not the same!" << std::endl;
             std::cout << "Baseline file: " << graph.vertex_id_to_str[i] << " " << base_res[i][0] << std::endl;
             std::cout << "GPU WCC result: " << graph.vertex_id_to_str[gpu_res[i][0]] << " " << gpu_res[i][0] << std::endl;
+            base_line.close();
             return;
         }
         for (int j = 0; j < base_res[i].size(); j++) {
             if (base_res[i][j] != gpu_res[i][j]) {
                 std::cout << "Baseline file and GPU WCC results are not the same!" << std::endl;
                 std::cout << "Difference at: " << graph.vertex_id_to_str[base_res[i][j]] << " " << graph.vertex_id_to_str[gpu_res[i][j]] << std::endl;
+                base_line.close();
                 return;
             }
         }
     }
 
     std::cout << "WCC results are correct!" << std::endl;
+    base_line.close();
 }
 
 void sssp_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, std::vector<double>& gpu_res) {
@@ -247,15 +258,18 @@ void sssp_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, 
         tokens = parse_string(line, " ");
         if (tokens.size() != 2) {
             std::cout << "Baseline file format error!" << std::endl;
+            base_line.close();
             return;
         }
         if (id >= size) {
             std::cout << "Size of baseline file is larger than the result!" << std::endl;
+            base_line.close();
             return;
         }
 
         if (graph.vertex_str_to_id.find(tokens[0]) == graph.vertex_str_to_id.end()) {
             std::cout << "Baseline file contains a vertex that is not in the graph!" << std::endl;
+            base_line.close();
             return;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
@@ -264,16 +278,19 @@ void sssp_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, 
             std::cout << "Baseline file and GPU SSSP results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
             std::cout << "GPU SSSP result: " << graph.vertex_id_to_str[v_id] << " " << gpu_res[v_id] << std::endl;
+            base_line.close();
             return;
         }
         id++;
     }
     if (id != size) {
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
+        base_line.close();
         return;
     }
 
     std::cout << "SSSP results are correct!" << std::endl;
+    base_line.close();
 }
 
 void pr_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, std::vector<double>& gpu_res) {
@@ -321,15 +338,18 @@ void pr_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, st
         tokens = parse_string(line, " ");
         if (tokens.size() != 2) {
             std::cout << "Baseline file format error!" << std::endl;
+            base_line.close();
             return;
         }
         if (id >= size) {
             std::cout << "Size of baseline file is larger than the result!" << std::endl;
+            base_line.close();
             return;
         }
 
         if (graph.vertex_str_to_id.find(tokens[0]) == graph.vertex_str_to_id.end()) {
             std::cout << "Baseline file contains a vertex that is not in the graph!" << std::endl;
+            base_line.close();
             return;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
@@ -338,16 +358,19 @@ void pr_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, st
             std::cout << "Baseline file and GPU PageRank results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
             std::cout << "GPU PageRank result: " << graph.vertex_id_to_str[v_id] << " " << gpu_res[v_id] << std::endl;
+            base_line.close();
             return;
         }
         id++;
     }
     if (id != size) {
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
+        base_line.close();
         return;
     }
 
     std::cout << "PageRank results are correct!" << std::endl;
+    base_line.close();
 }
 
 // similar to bfs_checker
@@ -396,15 +419,18 @@ void cdlp_check(graph_structure<double>& graph, std::vector<int>& cpu_res, std::
         tokens = parse_string(line, " ");
         if (tokens.size() != 2) {
             std::cout << "Baseline file format error!" << std::endl;
+            base_line.close();
             return;
         }
         if (id >= size) {
             std::cout << "Size of baseline file is larger than the result!" << std::endl;
+            base_line.close();
             return;
         }
 
         if (graph.vertex_str_to_id.find(tokens[0]) == graph.vertex_str_to_id.end()) {
             std::cout << "Baseline file contains a vertex that is not in the graph!" << std::endl;
+            base_line.close();
             return;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
@@ -413,14 +439,17 @@ void cdlp_check(graph_structure<double>& graph, std::vector<int>& cpu_res, std::
             std::cout << "Baseline file and GPU CDLP results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
             std::cout << "GPU CDLP result: " << graph.vertex_id_to_str[gpu_res[v_id]] << " " << gpu_res[v_id] << std::endl;
+            base_line.close();
             return;
         }
         id++;
     }
     if (id != size) {
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
+        base_line.close();
         return;
     }
 
     std::cout << "CDLP results are correct!" << std::endl;
+    base_line.close();
 }
