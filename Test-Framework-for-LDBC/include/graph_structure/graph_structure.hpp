@@ -84,19 +84,14 @@ public:
 	inline CSR_graph<weight_type> toCSR();
 
 	/* 
-	LDBC 
-
-	一开始：给LDBC文件路径、数据名称，以便批处理读取不同LDBC数据
-
-	先读Properties file： 
-	是有向图还是无向图 bool；是否权重 bool;
-	5个bool变量：List of supported algorithms on the graph；读图后，test每个支持的算子
-	BFS、CDLP、PR、SSSP、SSSP的参数；
-
-	先读V，再读E
-
-	LDBC的结果测试方法：      https://www.jianguoyun.com/p/DW-YrpAQvbHvCRiO_bMFIAA      2.4 Output Validation 章节
-
+	LDBC test process
+	At the beginning: give LDBC file path, data name, so that batch read different LDBC data
+	step1: Read the Properties file first: determine whether the graph is directed or undirected bool; Whether weight bool;
+	the graph contains 5 bool variables: List of supported algorithms on the graph;
+	After reading the graph, test the parameters of each supported operator BFS, CDLP, PR, SSSP, and SSSP;
+	Read V first, then E
+	LDBC the results of the test method: https://www.jianguoyun.com/p/DW-YrpAQvbHvCRiO_bMFIAA
+	For the verification method, see 2.4 Output Validation
 	*/
 	bool is_directed = true;
 	bool is_weight = false;
@@ -144,37 +139,6 @@ class CSR_graph {
 		std::vector<int> INs_Edges, OUTs_Edges;  // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
 		std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
 };
-
-
-/*the following codes are for testing
-
----------------------------------------------------
-a cpp file (try.cpp) for running the following example code:
-----------------------------------------
-
-#include <iostream>
-#include <fstream>
-using namespace std;
-
-#include <graph_structure/graph_structure.h>
-
-
-int main()
-{
-	graph_structure_example();
-}
-
-------------------------------------------------------------------------------------------
-Commends for running the above cpp file on Linux:
-
-g++ -std=c++17 -I/home/boost_1_75_0 -I/root/CPU_GPU_project try.cpp -lpthread -O3 -o A
-./A
-rm A
-
-(optional to put the above commends in run.sh, and then use the comment: sh run.sh)
-
-
-*/
 
 /*class member functions*/
 
