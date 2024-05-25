@@ -81,7 +81,7 @@ std::vector<std::vector<int>> gpu_connected_components(CSR_graph<double>& input_
     int blocksPerGrid = 0;
     //Disperse E operations on threads
     blocksPerGrid = (E + threadsPerBlock - 1) / threadsPerBlock;
-    Hook<<<blocksPerGrid, threadsPerBlock>>>(Parent, Start_v, End_v, E);//一波清
+    Hook<<<blocksPerGrid, threadsPerBlock>>>(Parent, Start_v, End_v, E);
     cudaDeviceSynchronize();
     cudaError_t cuda_status = cudaGetLastError();
     if (cuda_status != cudaSuccess) {
