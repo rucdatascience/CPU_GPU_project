@@ -1,18 +1,20 @@
 //#include "../include/GPU_BFS.cuh"
 #include <GPU_BFS.cuh>
-
+//It's not that the CPU tasks are assigned to the GPU, but rather that the GPU determines which part of the task to complete based on its own ID number
 __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int* next_queue, int* queue_size, int* next_queue_size, int max_depth) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
-
+   // Grid is divided into 1 dimension, Block is divided into 1 dimension.
     if (tid < *queue_size) {
-        int vertex = queue[tid];
+        int vertex = queue[tid];//定位到队列元素
         int depth = visited[vertex];
         for (int edge = start[vertex]; edge < start[vertex + 1]; edge++) {
+            //节点边的遍历范围由start数组给定
+            //遍历邻接边
             int neighbor = edges[edge];
             if (visited[neighbor] >= max_depth && depth < max_depth) {
                 visited[neighbor] = depth + 1;
-                int pos = atomicAdd(next_queue_size, 1);
-                next_queue[pos] = neighbor;
+                int pos = atomicAdd(next_queue_size, 1);//AtomicAdd is an atomic addition function in CUDA, used to ensure data consistency and correctness when multiple threads modify the same global variable simultaneously.
+                next_queue[pos] = neighbor;//Generate the next queue, which could be understood as a queue joining operation
             }
         }
     }
@@ -22,7 +24,7 @@ __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int
 std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, float* elapsedTime, int max_depth) {
     int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
-
+    //顶点数和边数
     std::vector<int> depth(V, max_depth);
 
     if (source_vertex < 0 || source_vertex >= V) {
@@ -35,7 +37,8 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, flo
     int* queue_size, * next_queue_size;
 
     int* edges, * start;
-
+    
+    //Allocate GPU memory
     cudaMallocManaged((void**)&visited, V * sizeof(int));
     cudaMallocManaged((void**)&queue, V * sizeof(int));
     cudaMallocManaged((void**)&next_queue, V * sizeof(int));
@@ -43,14 +46,14 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, flo
     cudaMallocManaged((void**)&next_queue_size, sizeof(int));
     cudaMallocManaged((void**)&edges, E * sizeof(int));
     cudaMallocManaged((void**)&start, V * sizeof(int));
-
+    //Transferring the read in data to the GPU
     cudaMemcpy(edges, input_graph.OUTs_Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(start, input_graph.OUTs_Neighbor_start_pointers.data(), V * sizeof(int), cudaMemcpyHostToDevice);
-
+    
     queue[0] = source_vertex;
     for (int i = 0; i < V; i++)
-        visited[i] = max_depth;
-    visited[source_vertex] = 0;
+        visited[i] = max_depth;//vector initialization
+    visited[source_vertex] = 0;//Record whether the node has been accessed
     *queue_size = 1, *next_queue_size = 1;
 
     int threadsPerBlock = 1024;
@@ -63,29 +66,30 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, flo
     cudaEventRecord(start_clock, 0);
 
     while (*queue_size > 0) {
+        //The BFS operation continues to loop until the queue is empty
         numBlocks = (*queue_size + threadsPerBlock - 1) / threadsPerBlock;
-
+        //Assign tasks to threads
         bfs_kernel << <numBlocks, threadsPerBlock >> > (edges, start, visited, queue, next_queue, queue_size, next_queue_size, max_depth);
         cudaDeviceSynchronize();
-
+        //Print error messages
         cudaError_t cuda_status = cudaGetLastError();
         if (cuda_status != cudaSuccess) {
             fprintf(stderr, "Kernel launch failed: %s\n", cudaGetErrorString(cuda_status));
             return depth;
         }
-
+        //Exchange to obtain the queue for the next round of circulation
         std::swap(queue, next_queue);
         *queue_size = *next_queue_size;
         *next_queue_size = 0;
     }
-
+    //accord time cost
     cudaEventRecord(stop_clock, 0);
     cudaEventSynchronize(stop_clock);
     cudaEventElapsedTime(elapsedTime, start_clock, stop_clock);
 
     cudaEventDestroy(start_clock);
     cudaEventDestroy(stop_clock);
-
+    //free memory
     cudaMemcpy(depth.data(), visited, V * sizeof(int), cudaMemcpyDeviceToHost);
     cudaFree(visited);
     cudaFree(queue);
