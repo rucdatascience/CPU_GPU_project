@@ -5,11 +5,11 @@ __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
    // Grid is divided into 1 dimension, Block is divided into 1 dimension.
     if (tid < *queue_size) {
-        int vertex = queue[tid];//定位到队列元素
+        int vertex = queue[tid];
         int depth = visited[vertex];
         for (int edge = start[vertex]; edge < start[vertex + 1]; edge++) {
-            //节点边的遍历范围由start数组给定
-            //遍历邻接边
+            //The traversal range of node edges is given by the start array
+//Traverse adjacent edges
             int neighbor = edges[edge];
             if (visited[neighbor] >= max_depth && depth < max_depth) {
                 visited[neighbor] = depth + 1;
@@ -24,7 +24,7 @@ __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int
 std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, float* elapsedTime, int max_depth) {
     int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
-    //顶点数和边数
+    
     std::vector<int> depth(V, max_depth);
 
     if (source_vertex < 0 || source_vertex >= V) {
