@@ -21,7 +21,7 @@ std::vector<int> CPU_BFS(std::vector<std::vector<std::pair<int, T>>>& input_grap
 			searched_vertices.push_back(v);
 		}
 		Q.pop(); //Removing that vertex from queue,whose neighbour will be visited now
-
+		
 		if (depth[v] + 1 <= max_depth) {
 			//Traversing node v in the graph yields a pair value, adjfirst being the adjacency point
 			for (auto& adj : input_graph[v]) { /*processing all the neighbours of v*/
@@ -34,7 +34,7 @@ std::vector<int> CPU_BFS(std::vector<std::vector<std::pair<int, T>>>& input_grap
 		}
 	}
 
-	return depth;
+	return searched_vertices;
 }
 
 
