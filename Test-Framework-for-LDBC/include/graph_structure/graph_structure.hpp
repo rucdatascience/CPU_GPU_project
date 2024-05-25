@@ -84,19 +84,14 @@ public:
 	inline CSR_graph<weight_type> toCSR();
 
 	/* 
-	LDBC 
-
-	一开始：给LDBC文件路径、数据名称，以便批处理读取不同LDBC数据
-
-	先读Properties file： 
-	是有向图还是无向图 bool；是否权重 bool;
-	5个bool变量：List of supported algorithms on the graph；读图后，test每个支持的算子
-	BFS、CDLP、PR、SSSP、SSSP的参数；
-
-	先读V，再读E
-
-	LDBC的结果测试方法：      https://www.jianguoyun.com/p/DW-YrpAQvbHvCRiO_bMFIAA      2.4 Output Validation 章节
-
+	LDBC test process
+	At the beginning: give LDBC file path, data name, so that batch read different LDBC data
+	step1: Read the Properties file first: determine whether the graph is directed or undirected bool; Whether weight bool;
+	the graph contains 5 bool variables: List of supported algorithms on the graph;
+	After reading the graph, test the parameters of each supported operator BFS, CDLP, PR, SSSP, and SSSP;
+	Read V first, then E
+	LDBC the results of the test method: https://www.jianguoyun.com/p/DW-YrpAQvbHvCRiO_bMFIAA
+	For the verification method, see 2.4 Output Validation
 	*/
 	bool is_directed = true;
 	bool is_weight = false;
@@ -107,6 +102,9 @@ public:
 	bool sup_pr = false;
 	bool sup_wcc = false;
 	bool sup_sssp = false;
+
+	std::string bfs_src_name;
+	std::string sssp_src_name;
 
 	int id = 0;
 	int bfs_src = 0;
@@ -141,37 +139,6 @@ class CSR_graph {
 		std::vector<int> INs_Edges, OUTs_Edges;  // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
 		std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
 };
-
-
-/*the following codes are for testing
-
----------------------------------------------------
-a cpp file (try.cpp) for running the following example code:
-----------------------------------------
-
-#include <iostream>
-#include <fstream>
-using namespace std;
-
-#include <graph_structure/graph_structure.h>
-
-
-int main()
-{
-	graph_structure_example();
-}
-
-------------------------------------------------------------------------------------------
-Commends for running the above cpp file on Linux:
-
-g++ -std=c++17 -I/home/boost_1_75_0 -I/root/CPU_GPU_project try.cpp -lpthread -O3 -o A
-./A
-rm A
-
-(optional to put the above commends in run.sh, and then use the comment: sh run.sh)
-
-
-*/
 
 /*class member functions*/
 
@@ -454,12 +421,12 @@ void graph_structure<weight_type>::read_config(std::string config_path) {
 			}
             else if (parts.back() == "source-vertex") {
 				if (parts[parts.size() - 2] == "bfs") {
-					bfs_src = add_vertice(value);
-					std::cout << "bfs_source_vertex: " << value << " id: " << bfs_src << std::endl;
+					bfs_src_name = value;
+					std::cout << "bfs_source_vertex: " << value << std::endl;
 				}
 				else {
-					sssp_src = add_vertice(value);
-					std::cout << "sssp_source_vertex: " << value << " id: " << sssp_src << std::endl;
+					sssp_src_name = value;
+					std::cout << "sssp_source_vertex: " << value  << std::endl;
 				}
             }
         }
@@ -512,6 +479,27 @@ void graph_structure<weight_type>::load_LDBC() {
 	}
 
 	std::cout << "Done." << std::endl;
+
+	if (sup_bfs) {
+		if (vertex_str_to_id.find(bfs_src_name) == vertex_str_to_id.end()) {
+			std::cout << "Invalid source vertex for BFS" << std::endl;
+			getchar();
+			exit(1);
+		}
+		else
+			bfs_src = vertex_str_to_id[bfs_src_name];
+	}
+		
+	
+	if (sup_sssp) {
+		if (vertex_str_to_id.find(sssp_src_name) == vertex_str_to_id.end()) {
+			std::cout << "Invalid source vertex for SSSP" << std::endl;
+			getchar();
+			exit(1);
+		}
+		else
+			sssp_src = vertex_str_to_id[sssp_src_name];
+	}
 
 	OUTs.resize(V);
 	INs.resize(V);

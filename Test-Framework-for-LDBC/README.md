@@ -12,6 +12,7 @@ Based on graph algorithm library of RUC
 - `src/`: source code
 - `include/`: header files
 - `data/`: put the LDBC dataset here (.properties, .v, .e)
+- `results/`: put the baseline results here, the program will check the algorithm results automatically
 
 ## Build & Run
 

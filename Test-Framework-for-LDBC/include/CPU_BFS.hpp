@@ -34,7 +34,7 @@ std::vector<int> CPU_BFS(std::vector<std::vector<std::pair<int, T>>>& input_grap
 		}
 	}
 
-	return searched_vertices;
+	return depth;
 }
 
 

@@ -8,12 +8,10 @@
 
 #include <graph_structure/graph_structure.hpp>
 
-#define INF 1000000000
-
 __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int* next_queue, int* queue_size, int* next_queue_size, int max_depth);
 
 //template<typename T>
 extern "C" 
-std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, float* elapsedTime, int max_depth = INF);
+std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, float* elapsedTime, int max_depth = INT_MAX);
 
 #endif

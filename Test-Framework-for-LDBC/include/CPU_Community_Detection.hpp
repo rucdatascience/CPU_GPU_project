@@ -9,7 +9,7 @@
 #include <graph_structure/graph_structure.hpp>
 using namespace std;
 static int CPU_CD_GRAPHSIZE;
-static int ITERAION = 10;
+static int CPU_CD_ITERATION = 10;
 
 static vector<int> outs_row_ptr, ins_row_ptr, outs_neighbor, ins_neighbor; 
 static vector<int> labels, new_labels;
@@ -39,15 +39,13 @@ void init_label() {
     }
 }
 
-unsigned long long _cnt = 0;
-
-int findMostFrequentLabel(int outs_start, int outs_end, int ins_start, int ins_end) {
+int findMostFrequentLabel(int ver,int outs_start, int outs_end, int ins_start, int ins_end) {
     unordered_map<int, int> frequencyMap;
-    int mostFre = -1, mostFreLab = -1;
-    int total=outs_end-outs_start-1+ins_end-ins_start-1;
+    int mostFre = 1, mostFreLab = (*labels_ptr)[ver];
+    int total=outs_end-outs_start+ins_end-ins_start+1;
+    frequencyMap[(*labels_ptr)[ver]]++;
     for (int i = outs_start; i < outs_end; i++) {
         int neighbor = outs_neighbor[i];
-        _cnt++;
         frequencyMap[(*labels_ptr)[neighbor]]++;
         if (frequencyMap[(*labels_ptr)[neighbor]] > mostFre) {
             mostFre = frequencyMap[(*labels_ptr)[neighbor]];
@@ -56,7 +54,7 @@ int findMostFrequentLabel(int outs_start, int outs_end, int ins_start, int ins_e
         else if (frequencyMap[(*labels_ptr)[neighbor]] == mostFre && (*labels_ptr)[neighbor] < mostFreLab) {
             mostFreLab = (*labels_ptr)[neighbor];
         }
-        if(mostFreLab > total/2) {
+        if(mostFre > total/2) {
             return mostFreLab;
         }
     }
@@ -64,7 +62,6 @@ int findMostFrequentLabel(int outs_start, int outs_end, int ins_start, int ins_e
     for (int i = ins_start; i < ins_end; i++) {
         int neighbor = ins_neighbor[i];
         frequencyMap[(*labels_ptr)[neighbor]]++;
-        _cnt++;
         if (frequencyMap[(*labels_ptr)[neighbor]] > mostFre) {
             mostFre = frequencyMap[(*labels_ptr)[neighbor]];
             mostFreLab = (*labels_ptr)[neighbor];
@@ -72,7 +69,7 @@ int findMostFrequentLabel(int outs_start, int outs_end, int ins_start, int ins_e
         else if (frequencyMap[(*labels_ptr)[neighbor]] == mostFre && (*labels_ptr)[neighbor] < mostFreLab) {
             mostFreLab = (*labels_ptr)[neighbor];
         }
-        if(mostFreLab > total/2) {
+        if(mostFre > total/2) {
             return mostFreLab;
         }
     }
@@ -80,14 +77,14 @@ int findMostFrequentLabel(int outs_start, int outs_end, int ins_start, int ins_e
     return mostFreLab;
 }
 
-void labelPropagation() {
+void labelPropagation(vector<int> &ans) {
     int iteration = 0;
-    while (iteration < 1) {
+    while (iteration < CPU_CD_ITERATION) {
         cout << "----iteration : " << iteration << " ----" << endl;
         for (int i = 0; i < CPU_CD_GRAPHSIZE; ++i) {
             int outs_start = outs_row_ptr[i], outs_end = outs_row_ptr[i + 1];
             int ins_start = ins_row_ptr[i], ins_end = ins_row_ptr[i + 1];
-            int mostFrequentLabel = findMostFrequentLabel(outs_start, outs_end, ins_start, ins_end);
+            int mostFrequentLabel = findMostFrequentLabel(i,outs_start, outs_end, ins_start, ins_end);
 
             if ((*labels_ptr)[i] != mostFrequentLabel) {
                 (*new_labels_ptr)[i] = mostFrequentLabel;
@@ -98,21 +95,20 @@ void labelPropagation() {
         }
         swap(labels_ptr, new_labels_ptr);
         iteration++;
-        printf("It %d\n", iteration);
     }
+    ans=(*labels_ptr);
 }
 
 template <typename T>
-int CPU_Community_Detection(graph_structure<T>& graph) {
+int CPU_Community_Detection(graph_structure<T>& graph,vector<int> &ans) {
     copy_init(graph, CPU_CD_GRAPHSIZE);
 
-    ITERAION = graph.cdlp_max_its;
+    CPU_CD_ITERATION = graph.cdlp_max_its;
 
     init_label();
-    clock_t start = clock();
-    labelPropagation();
-    clock_t end = clock();
-    cout<<(float)(end - start) / CLOCKS_PER_SEC * 1000<<endl;
-    cout << "cnt is " << _cnt << endl;
+
+    labelPropagation(ans);
+
     return 0;
 }
+
