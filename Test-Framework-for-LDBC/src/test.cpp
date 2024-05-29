@@ -2,7 +2,7 @@
 #include <Union-Find.cuh>
 #include <Workfront-Sweep.cuh>
 #include <GPU_PageRank.cuh>
-// #include <GPU_Community_Detection.cuh>
+#include <GPU_Community_Detection.cuh>
 
 #include <CPU_BFS.hpp>
 #include <CPU_connected_components.hpp>
@@ -83,26 +83,31 @@ int main()
 
     if (graph.sup_pr) {
         start = clock();
-        CPU_PageRank(graph);
+        vector<double> cpu_pr_result, gpu_pr_result;
+        CPU_PageRank(graph, cpu_pr_result);
         end = clock();
         printf("CPU PageRank cost time: %f ms\n", (double)(end - start) / CLOCKS_PER_SEC * 1000);
 
         elapsedTime = 0;
-        PageRank(graph, &elapsedTime);
+        PageRank(graph, &elapsedTime, gpu_pr_result);
         printf("GPU PageRank cost time: %f ms\n", elapsedTime);
+        pr_checker(graph, cpu_pr_result, gpu_pr_result);
     }
 
-    /*if (graph.sup_cdlp) {
+    if (graph.sup_cdlp) {
+        std::vector<int> ans_cpu, ans_gpu;
         start = clock();
-        CPU_Community_Detection(graph);
+        CPU_Community_Detection(graph, ans_cpu);
         end = clock();
         printf("CPU Community Detection cost time: %f ms\n", (double)(end - start) / CLOCKS_PER_SEC * 1000);
 
         elapsedTime = 0;
-        Community_Detection(graph, &elapsedTime);
+        Community_Detection(graph, &elapsedTime, ans_gpu);
         printf("GPU Community Detection cost time: %f ms\n", elapsedTime);
         elapsedTime = 0;
-    }*/
+
+        cdlp_check(graph, ans_cpu, ans_gpu);
+    }
 
     return 0;
 }
