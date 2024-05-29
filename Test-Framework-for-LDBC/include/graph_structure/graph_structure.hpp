@@ -75,13 +75,13 @@ public:
 	inline void remove_edge(int, int);
 	inline void remove_all_adjacent_edges(int);
 	inline bool contain_edge(int, int); // whether there is an edge
-	inline weight_type edge_weight(int, int);
+	inline weight_type edge_weight(int, int); //get edge weight
 	inline long long int edge_number(); // the total number of edges
 	inline void print();
 	inline void clear();
 	inline int out_degree(int);
 	inline int in_degree(int);
-	inline CSR_graph<weight_type> toCSR();
+	inline CSR_graph<weight_type> toCSR();//use csr data format to store graph
 
 	/* 
 	LDBC test process
@@ -444,6 +444,7 @@ int graph_structure<weight_type>::add_vertice(std::string line_content) {
 	return vertex_str_to_id[line_content];
 }
 
+//Code rewrite. Attention please the data type of input paramers.
 template <typename weight_type>
 void graph_structure<weight_type>::add_edge(std::string e1, std::string e2, weight_type ec) {
 	E++;
