@@ -95,7 +95,7 @@ vector<double> *Method( vector<double> *rankVec, int &iteration)
     return rankVec;
 }
 
-void CPU_PageRank(graph_structure<double> &graph)
+void CPU_PageRank(graph_structure<double> &graph, vector<double> & result)
 {
     CSR_graph<double> ARRAY_graph = graph.toCSR();
     CPU_PR_GRAPHSIZE = ARRAY_graph.OUTs_Neighbor_start_pointers.size() - 1;
@@ -132,5 +132,6 @@ void CPU_PageRank(graph_structure<double> &graph)
     auto CPUtime = duration.count();
     total += CPUtime;
 
+    result = *ans;
     // cout << "CPU time : " << total << " ms" << endl;
 }

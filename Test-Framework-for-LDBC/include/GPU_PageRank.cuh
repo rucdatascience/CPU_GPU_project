@@ -31,6 +31,6 @@ __global__ void calculate_sink(double* rank,int* N_out_zero_gpu,int out_zero_siz
 // __global__ void reduce_kernel(double *input, double *output);
 
 extern "C"
-void PageRank(graph_structure<double> &graph, float* elapsedTime);
+void PageRank(graph_structure<double> &graph, float* elapsedTime, vector<double> & res);
 
 #endif // PAGERANK_CUH_
