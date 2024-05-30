@@ -72,15 +72,15 @@ public:
 
 	/*class member functions*/
 	inline void add_edge(int, int, weight_type); // this function can change edge weights
-	inline void remove_edge(int, int);
-	inline void remove_all_adjacent_edges(int);
+	inline void remove_edge(int, int);//Remove any edge that connects two vertices
+	inline void remove_all_adjacent_edges(int);//Remove all edges, the input params is vertex numbers
 	inline bool contain_edge(int, int); // whether there is an edge
 	inline weight_type edge_weight(int, int); //get edge weight
 	inline long long int edge_number(); // the total number of edges
-	inline void print();
-	inline void clear();
-	inline int out_degree(int);
-	inline int in_degree(int);
+	inline void print();//print graph
+	inline void clear();// clear graph
+	inline int out_degree(int);//get graph out degree
+	inline int in_degree(int);//get graph in degree
 	inline CSR_graph<weight_type> toCSR();//use csr data format to store graph
 
 	/* 
@@ -93,9 +93,9 @@ public:
 	LDBC the results of the test method: https://www.jianguoyun.com/p/DW-YrpAQvbHvCRiO_bMFIAA
 	For the verification method, see 2.4 Output Validation
 	*/
-	bool is_directed = true;
-	bool is_weight = false;
-	bool is_sssp_weight = true;
+	bool is_directed = true;//direct graph or undirect graph
+	bool is_weight = false;// weight graph or no weight graph
+	bool is_sssp_weight = true;//the weight of sssp
 
 	bool sup_bfs = false;
 	bool sup_cdlp = false;
@@ -108,16 +108,16 @@ public:
 
 	int id = 0;
 	int bfs_src = 0;
-	int cdlp_max_its = 10;
-	int pr_its = 10;
+	int cdlp_max_its = 10;//cdlp algo max iterator num
+	int pr_its = 10;//pr algo iterator num
 	int sssp_src = 0;
-	double pr_damping = 0.85;
+	double pr_damping = 0.85;//pr algorithm damping coefficient
 
 	void load_LDBC();
 	std::unordered_map<std::string, int> vertex_str_to_id; // vertex_str_to_id[vertex_name] = vertex_id
 	std::vector<std::string> vertex_id_to_str; // vertex_id_to_str[vertex_id] = vertex_name
 
-	int add_vertice(std::string);
+	int add_vertice(std::string);//Read the vertex information in the ldbc file as a string
 	void add_edge(std::string, std::string, weight_type);
 
 	std::string vertex_file, edge_file;
@@ -434,14 +434,14 @@ void graph_structure<weight_type>::read_config(std::string config_path) {
 	std::cout << "Done." << std::endl; 
     file.close();
 }
-
+//Store the vertex data in the ldbc into a vector
 template <typename weight_type>
 int graph_structure<weight_type>::add_vertice(std::string line_content) {
 	if (vertex_str_to_id.find(line_content) == vertex_str_to_id.end()) {
 		vertex_id_to_str.push_back(line_content);
-		vertex_str_to_id[line_content] = id++;
+		vertex_str_to_id[line_content] = id++;//Read the LDBC file and renumber it from 0
 	}
-	return vertex_str_to_id[line_content];
+	return vertex_str_to_id[line_content];//the ldbc vertex file lineNo is the vertex matrix size
 }
 
 //Code rewrite. Attention please the data type of input paramers.
@@ -458,7 +458,7 @@ void graph_structure<weight_type>::add_edge(std::string e1, std::string e2, weig
 	}
 }
 
-
+//Reading ldbc vertex and edge file
 template <typename weight_type>
 void graph_structure<weight_type>::load_LDBC() {
 	this->clear();
@@ -510,9 +510,13 @@ void graph_structure<weight_type>::load_LDBC() {
 
 	if (myfile.is_open()) {
 		while (getline(myfile, line_content)) {
+			//Each line of information in the edge file is read, 
+			//and the first two data in each line of information represent the vertex value
 			std::vector<std::string> Parsed_content = parse_string(line_content, " ");
 			int v1 = add_vertice(Parsed_content[0]);
 			int v2 = add_vertice(Parsed_content[1]);
+			// Read information from the edge file, if it is a entitled graph, the third bit of data is the weight, 
+			// if it is a powerless heavy graph, there is no third bit of information, the third bit of the powerless graph is set to 1
 			weight_type ec = Parsed_content.size() > 2 ? std::stod(Parsed_content[2]) : 1;
 			graph_structure<weight_type>::add_edge(v1, v2, ec);
 		}
