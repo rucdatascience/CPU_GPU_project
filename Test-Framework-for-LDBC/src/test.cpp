@@ -47,7 +47,7 @@ int main()
     umap_all_res.emplace("test_file_name", test_file_name);
 
     if (graph.sup_bfs) {
-        bool bfs_pass = false;
+        int bfs_pass = 0;
         std::vector<int> cpu_bfs_result;
         start = clock();
         cpu_bfs_result = CPU_BFS<double>(graph.OUTs, graph.bfs_src);
@@ -64,10 +64,8 @@ int main()
         elapsedTime = 0;
 
         bfs_checker(graph, cpu_bfs_result, gpu_bfs_result, bfs_pass);
-        
-        string bfs_pass_label = "Yes";
-        // if(bfs_pass) bfs_pass_label = "Yes";
-        // cout<<"bfs cpu and gpu and ldbc result is:"<<bfs_pass_label<<endl;
+        string bfs_pass_label = "No";
+        if(bfs_pass != 0) bfs_pass_label = "Yes";
         
         umap_all_res.emplace("cpu_bfs_time", std::to_string(cpu_bfs_time));
         umap_all_res.emplace("gpu_bfs_time", std::to_string(gpu_bfs_time));
@@ -75,6 +73,7 @@ int main()
     }
 
     if (graph.sup_wcc) {
+        int wcc_pass = 0;
         std::vector<std::vector<int>> cpu_wcc_result;
         start = clock();
         cpu_wcc_result = CPU_connected_components<double>(graph.OUTs);
@@ -90,9 +89,10 @@ int main()
         printf("GPU WCC cost time: %f ms\n", gpu_wcc_time);
         elapsedTime = 0;
 
-        wcc_checker(graph, cpu_wcc_result, gpu_wcc_result);
-        
-        string wcc_pass_label = "Yes";
+        wcc_checker(graph, cpu_wcc_result, gpu_wcc_result, wcc_pass);
+        string wcc_pass_label = "No";
+        if(wcc_pass != 0) wcc_pass_label = "Yes";
+
         umap_all_res.emplace("cpu_wcc_time", std::to_string(cpu_wcc_time));
         umap_all_res.emplace("gpu_wcc_time", std::to_string(gpu_wcc_time));
         umap_all_res.emplace("wcc_pass_label", wcc_pass_label);
@@ -100,6 +100,7 @@ int main()
     }
 
     if (graph.sup_sssp) {
+        int sssp_pass = 0;
         start = clock();
         std::vector<double> cpu_sssp_result = CPU_shortest_paths(graph.OUTs, graph.sssp_src);
         end = clock();
@@ -112,15 +113,18 @@ int main()
         double gpu_sssp_time = elapsedTime;
         printf("GPU SSSP cost time: %f ms\n", gpu_sssp_time);
 
-        sssp_checker(graph, cpu_sssp_result, gpu_sssp_result);
+        sssp_checker(graph, cpu_sssp_result, gpu_sssp_result, sssp_pass);
 
-        string sssp_pass_label = "Yes";
+        string sssp_pass_label = "No";
+        if(sssp_pass != 0) sssp_pass_label = "Yes";
+
         umap_all_res.emplace("cpu_sssp_time", std::to_string(cpu_sssp_time));
         umap_all_res.emplace("gpu_sssp_time", std::to_string(gpu_sssp_time));
         umap_all_res.emplace("sssp_pass_label", sssp_pass_label);    
     }
 
     if (graph.sup_pr) {
+        int pr_pass = 0;
         start = clock();
         vector<double> cpu_pr_result, gpu_pr_result;
         CPU_PageRank(graph, cpu_pr_result);
@@ -133,15 +137,18 @@ int main()
         double gpu_pr_time = elapsedTime;
         printf("GPU PageRank cost time: %f ms\n", gpu_pr_time);
 
-        // pr_checker(graph, cpu_pr_result, gpu_pr_result);
+        pr_checker(graph, cpu_pr_result, gpu_pr_result, pr_pass);
 
         string pr_pass_label = "No";
+        if(pr_pass != 0) pr_pass_label = "Yes";
+
         umap_all_res.emplace("cpu_pr_time", std::to_string(cpu_pr_time));
         umap_all_res.emplace("gpu_pr_time", std::to_string(gpu_pr_time));
         umap_all_res.emplace("pr_pass_label", pr_pass_label);        
     }
 
     if (graph.sup_cdlp) {
+        int cdlp_pass = 0;
         std::vector<int> ans_cpu, ans_gpu;
         start = clock();
         CPU_Community_Detection(graph, ans_cpu);
@@ -155,9 +162,10 @@ int main()
         printf("GPU Community Detection cost time: %f ms\n", gpu_cdlp_time);
         elapsedTime = 0;
 
-        // cdlp_check(graph, ans_cpu, ans_gpu);
+        cdlp_check(graph, ans_cpu, ans_gpu, cdlp_pass);
 
         string cdlp_pass_label = "No";
+        if(cdlp_pass != 0) cdlp_pass_label = "Yes";
         umap_all_res.emplace("cpu_cdlp_time", std::to_string(cpu_cdlp_time));
         umap_all_res.emplace("gpu_cdlp_time", std::to_string(gpu_cdlp_time));
         umap_all_res.emplace("cdlp_pass_label", cdlp_pass_label);        
@@ -167,13 +175,6 @@ int main()
     time_t execute_time;
     time(&execute_time);
     umap_all_res.emplace("execute_time", std::to_string(execute_time));
-
-
-    //print all result of ldbc test
-    // cout<<"======================Test Result==================================="<<endl;
-    // for(auto & it : umap_all_res){
-    //     cout<<it.first<<" "<<it.second<<endl;
-    // }
 
     //store test file to .csv file
     string store_path = "../results/" + test_file_name + std::to_string(execute_time) + ".csv";

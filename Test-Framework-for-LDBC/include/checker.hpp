@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cmath>
 
-void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std::vector<int>& gpu_res) {
+void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std::vector<int>& gpu_res, int & is_pass) {
     std::cout << "Checking BFS results..." << std::endl;
     
     if (cpu_res.size() != gpu_res.size()) {
@@ -31,7 +31,7 @@ void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std:
     // remove the last two char
 
     base_line_file.pop_back();
-    base_line_file.pop_back();
+    base_line_file.pop_back();//? why pop back two times
 
     base_line_file += "-BFS";
 
@@ -79,6 +79,7 @@ void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std:
     }
 
     std::cout << "BFS results are correct!" << std::endl;
+    is_pass = 1;
     base_line.close();
 }
 
@@ -87,7 +88,7 @@ bool compare(std::vector<int>& a, std::vector<int>& b) {
 }
 
 
-void wcc_checker(graph_structure<double>& graph, std::vector<std::vector<int>>& cpu_res, std::vector<std::vector<int>>& gpu_res) {
+void wcc_checker(graph_structure<double>& graph, std::vector<std::vector<int>>& cpu_res, std::vector<std::vector<int>>& gpu_res, int & is_pass) {
     std::cout << "Checking WCC results..." << std::endl;
     
     if (cpu_res.size() != gpu_res.size()) {
@@ -160,6 +161,7 @@ void wcc_checker(graph_structure<double>& graph, std::vector<std::vector<int>>& 
             base_line.close();
             return;
         }
+        //store baseline file per row value to component
         component[graph.vertex_str_to_id[tokens[0]]] = graph.vertex_str_to_id[tokens[1]];
     }
 
@@ -210,10 +212,11 @@ void wcc_checker(graph_structure<double>& graph, std::vector<std::vector<int>>& 
     }
 
     std::cout << "WCC results are correct!" << std::endl;
+    is_pass = 1;
     base_line.close();
 }
 
-void sssp_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, std::vector<double>& gpu_res) {
+void sssp_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, std::vector<double>& gpu_res, int & is_pass) {
     std::cout << "Checking SSSP results..." << std::endl;
     
     if (cpu_res.size() != gpu_res.size()) {
@@ -290,10 +293,11 @@ void sssp_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, 
     }
 
     std::cout << "SSSP results are correct!" << std::endl;
+    is_pass = 1;
     base_line.close();
 }
 
-void pr_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, std::vector<double>& gpu_res) {
+void pr_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, std::vector<double>& gpu_res, int & is_pass) {
     std::cout << "Checking PageRank results..." << std::endl;
     
     if (cpu_res.size() != gpu_res.size()) {
@@ -370,11 +374,12 @@ void pr_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, st
     }
 
     std::cout << "PageRank results are correct!" << std::endl;
+    is_pass = 1;
     base_line.close();
 }
 
 // similar to bfs_checker
-void cdlp_check(graph_structure<double>& graph, std::vector<int>& cpu_res, std::vector<int>& gpu_res) {
+void cdlp_check(graph_structure<double>& graph, std::vector<int>& cpu_res, std::vector<int>& gpu_res, int & is_pass) {
     std::cout << "Checking CDLP results..." << std::endl;
     
     if (cpu_res.size() != gpu_res.size()) {
@@ -451,5 +456,6 @@ void cdlp_check(graph_structure<double>& graph, std::vector<int>& cpu_res, std::
     }
 
     std::cout << "CDLP results are correct!" << std::endl;
+    is_pass = 1;
     base_line.close();
 }
