@@ -67,7 +67,7 @@ int findMostFrequentLabel(int ver,int outs_start, int outs_end, int ins_start, i
     for (int i = ins_start; i < ins_end; i++) {
         int neighbor = ins_neighbor[i];//get neighbor
         frequencyMap[(*labels_ptr)[neighbor]]++;//Increase the number of labels corresponding to neighbors
-        if (frequencyMap[(*labels_ptr)[neighbor]] > mostFre) {/update the most frequently label
+        if (frequencyMap[(*labels_ptr)[neighbor]] > mostFre) {//update the most frequently label
             mostFre = frequencyMap[(*labels_ptr)[neighbor]];
             mostFreLab = (*labels_ptr)[neighbor];
         }
