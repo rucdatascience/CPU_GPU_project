@@ -10,14 +10,15 @@
 using namespace std;
 
 struct node {
-  double dis;
-  int u;
+  double dis;//distance from source vertex
+  int u;//indicates vertex 
 
-  bool operator>(const node& a) const { return dis > a.dis; }
+  bool operator>(const node& a) const { return dis > a.dis; }//operator overload
 };
 
 std::vector<double> CPU_shortest_paths(std::vector<std::vector<std::pair<int, double>>>& input_graph, int source) {
-
+	//dijkstras-shortest-path-algorithm
+	
 	double inf = std::numeric_limits<double>::max();
 
 	int N = input_graph.size();
@@ -26,31 +27,34 @@ std::vector<double> CPU_shortest_paths(std::vector<std::vector<std::pair<int, do
 	distances.resize(N, inf); // initial distance from source is inf
 
 	if (source < 0 || source >= N) {
-		std::cout << "Invalid source vertex" << std::endl;
+		std::cout << "Invalid source vertex" << std::endl;//Abnormal input judgment
 		return distances;
 	}
 
-	distances[source] = 0;
+	distances[source] = 0;//Starting distance is 0
 	std::vector<int> vis(N, 0);
 
-	std::priority_queue<node, vector<node>, greater<node> > Q;
+	std::priority_queue<node, vector<node>, greater<node> > Q;//Using Heap Optimization Algorithm
 	Q.push({0, source});
 
 	while (Q.size() > 0) {
 
 		int u = Q.top().u;
 
-		Q.pop();
+		Q.pop();//remove vertex visited this round
 
-		if (vis[u]) continue;
-		vis[u] = 1;
+		if (vis[u]) continue;//if vertex has already been visited,it shouldn't be pushed to queue again.
+		vis[u] = 1;//mark
 
 		for (auto edge : input_graph[u]) {
-			int v = edge.first;
-			double w = edge.second;
+			//Traverse all adjacent vertexs of a vertex
+			int v = edge.first;//vertex pointed by edge
+			double w = edge.second;//weight of edge
+			//use v to update path cost
 			if (distances[v] > distances[u] + w) {
+				//If the path cost is smaller, update the new path cost
 				distances[v] = distances[u] + w;
-				Q.push({distances[v], v});
+				Q.push({distances[v], v});//add new vertex to queue
 			}
 		}
 
