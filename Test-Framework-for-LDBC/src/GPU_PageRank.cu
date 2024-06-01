@@ -1,13 +1,19 @@
 #include <GPU_PageRank.cuh>
-
+/* 
+Let PRi(v) be the PageRank value of vertex v after iteration i. 
+Initially, each vertex v is assigned the same value such that the sum
+of all vertex values is 1.
+After iteration i, each vertex pushes its PageRank over its outgoing edges to its neighbors.
+ The PageRank for each vertex is updated according to the following rule:
+PRi(v) = teleport + importance + reredistributed from sinks */
 static int ITERATION;
 static int ALPHA;
 static int GRAPHSIZE;
 static int *graphSize;
-static int *row_point, *val_col;
+static int *row_point, *val_col;//in edge pointer,neighbors with in edges
 static int *row_size;
 static double *row_value;
-static vector<int> N_out_zero;
+static vector<int> N_out_zero;//sink vertexs
 static int *N_out_zero_gpu;
 static int * row_out_ptr;
 static vector<double> row_value_vec;
@@ -19,7 +25,7 @@ static double *newRank, *F, *temp;
 static int out_zero_size;
 static double *sink_sum;
 void PageRank(graph_structure<double> &graph, float *elapsedTime, vector<double> & result)
-{
+{   //allocate GPU memory
     CSR_graph<double> ARRAY_graph = graph.toCSR();
     GRAPHSIZE = ARRAY_graph.OUTs_Neighbor_start_pointers.size() - 1;
     cudaMallocManaged(&graphSize, sizeof(int));
@@ -41,18 +47,19 @@ void PageRank(graph_structure<double> &graph, float *elapsedTime, vector<double>
     for (int i = 0; i < GRAPHSIZE; i++)
     {
         for (auto it : graph.INs[i])
-        {
-            row_value_vec.push_back(1.0 / (graph.OUTs[it.first].size()));
-            val_col_vec.push_back(it.first);
+        {   //Traverse the incoming edges of vertex
+            row_value_vec.push_back(1.0 / (graph.OUTs[it.first].size()));//OUTs[it.first].size() is denominator in importance
+            val_col_vec.push_back(it.first);//it.first is neighbor
         }
         if(row_out_ptr[i]==row_out_ptr[i+1]){
+            //This means that the vertex has no edges
             N_out_zero.push_back(i);
         }
     }
     cudaMallocManaged(&N_out_zero_gpu, N_out_zero.size() * sizeof(int));
     cudaMemcpy(N_out_zero_gpu, N_out_zero.data(),  N_out_zero.size() * sizeof(int), cudaMemcpyHostToDevice);
     out_zero_size=N_out_zero.size();
-    ALPHA = graph.pr_damping;
+    ALPHA = graph.pr_damping;//d
     ITERATION = graph.pr_its;
     cudaMallocManaged(&row_value, row_value_vec.size() * sizeof(double));
     std::copy(row_value_vec.begin(), row_value_vec.end(), row_value);
@@ -62,12 +69,12 @@ void PageRank(graph_structure<double> &graph, float *elapsedTime, vector<double>
     dim3 threadPerGrid(THREAD_PER_BLOCK, 1, 1);
 
     for (int i = 0; i < GRAPHSIZE; i++)
-    {
+    {   //Initially, each vertex v is assigned the same value such that the sum of all vertex values is 1.
         Rank[i] = 1.0 / GRAPHSIZE;
     }
     int iteration = 0;
-    double d = ALPHA, d_ops = (1 - ALPHA) / GRAPHSIZE;
-    cudaEvent_t GPUstart, GPUstop;
+    double d = ALPHA, d_ops = (1 - ALPHA) / GRAPHSIZE;//teleport
+    cudaEvent_t GPUstart, GPUstop;// record GPU_TIME
     cudaEventCreate(&GPUstart);
     cudaEventCreate(&GPUstop);
     cudaEventRecord(GPUstart, 0);
@@ -78,13 +85,13 @@ void PageRank(graph_structure<double> &graph, float *elapsedTime, vector<double>
         calculate_sink<<<blockPerGrid, threadPerGrid,THREAD_PER_BLOCK*sizeof(double)>>>(Rank, N_out_zero_gpu,out_zero_size,sink_sum);
         cudaDeviceSynchronize();
         
-        tinySolve<<<blockPerGrid, threadPerGrid>>>(F, Rank, d, row_point, row_size, row_value, val_col, GRAPHSIZE);
+        tinySolve<<<blockPerGrid, threadPerGrid>>>(F, Rank, d, row_point, row_size, row_value, val_col, GRAPHSIZE);//importance
         cudaDeviceSynchronize();
-        
-        add_scaling<<<blockPerGrid, threadPerGrid>>>(newRank, F, (ALPHA/GRAPHSIZE)*(*sink_sum)+d_ops, GRAPHSIZE);
+        //ALPHA/GRAPHSIZE)=d/|v|
+        add_scaling<<<blockPerGrid, threadPerGrid>>>(newRank, F, (ALPHA/GRAPHSIZE)*(*sink_sum)+d_ops, GRAPHSIZE);//sum up
         cudaDeviceSynchronize();
 
-        temp = newRank;
+        temp = newRank;//swap newrank and rank
         newRank = Rank;
         Rank = temp;
         iteration++;
@@ -108,7 +115,7 @@ bool cmp(const std::vector<pair<int, int>> &a, const std::vector<pair<int, int>>
 }
 
 __global__ void add_scaling(double *newRank, double *oldRank, double scaling, int GRAPHSIZE)
-{
+{    //Add all the elements in rankvector with teleport and redistributed from sinks
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid >= 0 && tid < GRAPHSIZE)
     {
@@ -118,24 +125,27 @@ __global__ void add_scaling(double *newRank, double *oldRank, double scaling, in
 }
 
 __global__ void tinySolve(double *newRank, double *rank, double scaling, int *row_point, int *row_size, double *row_value, int *val_col, int GRAPHSIZE)
-{
-    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+{   //importance
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;//tid decides process which vertex
     if (tid >= 0 && tid < GRAPHSIZE)
     {
         int rbegin = row_point[tid];
         int rend = row_point[tid + 1];
-
-        double acc = 0;
+        //begin and end of in edges
+        double acc = 0;//sum of u belongs to Nin(v)
         for (int c = rbegin; c < rend; c++)
-        {
+        {   //val_col[c] is neighbor,rank get PR(u) row_value is denominator i.e. Nout
             acc += row_value[c] * (rank[val_col[c]]);
         }
         // printf("tid : %d  acc : %f\n", tid, acc);
-        newRank[tid] = acc * scaling;
+        newRank[tid] = acc * scaling;//scaling is damping factor 
     }
     return;
 }
 __device__ double _atomicAdd(double* address, double val) {
+    /* Implementing atomic operations, 
+    that is, ensuring that adding operations to a specific
+     memory location in a multi-threaded environment are thread safe. */
     unsigned long long int* address_as_ull = (unsigned long long int*)address;
     unsigned long long int old = *address_as_ull, assumed;
     do {
@@ -147,26 +157,27 @@ __device__ double _atomicAdd(double* address, double val) {
 }
 
 __global__ void calculate_sink(double* rank, int* N_out_zero_gpu, int out_zero_size, double* sink_sum) {
-    extern __shared__ double sink[];
+    //A reduction pattern was used to sum up
+    extern __shared__ double sink[];//Declare shared memory
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     int stid = threadIdx.x;
 
     if (tid < out_zero_size) {
-        sink[stid] = rank[N_out_zero_gpu[tid]];
+        sink[stid] = rank[N_out_zero_gpu[tid]];//get PR(w)
     } else {
         sink[stid] = 0;
     }
-    __syncthreads();
-
+    __syncthreads();//wait unitl finish Loading data into shared memory
+    
     for (int i = blockDim.x / 2; i > 0; i >>= 1) {
         if (stid < i) {
             sink[stid] += sink[stid + i];
         }
-        __syncthreads();
-    }
+        __syncthreads();//Synchronize again to ensure that each step of the reduction operation is completed
 
+    }
     if (stid == 0) {
-        _atomicAdd(sink_sum, sink[0]);
+        _atomicAdd(sink_sum, sink[0]);//Write the result of each thread block into the output array
     }
 }
 

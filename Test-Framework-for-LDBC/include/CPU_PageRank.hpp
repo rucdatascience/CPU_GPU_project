@@ -87,7 +87,7 @@ vector<double> *Method( vector<double> *rankVec, int &iteration)
     {   
         double sink_sum=0;
         for (int i=0;i<N_out_zero.size();i++)
-        {   //sink_sum is redistributed from sinks
+        {   //sink_sum is for redistributed from sinks
             sink_sum+=rankVec->at(N_out_zero[i]);
         }
 
