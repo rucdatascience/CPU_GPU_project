@@ -103,14 +103,14 @@ public:
 	bool sup_wcc = false;
 	bool sup_sssp = false;
 
-	std::string bfs_src_name;
-	std::string sssp_src_name;
+	std::string bfs_src_name;//get bfs vertex source
+	std::string sssp_src_name;//get sssp vertex source
 
 	int id = 0;
-	int bfs_src = 0;
+	int bfs_src = 0;//define bfs vertex source is 0
 	int cdlp_max_its = 10;//cdlp algo max iterator num
 	int pr_its = 10;//pr algo iterator num
-	int sssp_src = 0;
+	int sssp_src = 0;//define sssp vertex source is 0
 	double pr_damping = 0.85;//pr algorithm damping coefficient
 
 	void load_LDBC();
@@ -123,6 +123,11 @@ public:
 	std::string vertex_file, edge_file;
 
 	void read_config(std::string config_path);
+	/**
+	The sequence of read configure file and and data file.
+	1st: void read_config(std::string config_path);
+	2nd: void  load_LDBC();
+	*/
 	
 };
 
@@ -331,7 +336,7 @@ void graph_structure<weight_type>::read_config(std::string config_path) {
 
         auto parts = parse_string(key, ".");
         if (parts.size() >= 2) {
-			if (parts.back() == "vertex-file") {
+			if (parts.back() == "vertex-file") {//Reading *.properties file to get vertex file. eg. datagen-7_5-fb.v
 				vertex_file = value;
 				std::cout << "vertex_file: " << vertex_file << std::endl;
 			}
@@ -354,13 +359,13 @@ void graph_structure<weight_type>::read_config(std::string config_path) {
 					is_directed = true;
 				std::cout << "is_directed: " << is_directed << std::endl;
 			}
-			else if (parts.back() == "names") {
+			else if (parts.back() == "names") {//eg. graph.datagen-7_5-fb.edge-properties.names = weight
 				if (value == "weight")
 					is_weight = true;
 				else
 					is_weight = false;
 				std::cout << "is_weight: " << is_weight << std::endl;
-			}
+			}//Gets the type of algorithm contained in the configuration file
 			else if (parts.back() == "algorithms") {
 				auto algorithms = parse_string(value, ", ");
 				for (auto& algorithm : algorithms) {
@@ -421,11 +426,11 @@ void graph_structure<weight_type>::read_config(std::string config_path) {
 			}
             else if (parts.back() == "source-vertex") {
 				if (parts[parts.size() - 2] == "bfs") {
-					bfs_src_name = value;
+					bfs_src_name = value;//get bfs source vertex; eg. graph.datagen-7_5-fb.bfs.source-vertex = 6
 					std::cout << "bfs_source_vertex: " << value << std::endl;
 				}
 				else {
-					sssp_src_name = value;
+					sssp_src_name = value;//get sssp source vertex; eg. graph.datagen-7_5-fb.sssp.source-vertex = 6
 					std::cout << "sssp_source_vertex: " << value  << std::endl;
 				}
             }
@@ -465,11 +470,12 @@ void graph_structure<weight_type>::load_LDBC() {
 
 	std::cout << "Loading vertices..." << std::endl;
 	std::string line_content;
+	//read vertex file. eg. *.v, the vertex file has single column, the numbers means vertexID
 	std::ifstream myfile("../data/" + vertex_file);
 
 	if (myfile.is_open()) {
-		while (getline(myfile, line_content))
-			add_vertice(line_content);
+		while (getline(myfile, line_content))//read data line by line
+			add_vertice(line_content);//Parsed the read data
 		myfile.close();
 	}
 	else {
@@ -480,9 +486,9 @@ void graph_structure<weight_type>::load_LDBC() {
 	}
 
 	std::cout << "Done." << std::endl;
-
+	//get bfs source vertex
 	if (sup_bfs) {
-		if (vertex_str_to_id.find(bfs_src_name) == vertex_str_to_id.end()) {
+		if (vertex_str_to_id.find(bfs_src_name) == vertex_str_to_id.end()) {//bfs_src_name from read_configure
 			std::cout << "Invalid source vertex for BFS" << std::endl;
 			getchar();
 			exit(1);
@@ -491,9 +497,9 @@ void graph_structure<weight_type>::load_LDBC() {
 			bfs_src = vertex_str_to_id[bfs_src_name];
 	}
 		
-	
+	//get sssp source vertex
 	if (sup_sssp) {
-		if (vertex_str_to_id.find(sssp_src_name) == vertex_str_to_id.end()) {
+		if (vertex_str_to_id.find(sssp_src_name) == vertex_str_to_id.end()) {//sssp_src_name from read_configure
 			std::cout << "Invalid source vertex for SSSP" << std::endl;
 			getchar();
 			exit(1);
@@ -506,6 +512,8 @@ void graph_structure<weight_type>::load_LDBC() {
 	INs.resize(V);
 
 	std::cout << "Loading edges..." << std::endl;
+	//read edge file,eg. datagen-7_5-fb.e ,the column1 and column2 is vertex and column3 is weight. 
+	//if it's a undirection graph, the *.e file is not column3.
 	myfile.open("../data/" + edge_file);
 
 	if (myfile.is_open()) {
@@ -513,11 +521,11 @@ void graph_structure<weight_type>::load_LDBC() {
 			//Each line of information in the edge file is read, 
 			//and the first two data in each line of information represent the vertex value
 			std::vector<std::string> Parsed_content = parse_string(line_content, " ");
-			int v1 = add_vertice(Parsed_content[0]);
-			int v2 = add_vertice(Parsed_content[1]);
+			int v1 = add_vertice(Parsed_content[0]);//get 1st vertex
+			int v2 = add_vertice(Parsed_content[1]);//get 2nd vertex
 			// Read information from the edge file, if it is a entitled graph, the third bit of data is the weight, 
 			// if it is a powerless heavy graph, there is no third bit of information, the third bit of the powerless graph is set to 1
-			weight_type ec = Parsed_content.size() > 2 ? std::stod(Parsed_content[2]) : 1;
+			weight_type ec = Parsed_content.size() > 2 ? std::stod(Parsed_content[2]) : 1;//get weight
 			graph_structure<weight_type>::add_edge(v1, v2, ec);
 		}
 		myfile.close();
@@ -530,7 +538,7 @@ void graph_structure<weight_type>::load_LDBC() {
 	}
 	std::cout << "Done." << std::endl;
 }
-
+//graph_structure test
 inline void graph_structure_example() {
 
 	/*
