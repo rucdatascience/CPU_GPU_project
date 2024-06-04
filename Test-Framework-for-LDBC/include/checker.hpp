@@ -31,7 +31,7 @@ void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std:
     // remove the last two char
 
     base_line_file.pop_back();
-    base_line_file.pop_back();//? why pop back two times
+    base_line_file.pop_back();
 
     base_line_file += "-BFS";
 
@@ -299,7 +299,7 @@ void sssp_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, 
 
 void pr_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, std::vector<double>& gpu_res, int & is_pass) {
     std::cout << "Checking PageRank results..." << std::endl;
-    
+    cout<<"cpu result size:"<<cpu_res.size()<<" , gpu result size:"<<gpu_res.size()<<endl;
     if (cpu_res.size() != gpu_res.size()) {
         std::cout << "CPU PageRank and GPU PageRank results are not the same in size!" << std::endl;
         return;
