@@ -59,7 +59,7 @@ void PageRank(graph_structure<double> &graph, float *elapsedTime, vector<double>
     cudaMallocManaged(&N_out_zero_gpu, N_out_zero.size() * sizeof(int));
     cudaMemcpy(N_out_zero_gpu, N_out_zero.data(),  N_out_zero.size() * sizeof(int), cudaMemcpyHostToDevice);
     out_zero_size=N_out_zero.size();
-    ALPHA = graph.pr_damping;//d
+    ALPHA = graph.pr_damping;//eg. graph.datagen-7_5-fb.pr.damping-factor = 0.85
     ITERATION = graph.pr_its;
     cudaMallocManaged(&row_value, row_value_vec.size() * sizeof(double));
     std::copy(row_value_vec.begin(), row_value_vec.end(), row_value);
@@ -97,7 +97,13 @@ void PageRank(graph_structure<double> &graph, float *elapsedTime, vector<double>
         iteration++;
     }
     //get gpu PR algorithm result
-    cudaMemcpy(result.data(), Rank, GRAPHSIZE * sizeof(double), cudaMemcpyDeviceToHost);
+    double gpu_res[GRAPHSIZE];
+    cudaMemcpy(gpu_res, Rank, GRAPHSIZE * sizeof(double), cudaMemcpyDeviceToHost);
+    // for(int i = 0; i < GRAPHSIZE; ++i){
+    //     cout<<"the gpu_res is:"<<gpu_res[i]<<endl;
+    // }
+    std::copy(gpu_res, gpu_res + GRAPHSIZE, std::back_inserter(result));
+
     cudaEventRecord(GPUstop, 0);
     cudaEventSynchronize(GPUstop);
 
