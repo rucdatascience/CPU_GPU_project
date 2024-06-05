@@ -29,6 +29,13 @@ cmake ..
 make
 ./bin/Test
 ```
+You can also use the simpler quick test below.
+
+```shell
+cd CPU_GPU_project
+chmod +x test.sh
+./test.sh
+```
 
 Then the program will ask you to input the dataset configuration file name, you can input `cit-Patents.properties` to test the program.
 
