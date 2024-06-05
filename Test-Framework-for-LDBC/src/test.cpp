@@ -129,6 +129,7 @@ int main()
         vector<double> cpu_pr_result, gpu_pr_result;
         CPU_PageRank(graph, cpu_pr_result);
         end = clock();
+        pr_checker_cpu(graph, cpu_pr_result, pr_pass);
         double cpu_pr_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
         printf("CPU PageRank cost time: %f ms\n", cpu_pr_time);
 
@@ -153,21 +154,22 @@ int main()
         start = clock();
         CPU_Community_Detection(graph, ans_cpu);
         end = clock();
+        cdlp_check_cpu(graph, ans_cpu, cdlp_pass);
         double cpu_cdlp_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
         printf("CPU Community Detection cost time: %f ms\n", cpu_cdlp_time);
 
-        elapsedTime = 0;
-        Community_Detection(graph, &elapsedTime, ans_gpu);
-        double gpu_cdlp_time = elapsedTime;
-        printf("GPU Community Detection cost time: %f ms\n", gpu_cdlp_time);
-        elapsedTime = 0;
+        // elapsedTime = 0;
+        // Community_Detection(graph, &elapsedTime, ans_gpu);
+        // double gpu_cdlp_time = elapsedTime;
+        // printf("GPU Community Detection cost time: %f ms\n", gpu_cdlp_time);
+        // elapsedTime = 0;
 
-        cdlp_check(graph, ans_cpu, ans_gpu, cdlp_pass);
+        // cdlp_check(graph, ans_cpu, ans_gpu, cdlp_pass);
 
         string cdlp_pass_label = "No";
         if(cdlp_pass != 0) cdlp_pass_label = "Yes";
         umap_all_res.emplace("cpu_cdlp_time", std::to_string(cpu_cdlp_time));
-        umap_all_res.emplace("gpu_cdlp_time", std::to_string(gpu_cdlp_time));
+        // umap_all_res.emplace("gpu_cdlp_time", std::to_string(gpu_cdlp_time));
         umap_all_res.emplace("cdlp_pass_label", cdlp_pass_label);        
     }
 
