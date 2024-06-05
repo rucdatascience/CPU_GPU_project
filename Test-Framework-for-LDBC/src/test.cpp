@@ -11,6 +11,8 @@
 #include <CPU_Community_Detection.hpp>
 
 #include <checker.hpp>
+#include <checker_cpu.hpp>
+#include <checker_gpu.hpp>
 
 #include <time.h>
 
@@ -18,10 +20,11 @@ void saveAsCSV(const unordered_map<string, string>& data, const string& filename
 
 int main()
 {
-    std::string config_file;
-    std::cout << "Enter the name of the configuration file:" << std::endl;
-    std::cin >> config_file;
+    std::string config_file = "datagen-7_5-fb.properties";
+    // std::cout << "Enter the name of the configuration file:" << std::endl;
+    // std::cin >> config_file;
     config_file = "../data/" + config_file;
+    std::cout<<"config_file is:"<<config_file<<endl;
 
     graph_structure<double> graph;
     //Read the ldbc configuration file to obtain key parameter information in the file
@@ -129,8 +132,8 @@ int main()
         vector<double> cpu_pr_result, gpu_pr_result;
         CPU_PageRank(graph, cpu_pr_result);
         end = clock();
-        pr_checker_cpu(graph, cpu_pr_result, pr_pass);
         double cpu_pr_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
+        pr_checker_cpu(graph, cpu_pr_result, pr_pass);
         printf("CPU PageRank cost time: %f ms\n", cpu_pr_time);
 
         elapsedTime = 0;
@@ -154,22 +157,23 @@ int main()
         start = clock();
         CPU_Community_Detection(graph, ans_cpu);
         end = clock();
-        cdlp_check_cpu(graph, ans_cpu, cdlp_pass);
         double cpu_cdlp_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
+        cdlp_check_cpu(graph, ans_cpu, cdlp_pass);
         printf("CPU Community Detection cost time: %f ms\n", cpu_cdlp_time);
 
-        // elapsedTime = 0;
-        // Community_Detection(graph, &elapsedTime, ans_gpu);
-        // double gpu_cdlp_time = elapsedTime;
-        // printf("GPU Community Detection cost time: %f ms\n", gpu_cdlp_time);
-        // elapsedTime = 0;
+        elapsedTime = 0;
+        Community_Detection(graph, &elapsedTime, ans_gpu);
+        double gpu_cdlp_time = elapsedTime;
+        cdlp_check_gpu(graph, ans_gpu, cdlp_pass);
+        printf("GPU Community Detection cost time: %f ms\n", gpu_cdlp_time);
+        elapsedTime = 0;
 
-        // cdlp_check(graph, ans_cpu, ans_gpu, cdlp_pass);
+        cdlp_check(graph, ans_cpu, ans_gpu, cdlp_pass);
 
         string cdlp_pass_label = "No";
         if(cdlp_pass != 0) cdlp_pass_label = "Yes";
         umap_all_res.emplace("cpu_cdlp_time", std::to_string(cpu_cdlp_time));
-        // umap_all_res.emplace("gpu_cdlp_time", std::to_string(gpu_cdlp_time));
+        umap_all_res.emplace("gpu_cdlp_time", std::to_string(gpu_cdlp_time));
         umap_all_res.emplace("cdlp_pass_label", cdlp_pass_label);        
     }
 
