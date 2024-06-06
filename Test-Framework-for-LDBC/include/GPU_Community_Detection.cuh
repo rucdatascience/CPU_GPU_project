@@ -32,4 +32,4 @@ template <typename T>
 void pre_set(graph_structure<T> & graph, int& GRAPHSIZE);
 __global__ void init_global_space(int *global_space_for_label,int* global_space_for_label_count, int CD_M, int CD_SET_THREAD);
 extern "C"
-int Community_Detection(graph_structure<double> & graph, float* elapsedTime,vector<int> &ans);
+int gpu_Community_Detection(graph_structure<double> & graph, float* elapsedTime,vector<int> &ans);
