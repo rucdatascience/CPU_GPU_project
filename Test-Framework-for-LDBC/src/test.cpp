@@ -1,6 +1,6 @@
 #include <GPU_BFS.cuh>
-#include <Union-Find.cuh>
-#include <Workfront-Sweep.cuh>
+#include <GPU_connected_components.cuh>
+#include <GPU_shortest_paths.cuh>
 #include <GPU_PageRank.cuh>
 #include <GPU_Community_Detection.cuh>
 
@@ -20,8 +20,9 @@ void saveAsCSV(const unordered_map<string, string>& data, const string& filename
 
 int main()
 {
-    std::string config_file = "datagen-7_5-fb.properties";
-    // std::cout << "Enter the name of the configuration file:" << std::endl;
+    std::string config_file = "datagen-7_5-fb.properties";//quick test
+    // std::string config_file = "cit-Patents.properties";//quick test
+    std::cout << "Enter the name of the configuration file:" << std::endl;
     // std::cin >> config_file;
     config_file = "../data/" + config_file;
     std::cout<<"config_file is:"<<config_file<<endl;
@@ -112,7 +113,7 @@ int main()
     
         elapsedTime = 0;
         std::vector<double> gpu_sssp_result(graph.V, 0);
-        Workfront_Sweep(csr_graph, graph.sssp_src, gpu_sssp_result, &elapsedTime);
+        gpu_shortest_paths(csr_graph, graph.sssp_src, gpu_sssp_result, &elapsedTime);
         double gpu_sssp_time = elapsedTime;
         printf("GPU SSSP cost time: %f ms\n", gpu_sssp_time);
 
@@ -137,7 +138,7 @@ int main()
         printf("CPU PageRank cost time: %f ms\n", cpu_pr_time);
 
         elapsedTime = 0;
-        PageRank(graph, &elapsedTime, gpu_pr_result);
+        gpu_PageRank(graph, &elapsedTime, gpu_pr_result);
         double gpu_pr_time = elapsedTime;
         printf("GPU PageRank cost time: %f ms\n", gpu_pr_time);
 
@@ -162,7 +163,7 @@ int main()
         printf("CPU Community Detection cost time: %f ms\n", cpu_cdlp_time);
 
         elapsedTime = 0;
-        Community_Detection(graph, &elapsedTime, ans_gpu);
+        gpu_Community_Detection(graph, &elapsedTime, ans_gpu);
         double gpu_cdlp_time = elapsedTime;
         cdlp_check_gpu(graph, ans_gpu, cdlp_pass);
         printf("GPU Community Detection cost time: %f ms\n", gpu_cdlp_time);

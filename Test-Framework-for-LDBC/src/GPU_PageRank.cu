@@ -24,7 +24,7 @@ static double *Rank, *diff_array, *reduce_array;
 static double *newRank, *F, *temp;
 static int out_zero_size;
 static double *sink_sum;
-void PageRank(graph_structure<double> &graph, float *elapsedTime, vector<double> & result)
+void gpu_PageRank(graph_structure<double> &graph, float *elapsedTime, vector<double> & result)
 {   //allocate GPU memory
     CSR_graph<double> ARRAY_graph = graph.toCSR();
     GRAPHSIZE = ARRAY_graph.OUTs_Neighbor_start_pointers.size() - 1;

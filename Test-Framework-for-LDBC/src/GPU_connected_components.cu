@@ -1,4 +1,4 @@
-#include <Union-Find.cuh>
+#include <GPU_connected_components.cuh>
 
 /*template std::vector<std::vector<int>> gpu_connected_components<int>(CSR_graph<int>&);
 template std::vector<std::vector<int>> gpu_connected_components<float>(CSR_graph<float>&);

@@ -1,4 +1,4 @@
-#include <Workfront-Sweep.cuh>
+#include <GPU_shortest_paths.cuh>
 
 __device__ __forceinline__ double atomicMinDouble (double * addr, double value) {
     double old;
@@ -37,7 +37,7 @@ __global__ void CompactQueue(int V, int* next_queue, int* next_queue_size, int* 
     }
 }
 
-void Workfront_Sweep(CSR_graph<double>& input_graph, int source, std::vector<double>& distance, float* elapsedTime, double max_dis) {
+void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<double>& distance, float* elapsedTime, double max_dis) {
     int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
 

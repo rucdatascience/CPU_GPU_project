@@ -234,7 +234,7 @@ __global__ void LPA(int *global_space_for_label, int *in_out_ptr_gpu, int *label
     new_labels_gpu[tid] = max_label;
 }
 
-int Community_Detection(graph_structure<double> &graph, float *elapsedTime, vector<int> &ans)
+int gpu_Community_Detection(graph_structure<double> &graph, float *elapsedTime, vector<int> &ans)
 {
     pre_set(graph, CD_GRAPHSIZE);
 
