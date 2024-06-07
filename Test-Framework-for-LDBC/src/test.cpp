@@ -16,7 +16,11 @@
 
 #include <time.h>
 
+//one test one result file
 void saveAsCSV(const unordered_map<string, string>& data, const string& filename);
+
+//all test one result file
+void writeToCSV(const unordered_map<string, string>& data, const string& filename);
 
 int main()
 {
@@ -188,6 +192,11 @@ int main()
     // cout <<"result store path is:"<<store_path<<endl;
     saveAsCSV(umap_all_res, store_path);
 
+    //save all test result to a test.csv file
+    string save_result = "../results/test.csv";
+    // cout <<"result store path is:"<<save_result<<endl;
+    writeToCSV(umap_all_res, save_result);
+
     return 0;
 }
 
@@ -222,4 +231,45 @@ void saveAsCSV(const unordered_map<string, string>& data, const string& filename
 
     file.close();
     cout << "Data saved to " << filename << " successfully." << endl;
+}
+
+// write all result to a *.csv file
+void writeToCSV(const unordered_map<string, string>& data, const string& filename) {
+    // Creates a file or opens an existing file and allows you to append content
+    ofstream file(filename, ios::out | ios::app); 
+
+    if (!file.is_open()) {
+        cerr << "Error opening file: " << filename << endl;
+        return;
+    }
+
+    // Check if the file is empty, and insert a header line if it is
+    file.seekp(0, ios::end); // Locate end of file
+
+    // write title（if file point in the start position）  
+    if (file.tellp() == 0) {  
+        // write title  
+        for (auto it = data.begin(); it != data.end(); ++it) {  
+            file << it->first;  
+            if (std::next(it) != data.end()) {
+                file << "|";  
+            } else {  
+                file << std::endl; 
+            }  
+        }  
+    }  
+  
+    // write value（no matter what the pointer position）  
+    for (auto it = data.begin(); it != data.end(); ++it) {  
+        file << it->second;  
+        if (std::next(it) != data.end()) { 
+            file << "|";  
+        } else {  
+            file << std::endl;
+        }  
+    }
+
+    file.close();
+    cout << "Data writed to " << filename << " successfully." << endl;
+
 }
