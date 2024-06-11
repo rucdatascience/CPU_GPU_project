@@ -7,7 +7,7 @@
 /* to run this file,you need add below code to Cmakelists:
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
-you must not use clock() fun in test.cpp!
+you must not use clock() function in test.cpp!
 
 if (graph.sup_pr) {
         int pr_pass = 0;
@@ -78,6 +78,6 @@ start = omp_get_wtime();
     }
 end = omp_get_wtime(); 
 
-printf("CPU PageRank cost time: %f ms\n", (end - start)*1000); // 打印工作所花费的时间，即end和start的差值
+printf("CPU PageRank cost time: %f ms\n", (end - start)*1000); 
     return pr;
 }
