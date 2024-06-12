@@ -2,21 +2,21 @@
 #include <graph_structure/graph_structure.hpp>
 #include <vector>
 #include <iostream>
-using namespace std;
-double teleport, d;
-int GRAPHSIZE;
-std::vector<int> sink;
 
-
-std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>> in_edge, std::vector<std::vector<std::pair<int, double>>> out_edge, double damp, int iters)
+std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& in_edge,
+    std::vector<std::vector<std::pair<int, double>>>& out_edge, double damp, int iters)
 {
 
-    GRAPHSIZE = in_edge.size();
-    std::vector<double> pr(GRAPHSIZE, 1 / GRAPHSIZE);
-    std::vector<double> npr(GRAPHSIZE);
-    d = damp;
-    teleport = (1 - damp) / GRAPHSIZE;
-    for (int i = 0; i < GRAPHSIZE; i++)
+    int N = in_edge.size();
+
+    std::vector<double> rank(N, 1 / N);
+    std::vector<double> new_rank(N);
+
+    double d = damp;
+    double teleport = (1 - damp) / N;
+
+    std::vector<int> sink;
+    for (int i = 0; i < N; i++)
     {
         if (out_edge[i].size() == 0)
             sink.push_back(i);
@@ -24,33 +24,32 @@ std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>> in
 
     for (int i = 0; i < iters; i++)
     {
-        double red = 0;
+        double sink_sum = 0;
         for (int i = 0; i < sink.size(); i++)
         {
-            red += pr[sink[i]];
+            sink_sum += rank[sink[i]];
         }
-        for (int i = 0; i < GRAPHSIZE; i++)
+        for (int i = 0; i < N; i++)
         {
-            pr[i] /= out_edge[i].size();
+            rank[i] /= out_edge[i].size();
         }
 
-        red = red * d / GRAPHSIZE;
-        std::fill(npr.begin(), npr.end(), teleport + red);
-        for (int i = 0; i < GRAPHSIZE; i++)
+        sink_sum = sink_sum * d / N;
+        std::fill(new_rank.begin(), new_rank.end(), teleport + sink_sum);
+        for (int i = 0; i < N; i++)
         {
             for (int j = 0; j < in_edge[i].size(); j++)
             {
-
-                npr[i] += pr[in_edge[i][j].first];
+                new_rank[i] += rank[in_edge[i][j].first];
             }
         }
 
-        for (int i = 0; i < GRAPHSIZE; i++)
+        for (int i = 0; i < N; i++)
         {
-            npr[i] *= d;
+            new_rank[i] *= d;
         }
-        pr.swap(npr);
+        rank.swap(new_rank);
 
     }
-    return pr;
+    return rank;
 }
