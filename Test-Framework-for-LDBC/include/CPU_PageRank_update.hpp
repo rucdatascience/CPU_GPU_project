@@ -8,7 +8,7 @@ int GRAPHSIZE;
 std::vector<int> sink;
 
 
-std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>> in_edge, std::vector<std::vector<std::pair<int, double>>> out_edge, double damp, int iters)
+std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& in_edge, std::vector<std::vector<std::pair<int, double>>>& out_edge, double damp, int iters)
 {
 
     GRAPHSIZE = in_edge.size();
