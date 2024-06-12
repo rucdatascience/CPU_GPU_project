@@ -36,12 +36,22 @@ vector<int> community_detection_CDP(graph_structure<double> &G, int max_iteratio
             }
 
             // Find label with maximum frequency
-            int freq = 0;
+            int freq = -1;
             int candidates = labels[v];
             for (auto &entry : C_histogram) {
-                if (entry.second > freq 
-                || (entry.second == freq && entry.first < candidates)) {
+                // if (entry.second > freq 
+                // || (entry.second == freq && entry.first < candidates)) {
+                //     freq = entry.second;
+                //     candidates = entry.first;
+                // }
+
+                if(entry.second > freq){
                     freq = entry.second;
+                }
+            }
+
+            for(auto & entry : C_histogram){
+                if(entry.second == freq && entry.first < candidates){
                     candidates = entry.first;
                 }
             }
