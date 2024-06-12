@@ -9,7 +9,7 @@
 #include <CPU_shortest_paths.hpp>
 #include <CPU_PageRank.hpp>
 #include <CPU_Community_Detection.hpp>
-
+#include <cdlp_cpu.hpp>
 #include <checker.hpp>
 #include <checker_cpu.hpp>
 #include <checker_gpu.hpp>
@@ -24,6 +24,11 @@ void writeToCSV(const unordered_map<string, string>& data, const string& filenam
 
 int main()
 {
+
+    // auto begin = std::chrono::high_resolution_clock::now();
+    // auto end = std::chrono::high_resolution_clock::now();
+    // double t = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+
     std::string config_file = "datagen-7_5-fb.properties";//quick test
     // std::string config_file = "cit-Patents.properties";//quick test
     std::cout << "Enter the name of the configuration file:" << std::endl;
@@ -64,10 +69,15 @@ int main()
         printf("CPU BFS cost time: %f ms\n", cpu_bfs_time);
 
         std::vector<int> gpu_bfs_result;
+        start = clock();
         gpu_bfs_result = cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
-        elapsedTime = 0;
-        cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
-        double gpu_bfs_time = elapsedTime;
+        end = clock();
+        double gpu_bfs_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
+
+        // // elapsedTime = 0;
+        // cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
+        // double gpu_bfs_time;
+
         printf("GPU BFS cost time: %f ms\n", gpu_bfs_time);
         elapsedTime = 0;
 
@@ -90,12 +100,12 @@ int main()
         printf("CPU WCC cost time: %f ms\n", cpu_wcc_time);
 
         std::vector<std::vector<int>> gpu_wcc_result;
+        elapsedTime = 0;
+        start = clock();
         gpu_wcc_result = gpu_connected_components(csr_graph, &elapsedTime);
-        elapsedTime = 0;
-        gpu_connected_components(csr_graph, &elapsedTime);
-        double gpu_wcc_time = elapsedTime;
+        end = clock();
+        double gpu_wcc_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
         printf("GPU WCC cost time: %f ms\n", gpu_wcc_time);
-        elapsedTime = 0;
 
         wcc_checker(graph, cpu_wcc_result, gpu_wcc_result, wcc_pass);
         string wcc_pass_label = "No";
@@ -117,8 +127,10 @@ int main()
     
         elapsedTime = 0;
         std::vector<double> gpu_sssp_result(graph.V, 0);
+        start = clock();
         gpu_shortest_paths(csr_graph, graph.sssp_src, gpu_sssp_result, &elapsedTime);
-        double gpu_sssp_time = elapsedTime;
+        end = clock();
+        double gpu_sssp_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
         printf("GPU SSSP cost time: %f ms\n", gpu_sssp_time);
 
         sssp_checker(graph, cpu_sssp_result, gpu_sssp_result, sssp_pass);
@@ -133,8 +145,8 @@ int main()
 
     if (graph.sup_pr) {
         int pr_pass = 0;
-        start = clock();
         vector<double> cpu_pr_result, gpu_pr_result;
+        start = clock();
         CPU_PageRank(graph, cpu_pr_result);
         end = clock();
         double cpu_pr_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
@@ -142,8 +154,10 @@ int main()
         printf("CPU PageRank cost time: %f ms\n", cpu_pr_time);
 
         elapsedTime = 0;
+        start = clock();
         gpu_PageRank(graph, &elapsedTime, gpu_pr_result);
-        double gpu_pr_time = elapsedTime;
+        end = clock();
+        double gpu_pr_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
         printf("GPU PageRank cost time: %f ms\n", gpu_pr_time);
 
         pr_checker(graph, cpu_pr_result, gpu_pr_result, pr_pass);
@@ -166,14 +180,21 @@ int main()
         cdlp_check_cpu(graph, ans_cpu, cdlp_pass);
         printf("CPU Community Detection cost time: %f ms\n", cpu_cdlp_time);
 
-        elapsedTime = 0;
-        gpu_Community_Detection(graph, &elapsedTime, ans_gpu);
-        double gpu_cdlp_time = elapsedTime;
-        cdlp_check_gpu(graph, ans_gpu, cdlp_pass);
-        printf("GPU Community Detection cost time: %f ms\n", gpu_cdlp_time);
-        elapsedTime = 0;
+        // start = clock();
+        // vector<int> cdlp_result = community_detection_CDP(graph, graph.cdlp_max_its);
+        // end = clock();
+        // double time_cpu_cdlp = (double)(end - start) / CLOCKS_PER_SEC * 1000;
+        // printf("CPU_cdlp cost time: %f ms\n", time_cpu_cdlp);
 
-        cdlp_check(graph, ans_cpu, ans_gpu, cdlp_pass);
+        // cdlp_check_cpu(graph, cdlp_result, cdlp_pass);
+
+        elapsedTime = 0;
+        start = clock();
+        gpu_Community_Detection(graph, &elapsedTime, ans_gpu);
+        end = clock();
+        double gpu_cdlp_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
+        printf("GPU Community Detection cost time: %f ms\n", gpu_cdlp_time);
+        cdlp_check_gpu(graph, ans_gpu, cdlp_pass);
 
         string cdlp_pass_label = "No";
         if(cdlp_pass != 0) cdlp_pass_label = "Yes";
@@ -193,9 +214,9 @@ int main()
     saveAsCSV(umap_all_res, store_path);
 
     //save all test result to a test.csv file
-    string save_result = "../results/test.csv";
+    // string save_result = "../results/test.csv";
     // cout <<"result store path is:"<<save_result<<endl;
-    writeToCSV(umap_all_res, save_result);
+    // writeToCSV(umap_all_res, save_result);
 
     return 0;
 }
