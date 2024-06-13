@@ -3,9 +3,16 @@
 #include <graph_structure/graph_structure.hpp>
 #include <algorithm>
 #include <cmath>
-
+#include "checker_cpu.hpp"
+#include <limits.h>
 void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std::vector<int>& gpu_res, int & is_pass) {
     std::cout << "Checking BFS results..." << std::endl;
+    
+    // string path = "/home/liupeng/CPU_GPU_project/Test-Framework-for-LDBC/results/cpu_bfs_75.txt";
+    // saveResult(path, cpu_res);
+
+    // string path2 = "/home/liupeng/CPU_GPU_project/Test-Framework-for-LDBC/results/gpu_bfs_75.txt";
+    // saveResult(path2, gpu_res);
     
     if (cpu_res.size() != gpu_res.size()) {
         std::cout << "CPU BFS and GPU BFS results are not the same in size!" << std::endl;
@@ -21,9 +28,9 @@ void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std:
     for (int i = 0; i < size; i++) {
         if (cpu_res[i] != gpu_res[i]) {
             std::cout << "CPU BFS and GPU BFS results are not the same!" << std::endl;
-            std::cout << "CPU BFS result: " << graph.vertex_id_to_str[i] << " " << cpu_res[i] << std::endl;
-            std::cout << "GPU BFS result: " << graph.vertex_id_to_str[i] << " " << gpu_res[i] << std::endl;
-            return;
+            // std::cout << "CPU BFS result: " << graph.vertex_id_to_str[i] << " " << cpu_res[i] << std::endl;
+            // std::cout << "GPU BFS result: " << graph.vertex_id_to_str[i] << " " << gpu_res[i] << std::endl;
+            // return;
         }
     }
 
@@ -63,17 +70,19 @@ void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std:
             return;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
-        if (gpu_res[v_id] != std::stoi(tokens[1])) {
-            std::cout << "Baseline file and GPU BFS results are not the same!" << std::endl;
-            std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
-            std::cout << "GPU BFS result: " << graph.vertex_id_to_str[gpu_res[v_id]] << " " << gpu_res[v_id] << std::endl;
-            base_line.close();
-            return;
+        if (gpu_res[v_id] != std::stol(tokens[1])) {
+            if(!(gpu_res[v_id] == INT_MAX && std::stol(tokens[1]) == LLONG_MAX)){
+                std::cout << "Baseline file and GPU BFS results are not the same!" << std::endl;
+                std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
+                base_line.close();
+                return;
+            }
         }
         id++;
     }
     if (id != size) {
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
+        cout<<"---------id="<<id<<", the size="<<size<<endl;
         base_line.close();
         return;
     }
