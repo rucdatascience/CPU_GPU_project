@@ -5,6 +5,9 @@
 #include <cmath>
 #include "checker_cpu.hpp"
 #include <limits.h>
+
+void saveWCCresult(string path, vector<vector<int>> & ivec);
+
 void bfs_checker(graph_structure<double>& graph, std::vector<int>& cpu_res, std::vector<int>& gpu_res, int & is_pass) {
     std::cout << "Checking BFS results..." << std::endl;
     
@@ -100,6 +103,16 @@ bool compare(std::vector<int>& a, std::vector<int>& b) {
 void wcc_checker(graph_structure<double>& graph, std::vector<std::vector<int>>& cpu_res, std::vector<std::vector<int>>& gpu_res, int & is_pass) {
     std::cout << "Checking WCC results..." << std::endl;
     
+    // string path = "/home/liupeng/CPU_GPU_project/Test-Framework-for-LDBC/results/cpu_wcc_patents2.txt";
+    // saveWCCresult(path, cpu_res);
+
+    // string path2 = "/home/liupeng/CPU_GPU_project/Test-Framework-for-LDBC/results/gpu_wcc_patents2.txt";
+    // saveWCCresult(path2, gpu_res);
+
+    // cout<<"The test file have stored!"<<endl;
+    // cout<<"cpu_res.size="<<cpu_res.size()<<" , gpu_res.size()="<<gpu_res.size()<<endl;
+    // cout<<"cpu_res[0].size="<<cpu_res[0].size()<<" , gpu_res[0].size()="<<gpu_res[0].size()<<endl;
+
     if (cpu_res.size() != gpu_res.size()) {
         std::cout << "CPU WCC and GPU WCC results are not the same in size!" << std::endl;
         return;
@@ -467,4 +480,26 @@ void cdlp_check(graph_structure<double>& graph, std::vector<int>& cpu_res, std::
     std::cout << "CDLP results are correct!" << std::endl;
     is_pass = 1;
     base_line.close();
+}
+
+
+void saveWCCresult(string path, vector<vector<int>> & ivec){
+    // 打开文件
+    std::ofstream outFile(path);
+
+    if (!outFile) {
+        std::cerr << "Error: Unable to open the file." << std::endl;
+        // return 1;
+    }
+
+    for (const auto& row : ivec) {
+        for (const auto& value : row) {
+            outFile << value <<" ";
+        }
+        outFile << std::endl;
+    }
+
+    outFile.close();
+
+    std::cout << "Data has been saved to data.txt" << std::endl;
 }
