@@ -104,8 +104,8 @@ int main()
         std::vector<std::vector<int>> cpu_wcc_result;
 
         begin = std::chrono::high_resolution_clock::now();
-        bool wcc_is_directed = graph.is_directed;
-        cpu_wcc_result = CPU_connected_components<double>(graph.OUTs, graph.INs, wcc_is_directed);
+        // bool wcc_is_directed = graph.is_directed;
+        cpu_wcc_result = CPU_connected_components<double>(graph.OUTs, graph.INs);
         end = std::chrono::high_resolution_clock::now();
         double cpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("CPU WCC cost time: %f s\n", cpu_wcc_time);
