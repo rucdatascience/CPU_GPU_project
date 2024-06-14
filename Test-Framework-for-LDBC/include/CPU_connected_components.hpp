@@ -5,7 +5,7 @@
 #include <vector>
 
 template<typename T> // T is float or double
-std::vector<std::vector<int>> CPU_connected_components(std::vector<std::vector<std::pair<int, T>>>& input_graph, std::vector<std::vector<std::pair<int, T>>>& output_graph) {
+std::vector<std::vector<int>> CPU_connected_components(std::vector<std::vector<std::pair<int, T>>>& input_graph, std::vector<std::vector<std::pair<int, T>>>& output_graph, bool is_directed) {
 	//Using BFS method to find connectivity vectors starting from each node
 	/*this is to find connected_components using breadth first search; time complexity O(|V|+|E|);
 	related content: https://www.boost.org/doc/libs/1_68_0/boost/graph/connected_components.hpp
@@ -42,13 +42,15 @@ std::vector<std::vector<int>> CPU_connected_components(std::vector<std::vector<s
 					}
 				}
 
-				int adk_size = output_graph[v].size();
-				for(int k = 0; k < adk_size; ++k){
-					int adk_v = output_graph[v][k].first;
-					if(discovered[adk_v] == false){
-						Q.push(adk_v);
-						component.push_back(adk_v);
-						discovered[adk_v] = true;
+				if(is_directed){
+					int adk_size = output_graph[v].size();
+					for(int k = 0; k < adk_size; ++k){
+						int adk_v = output_graph[v][k].first;
+						if(discovered[adk_v] == false){
+							Q.push(adk_v);
+							component.push_back(adk_v);
+							discovered[adk_v] = true;
+						}
 					}
 				}
 			}
