@@ -401,7 +401,7 @@ void pr_checker(graph_structure<double>& graph, std::vector<double>& cpu_res, st
 }
 
 // similar to bfs_checker
-void cdlp_check(graph_structure<double>& graph, std::vector<int>& cpu_res, std::vector<int>& gpu_res, int & is_pass) {
+void cdlp_check(graph_structure<double>& graph, std::vector<long long int>& cpu_res, std::vector<int>& gpu_res, int & is_pass) {
     std::cout << "Checking CDLP results..." << std::endl;
     
     if (cpu_res.size() != gpu_res.size()) {
