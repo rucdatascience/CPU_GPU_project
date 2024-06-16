@@ -9,6 +9,7 @@
 #include <CPU_shortest_paths.hpp>
 #include <CPU_PageRank.hpp>
 #include <CPU_PageRank_update3.hpp>
+#include <CPU_Community_Detection_update.hpp>
 #include <CPU_Community_Detection.hpp>
 #include <cdlp_cpu.hpp>
 #include <checker.hpp>
@@ -184,10 +185,12 @@ int main()
 
     if (graph.sup_cdlp) {
         int cdlp_pass = 0;
-        std::vector<int> ans_cpu, ans_gpu;
+        std::vector<long long int> ans_cpu;
+        std::vector<int> ans_gpu;
 
         begin = std::chrono::high_resolution_clock::now();
-        CPU_Community_Detection(graph, ans_cpu);
+        // CPU_Community_Detection(graph, ans_cpu);
+        ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its);
         end = std::chrono::high_resolution_clock::now();
         double cpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time);
