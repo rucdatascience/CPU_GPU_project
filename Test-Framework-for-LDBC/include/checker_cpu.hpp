@@ -7,7 +7,10 @@
 #include <iostream>
 #include "checker.hpp"
 using namespace std;
-void saveResult(string path, vector<int> & res);
+
+bool compare(std::vector<int>& a, std::vector<int>& b);
+
+void saveResult(string path, vector<double> & res);
 
 void bfs_checker_cpu(graph_structure<double>& graph, std::vector<int>& cpu_res, int & cpu_bfs_pass){
     std::cout << "Checking CPU_BFS results..." << std::endl;
@@ -146,9 +149,12 @@ void wcc_checker_cpu(graph_structure<double>& graph, std::vector<std::vector<int
 
     std::sort(base_res.begin(), base_res.end(), compare);
 
+    cout<<"cpu_res.size="<<cpu_res.size()<<", base_res.size()="<<base_res.size()<<endl;
+    cout<<"cpu_res[0].size="<<cpu_res[0].size()<<", base_res[0].size()="<<base_res[0].size()<<endl;
+
     for (int i = 0; i < size; i++) {
         if (base_res[i].size() != cpu_res[i].size()) {
-            std::cout << "Baseline file and GPU WCC results are not the same!" << std::endl;
+            std::cout << "Baseline file and CPU WCC results are not the same!" << std::endl;
             std::cout << "Baseline file: " << graph.vertex_id_to_str[i] << " " << base_res[i][0] << std::endl;
             std::cout << "CPU_WCC result: " << graph.vertex_id_to_str[cpu_res[i][0]] << " " << cpu_res[i][0] << std::endl;
             base_line.close();
@@ -156,7 +162,7 @@ void wcc_checker_cpu(graph_structure<double>& graph, std::vector<std::vector<int
         }
         for (int j = 0; j < base_res[i].size(); j++) {
             if (base_res[i][j] != cpu_res[i][j]) {
-                std::cout << "Baseline file and GPU WCC results are not the same!" << std::endl;
+                std::cout << "Baseline file and CPU WCC results are not the same!" << std::endl;
                 std::cout << "Difference at: " << graph.vertex_id_to_str[base_res[i][j]] << " " << graph.vertex_id_to_str[cpu_res[i][j]] << std::endl;
                 base_line.close();
                 return;
@@ -171,7 +177,11 @@ void wcc_checker_cpu(graph_structure<double>& graph, std::vector<std::vector<int
 }
 
 void pr_checker_cpu(graph_structure<double>& graph, std::vector<double>& cpu_res, int & cpu_pr_pass){
-    std::cout << "Checking CPU PageRank results..." << std::endl;
+    // std::cout << "Checking CPU PageRank results..." << std::endl;
+
+    // string path = "/home/liupeng/CPU_GPU_project/Test-Framework-for-LDBC/results/cpu_pr_patents.txt";
+    // saveResult(path, cpu_res);
+
     int size = cpu_res.size();
     cout<<"cpu result size:"<<size<<endl;
 
@@ -234,13 +244,13 @@ void pr_checker_cpu(graph_structure<double>& graph, std::vector<double>& cpu_res
         return;
     }
 
-    std::cout << "CPU PageRank results are correct!" << std::endl;
+    std::cout << "CPU——-----PageRank results are correct!" << std::endl;
     cpu_pr_pass = 1;
     base_line.close();
 
 }
 
-void cdlp_check_cpu(graph_structure<double>& graph, std::vector<int>& cpu_res, int & cpu_cd_pass){
+void cdlp_check_cpu(graph_structure<double>& graph, std::vector<long long int>& cpu_res, int & cpu_cd_pass){
     std::cout << "Checking CPU CDLP results..." << std::endl;
     int size = cpu_res.size();
 
@@ -308,57 +318,7 @@ void cdlp_check_cpu(graph_structure<double>& graph, std::vector<int>& cpu_res, i
 
 }
 
-void cdlp_cross_validate(graph_structure<double> & graph, vector<int> & ht_cdlp, 
-        vector<int> & gpu_cdlp, vector<int> & lp_cdlp){
-
-    std::cout << "+++++++++++Checking cdlp_cross_validate CDLP results..." << std::endl;
-    int size = ht_cdlp.size();
-
-    if (size != graph.V) {
-        std::cout << "Size of cdlp_cross_validate CDLP results is not equal to the number of vertices!" << std::endl;
-        return;
-    }
-
-    for(int i = 0; i < size; ++i){
-        if(ht_cdlp[i] != gpu_cdlp[i]){
-            cout<<"ht cpu and gpu result is not same!"<<endl;
-            return ;
-        }
-    }
-    cout <<"ht cpu and gpu result have pass!"<<endl;
-
-    int size2 = lp_cdlp.size();
-    
-    if(size != size2){
-        cout <<"ht and lp have different size!"<<endl;
-        return ;
-    }
-
-    string path = "../data/ht_cdlp.txt";
-    string path2 = "../data/lp_cdlp.txt";
-
-    saveResult(path, ht_cdlp);
-    cout<<"########ht_cdlp result have stored!"<<endl;
-
-    saveResult(path2, lp_cdlp);
-    cout<<"$$$$$$$$lp_cdlp result have stored!"<<endl;
-    
-    int count = 0;
-    for(int i = 0; i < size2; ++i){
-        if(ht_cdlp[i] != lp_cdlp[i]){
-            // cout<<"ht_cdlp_cpu is not same lp_cdlp_cpu!"<<endl;
-            // cout<<"the difference is:"<<i+1<<" , ht_cdlp:"<<ht_cdlp[i]<<" , lp_cdlp:"<<lp_cdlp[i]<<endl;
-            count++;
-        }
-    }
-
-    cout <<"ht cdlp with lp cdlp different number is="<<count<<endl;
-
-    // readBaseline(graph, ht_cdlp);
-
-}
-
-void saveResult(string path, vector<int> & res){
+void saveResult(string path, vector<double> & res){
 
     std::ofstream fileOutput(path);
 
