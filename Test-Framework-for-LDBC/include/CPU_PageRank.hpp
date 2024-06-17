@@ -32,7 +32,6 @@ std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& i
 
         double x = sink_sum * d / N + teleport;
 
-        /*P*/
         ThreadPool pool_dynamic(100);
         std::vector<std::future<int>> results_dynamic;
         for (int q = 0; q < 100; q++)
