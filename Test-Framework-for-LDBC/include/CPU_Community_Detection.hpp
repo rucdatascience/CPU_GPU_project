@@ -36,7 +36,7 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
                         }
                         int maxcount = 0;
                         long long int maxlabel = 0;
-                        for (std::pair<long long int, int>& p : count)
+                        for (std::pair<long long int, int> p : count)
                         {
                             if (p.second > maxcount)
                             {
