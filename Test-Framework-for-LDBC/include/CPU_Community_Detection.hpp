@@ -13,10 +13,11 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
     std::vector<long long int> label = vertex_IDs_forCD;
     std::vector<long long int> new_label(N);
 
+    ThreadPool pool_dynamic(100);
+    std::vector<std::future<int>> results_dynamic;
+
     for (int k = 0; k < iters; k++)
     {
-        ThreadPool pool_dynamic(100);
-        std::vector<std::future<int>> results_dynamic;
         for (int q = 0; q < 100; q++)
         {
             results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &in_edge, &out_edge, &label, &new_label]
@@ -24,21 +25,18 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
                     int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
 
-
-
-
                         std::unordered_map<long long int, int> count;
-                        for (int j = in_edge[i].size() - 1; j >= 0; j--)
+                        for (auto& x: in_edge[i])
                         {
-                            count[label[in_edge[i][j].first]]++;
+                            count[label[x.first]]++;
                         }
-                        for (int j = out_edge[i].size() - 1; j >= 0; j--)
+                        for (auto& x : out_edge[i])
                         {
-                            count[label[out_edge[i][j].first]]++;
+                            count[label[x.first]]++;
                         }
                         int maxcount = 0;
                         long long int maxlabel = 0;
-                        for (std::pair<long long int, int> p : count)
+                        for (std::pair<long long int, int>& p : count)
                         {
                             if (p.second > maxcount)
                             {
