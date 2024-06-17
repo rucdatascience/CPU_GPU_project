@@ -2,7 +2,7 @@
 #include <graph_structure/graph_structure.hpp>
 #include <vector>
 #include <iostream>
-#include <map>
+#include <unordered_map>
 #include <ThreadPool.h>
 
 std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>& in_edge,
@@ -25,8 +25,8 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
                     int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
 
-                        std::map<long long int, int> count;
-                        for (auto& x : in_edge[i])
+                        std::unordered_map<long long int, int> count;
+                        for (auto& x: in_edge[i])
                         {
                             count[label[x.first]]++;
                         }
