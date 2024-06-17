@@ -188,9 +188,15 @@ int main()
         std::vector<long long int> ans_cpu;
         std::vector<int> ans_gpu;
 
+        int N = graph.vertex_id_to_str.size();
+        vector<long long int> vertex_IDs_forCD(N);
+        for (int i = N - 1; i >= 0; i--) {
+            vertex_IDs_forCD[i] = strtoll(graph.vertex_id_to_str[i].c_str(), NULL, 10);
+        }
+
         begin = std::chrono::high_resolution_clock::now();
         // CPU_Community_Detection(graph, ans_cpu);
-        ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its);
+        ans_cpu = CDLP(graph.INs, graph.OUTs, vertex_IDs_forCD, graph.cdlp_max_its);
         end = std::chrono::high_resolution_clock::now();
         double cpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time);
