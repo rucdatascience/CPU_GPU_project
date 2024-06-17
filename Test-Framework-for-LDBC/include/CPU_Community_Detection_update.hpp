@@ -103,19 +103,19 @@ if (graph.sup_cdlp) {
     double end;
     start = omp_get_wtime();
     int N = in_edge.size();
-    std::vector<long long int> label(N);
-    std::vector<long long int> new_label(N);
+    std::vector<int> label(N);
+    std::vector<int> new_label(N);
 
     for (int i = N - 1; i >= 0; i--)
     {
-        label[i] =strtoll(lab[i].c_str(), NULL, 10);
+        label[i] = i;
     }
     
     for (int k = 0, total; k < iters; k++)
     {
         #pragma omp parallel for shared(in_edge,out_edge,label)
         for (int i = N - 1; i >= 0; i--)
-        {   std::unordered_map<long long int, int> count;
+        {   std::unordered_map<int, int> count;
             total = (in_edge[i].size() + out_edge[i].size()) / 2;
             count.clear();
             for (int j = in_edge[i].size() - 1; j >= 0; j--)
@@ -127,8 +127,8 @@ if (graph.sup_cdlp) {
                 count[label[out_edge[i][j].first]]++;
             }
             int maxcount = 0;
-            long long int maxlabel = 0;
-            for (std::pair<long long int, int> p : count)
+            int maxlabel = 0;
+            for (std::pair<int, int> p : count)
             {
                 if (p.second > maxcount)
                 {
@@ -146,7 +146,12 @@ if (graph.sup_cdlp) {
         std::swap(new_label, label);
     }
         end = omp_get_wtime();
-
-    printf("CPU CDLP cost time: %f s\n", (end - start) * 1000);
-    return label;
+    std::vector<long long int>res(N);
+    for (int i = 0; i < N; i++)
+    {
+        res[i] = strtoll(lab[label[i]].c_str(), NULL, 10);
+    }
+    
+    printf("CPU CDLP cost time: %f s\n", (end - start));
+    return res;
 }

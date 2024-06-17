@@ -10,9 +10,13 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
     /*     call this function like:ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its); */
 {
     int N = in_edge.size();
-    std::vector<long long int> label = vertex_IDs_forCD;
-    std::vector<long long int> new_label(N);
-
+    std::vector<int> label(N);
+    std::vector<int> new_label(N);
+    for (int i = 0; i < N; i++)
+    {
+        label[i] = i;
+    }
+    
     ThreadPool pool_dynamic(100);
     std::vector<std::future<int>> results_dynamic;
 
@@ -25,7 +29,7 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
                     int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
 
-                        std::unordered_map<long long int, int> count;
+                        std::unordered_map< int, int> count;
                         for (auto& x: in_edge[i])
                         {
                             count[label[x.first]]++;
@@ -35,8 +39,8 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
                             count[label[x.first]]++;
                         }
                         int maxcount = 0;
-                        long long int maxlabel = 0;
-                        for (std::pair<long long int, int> p : count)
+                        int maxlabel = 0;
+                        for (std::pair<int, int> p : count)
                         {
                             if (p.second > maxcount)
                             {
@@ -62,6 +66,11 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
 
         std::swap(new_label, label);
     }
-
-    return label;
+    std::vector<long long int>res(N);
+    for (int i = 0; i < N; i++)
+    {
+        res[i] = vertex_IDs_forCD[label[i]];
+    }
+    
+    return res;
 }

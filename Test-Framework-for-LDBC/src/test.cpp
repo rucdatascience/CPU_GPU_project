@@ -8,7 +8,6 @@
 #include <CPU_connected_components.hpp>
 #include <CPU_shortest_paths.hpp>
 #include <CPU_PageRank.hpp>
-#include <CPU_PageRank_update3.hpp>
 #include <CPU_Community_Detection_update.hpp>
 #include <CPU_Community_Detection.hpp>
 #include <cdlp_cpu.hpp>
@@ -182,7 +181,19 @@ int main()
         umap_all_res.emplace("gpu_pr_time", std::to_string(gpu_pr_time));
         umap_all_res.emplace("pr_pass_label", pr_pass_label);        
     }
+    if (graph.sup_cdlp) {
+        int cdlp_pass = 0;
+        std::vector<long long int> ans_cpu;
+        std::vector<int> ans_gpu;
+        ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its);
 
+
+        simple_cdlp_check(graph, ans_cpu, cdlp_pass);
+        
+        string cdlp_pass_label = "No";
+        if(cdlp_pass != 0) cdlp_pass_label = "Yes";
+        umap_all_res.emplace("cdlp_pass_label", cdlp_pass_label);        
+    }
     if (graph.sup_cdlp) {
         int cdlp_pass = 0;
         std::vector<long long int> ans_cpu;
