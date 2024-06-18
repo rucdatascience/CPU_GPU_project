@@ -6,11 +6,10 @@
 #include <ThreadPool.h>
 #include <numeric>
 
-std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>& in_edge,
-    std::vector<std::vector<std::pair<int, double>>>& out_edge, std::vector<long long int>& vertex_IDs_forCD, int iters)
+std::vector<string> CDLP(graph_structure<double>& graph, int iters)
     /*     call this function like:ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its); */
 {
-    int N = in_edge.size();
+    int N = graph.INs.size();
     std::vector<int> label(N);
     std::iota (std::begin(label), std::end(label), 0); 
     std::vector<int> new_label(N);
@@ -22,7 +21,7 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
     {
         for (int q = 0; q < 100; q++)
         {
-            results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &in_edge, &out_edge, &label, &new_label]
+            results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &graph.INs, &graph.OUTs, &label, &new_label]
                 {
                     int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
@@ -65,10 +64,10 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
         std::swap(new_label, label);
     }
     
-    std::vector<long long int>res(N);
+    std::vector<string>res(N);
     for (int i = 0; i < N; i++)
     {
-        res[i] = vertex_IDs_forCD[label[i]];
+        res[i] = graph.vertex_id_to_str[label[i]];
     }
     
     return res;

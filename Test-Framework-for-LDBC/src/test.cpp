@@ -196,7 +196,7 @@ int main()
         }
 
         begin = std::chrono::high_resolution_clock::now();
-        ans_cpu = CDLP(graph.INs, graph.OUTs, vertex_IDs_forCD, graph.cdlp_max_its);
+        ans_cpu = CDLP(graph, graph.cdlp_max_its);
         end = std::chrono::high_resolution_clock::now();
         double cpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time);
