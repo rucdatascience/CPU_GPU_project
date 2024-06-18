@@ -467,6 +467,8 @@ void simple_cdlp_check(graph_structure<double>& graph, std::vector<long long int
     is_pass = 1;
     base_line.close();
 }
+
+
 // similar to bfs_checker
 void cdlp_check(graph_structure<double>& graph, std::vector<long long int>& cpu_res, std::vector<int>& gpu_res, int & is_pass) {
     std::cout << "Checking CDLP results..." << std::endl;

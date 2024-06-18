@@ -4,6 +4,7 @@
 #include <iostream>
 #include <unordered_map>
 #include <ThreadPool.h>
+#include <numeric>
 
 std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>& in_edge,
     std::vector<std::vector<std::pair<int, double>>>& out_edge, std::vector<long long int>& vertex_IDs_forCD, int iters)
@@ -11,11 +12,8 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
 {
     int N = in_edge.size();
     std::vector<int> label(N);
+    std::iota (std::begin(label), std::end(label), 0); 
     std::vector<int> new_label(N);
-    for (int i = 0; i < N; i++)
-    {
-        label[i] = i;
-    }
     
     ThreadPool pool_dynamic(100);
     std::vector<std::future<int>> results_dynamic;
@@ -66,6 +64,7 @@ std::vector<long long int> CDLP(std::vector<std::vector<std::pair<int, double>>>
 
         std::swap(new_label, label);
     }
+    
     std::vector<long long int>res(N);
     for (int i = 0; i < N; i++)
     {

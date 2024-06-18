@@ -14,7 +14,6 @@
 #include <checker.hpp>
 #include <checker_cpu.hpp>
 #include <checker_gpu.hpp>
-
 #include <time.h>
 
 //one test one result file
@@ -22,6 +21,7 @@ void saveAsCSV(const unordered_map<string, string>& data, const string& filename
 
 //all test one result file
 void writeToCSV(const unordered_map<string, string>& data, const string& filename);
+
 
 int main()
 {
@@ -39,10 +39,8 @@ int main()
     //Read the ldbc configuration file to obtain key parameter information in the file
     graph.read_config(config_file);
 
-    auto begin = std::chrono::high_resolution_clock::now();
-    //Read the vertex and edge files corresponding to the configuration file
-    graph.load_LDBC();
-    // The vertex information in graph is converted to csr format for storage
+    auto begin = std::chrono::high_resolution_clock::now();   
+    graph.load_LDBC(); //Read the vertex and edge files corresponding to the configuration file, // The vertex information in graph is converted to csr format for storage   
     auto end = std::chrono::high_resolution_clock::now();
     double load_ldbc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
     printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
@@ -70,24 +68,17 @@ int main()
     if (graph.sup_bfs) {
         int bfs_pass = 0;
         std::vector<int> cpu_bfs_result;
-        // start = clock();
         begin = std::chrono::high_resolution_clock::now();
         cpu_bfs_result = CPU_BFS<double>(graph.OUTs, graph.bfs_src);
-        // end = clock();
-        // double cpu_bfs_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
         end = std::chrono::high_resolution_clock::now();
         double cpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("CPU BFS cost time: %f s\n", cpu_bfs_time);
 
         std::vector<int> gpu_bfs_result;
-        // start = clock();
         begin = std::chrono::high_resolution_clock::now();
         gpu_bfs_result = cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
-        // end = clock();
-        // double gpu_bfs_time = (double)(end - start) / CLOCKS_PER_SEC * 1000;
         end = std::chrono::high_resolution_clock::now();
         double gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-
         printf("GPU BFS cost time: %f s\n", gpu_bfs_time);
 
         bfs_checker(graph, cpu_bfs_result, gpu_bfs_result, bfs_pass);
@@ -104,7 +95,6 @@ int main()
         std::vector<std::vector<int>> cpu_wcc_result;
 
         begin = std::chrono::high_resolution_clock::now();
-        // bool wcc_is_directed = graph.is_directed;
         cpu_wcc_result = CPU_connected_components<double>(graph.OUTs, graph.INs);
         end = std::chrono::high_resolution_clock::now();
         double cpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
@@ -155,14 +145,12 @@ int main()
     }
 
     if (graph.sup_pr) {
-
         vector<double> cpu_pr_result, gpu_pr_result;
         int pr_pass = 0;
         begin = std::chrono::high_resolution_clock::now();
         cpu_pr_result = PageRank(graph.INs, graph.OUTs, graph.pr_damping, graph.pr_its);
         end = std::chrono::high_resolution_clock::now();
-        double cpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-        
+        double cpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s      
         printf("CPU PageRank cost time: %f s\n", cpu_pr_time);
         
         elapsedTime = 0;
@@ -181,19 +169,21 @@ int main()
         umap_all_res.emplace("gpu_pr_time", std::to_string(gpu_pr_time));
         umap_all_res.emplace("pr_pass_label", pr_pass_label);        
     }
-    if (graph.sup_cdlp) {
-        int cdlp_pass = 0;
-        std::vector<long long int> ans_cpu;
-        std::vector<int> ans_gpu;
-        ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its);
+
+    //if (graph.sup_cdlp) {
+    //    int cdlp_pass = 0;
+    //    std::vector<long long int> ans_cpu;
+    //    std::vector<int> ans_gpu;
+    //    ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its);
 
 
-        simple_cdlp_check(graph, ans_cpu, cdlp_pass);
-        
-        string cdlp_pass_label = "No";
-        if(cdlp_pass != 0) cdlp_pass_label = "Yes";
-        umap_all_res.emplace("cdlp_pass_label", cdlp_pass_label);        
-    }
+    //    simple_cdlp_check(graph, ans_cpu, cdlp_pass);
+    //    
+    //    string cdlp_pass_label = "No";
+    //    if(cdlp_pass != 0) cdlp_pass_label = "Yes";
+    //    umap_all_res.emplace("cdlp_pass_label", cdlp_pass_label);        
+    //}
+
     if (graph.sup_cdlp) {
         int cdlp_pass = 0;
         std::vector<long long int> ans_cpu;
@@ -206,11 +196,11 @@ int main()
         }
 
         begin = std::chrono::high_resolution_clock::now();
-        // CPU_Community_Detection(graph, ans_cpu);
         ans_cpu = CDLP(graph.INs, graph.OUTs, vertex_IDs_forCD, graph.cdlp_max_its);
         end = std::chrono::high_resolution_clock::now();
         double cpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time);
+
 
         elapsedTime = 0;
         begin = std::chrono::high_resolution_clock::now();
