@@ -1,11 +1,3 @@
-/*
- * @Author: Peng Liu
- * @Date: 2024-06-18 10:15:19
- * @LastEditTime: 2024-06-18 10:24:42
- * @Description: 
- * 
- * Copyright (c) 2024 by Data Warehouse and Business Intelligence Laboratory(DW&BI) of Renmin University of China(RUC), All Rights Reserved. 
- */
 #pragma once
 #include <graph_structure/graph_structure.hpp>
 #include <vector>
@@ -14,14 +6,17 @@
 #include <ThreadPool.h>
 #include <numeric>
 
-std::vector<string> CDLP(graph_structure<double>& graph, int iters)
-    /*     call this function like:ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its); */
+std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
+/*     call this function like:ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its); */
 {
-    int N = graph.INs.size();
+    auto& in_edges = graph.INs;
+    auto& out_edges = graph.OUTs;
+
+    int N = in_edges.size();
     std::vector<int> label(N);
-    std::iota (std::begin(label), std::end(label), 0); 
+    std::iota(std::begin(label), std::end(label), 0);
     std::vector<int> new_label(N);
-    
+
     ThreadPool pool_dynamic(100);
     std::vector<std::future<int>> results_dynamic;
 
@@ -29,17 +24,17 @@ std::vector<string> CDLP(graph_structure<double>& graph, int iters)
     {
         for (int q = 0; q < 100; q++)
         {
-            results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &(graph.INs), &(graph.OUTs), &label, &new_label]
+            results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &in_edges, &out_edges, &label, &new_label]
                 {
                     int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
 
-                        std::unordered_map< int, int> count;
-                        for (auto& x: in_edge[i])
+                        std::unordered_map<int, int> count;
+                        for (auto& x : in_edges[i])
                         {
                             count[label[x.first]]++;
                         }
-                        for (auto& x : out_edge[i])
+                        for (auto& x : out_edges[i])
                         {
                             count[label[x.first]]++;
                         }
@@ -71,12 +66,12 @@ std::vector<string> CDLP(graph_structure<double>& graph, int iters)
 
         std::swap(new_label, label);
     }
-    
-    std::vector<string>res(N);
+
+    std::vector<std::string>res(N);
     for (int i = 0; i < N; i++)
     {
         res[i] = graph.vertex_id_to_str[label[i]];
     }
-    
+
     return res;
 }
