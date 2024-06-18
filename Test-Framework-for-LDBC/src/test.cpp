@@ -11,8 +11,6 @@
 #include <CPU_Community_Detection_update.hpp>
 #include <CPU_Community_Detection.hpp>
 #include <checker.hpp>
-#include <checker_cpu.hpp>
-#include <checker_gpu.hpp>
 #include <time.h>
 
 //one test one result file
@@ -72,6 +70,7 @@ int main()
                 printf("CPU BFS cost time: %f s\n", cpu_bfs_time);
 
                 /*check*/
+                bfs_checker(graph, cpu_bfs_result, bfs_pass);
             }
 
             if (1) {
@@ -83,6 +82,8 @@ int main()
                 printf("GPU BFS cost time: %f s\n", gpu_bfs_time);
 
                 /*check*/
+                bfs_checker(graph, gpu_bfs_result, bfs_pass);
+
             }
         }
 
@@ -98,6 +99,7 @@ int main()
                 printf("CPU WCC cost time: %f s\n", cpu_wcc_time);
 
                 /*check*/
+                wcc_checker(graph, cpu_wcc_result, wcc_pass);
             }
 
             if (1) {
@@ -110,6 +112,8 @@ int main()
                 printf("GPU WCC cost time: %f s\n", gpu_wcc_time);
 
                 /*check*/
+                wcc_checker(graph, gpu_wcc_result, wcc_pass);
+
             }
         }
 
@@ -124,6 +128,7 @@ int main()
                 printf("CPU SSSP cost time: %f s\n", cpu_sssp_time);
 
                 /*check*/
+                sssp_checker(graph, cpu_sssp_result, sssp_pass);
             }
 
             if (1) {
@@ -135,14 +140,16 @@ int main()
                 printf("GPU SSSP cost time: %f s\n", gpu_sssp_time);
 
                 /*check*/
+                sssp_checker(graph, gpu_sssp_result, sssp_pass);
+
             }
         }
 
         if (graph.sup_pr) {
+            int pr_pass = 0;
 
             if (1) {
-                vector<double> cpu_pr_result, gpu_pr_result;
-                int pr_pass = 0;
+                vector<double> cpu_pr_result;
 
 
                 begin = std::chrono::high_resolution_clock::now();
@@ -152,11 +159,13 @@ int main()
                 printf("CPU PageRank cost time: %f s\n", cpu_pr_time);
 
                 /*check*/
+                pr_checker(graph, cpu_pr_result, pr_pass);
 
             }
 
-            if (1) {
+            if (0) {
                 elapsedTime = 0;
+                vector<double> gpu_pr_result;
                 begin = std::chrono::high_resolution_clock::now();
                 gpu_PageRank(graph, &elapsedTime, gpu_pr_result);
                 end = std::chrono::high_resolution_clock::now();
@@ -164,6 +173,8 @@ int main()
                 printf("GPU PageRank cost time: %f s\n", gpu_pr_time);
 
                 /*check*/
+                pr_checker(graph, gpu_pr_result, pr_pass);
+
             }
         }
 
@@ -187,6 +198,7 @@ int main()
                 printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time);
 
                 /*check*/
+                cdlp_check(graph, ans_cpu, cdlp_pass);
             }
 
             if (1) {
