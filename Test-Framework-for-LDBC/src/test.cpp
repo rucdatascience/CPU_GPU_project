@@ -10,7 +10,6 @@
 #include <CPU_PageRank.hpp>
 #include <CPU_Community_Detection_update.hpp>
 #include <CPU_Community_Detection.hpp>
-#include <cdlp_cpu.hpp>
 #include <checker.hpp>
 #include <checker_cpu.hpp>
 #include <checker_gpu.hpp>
@@ -144,7 +143,7 @@ int main()
         umap_all_res.emplace("sssp_pass_label", sssp_pass_label);    
     }
 
-    if (graph.sup_pr) {
+    if (graph.sup_pr & 0) {
         vector<double> cpu_pr_result, gpu_pr_result;
         int pr_pass = 0;
         begin = std::chrono::high_resolution_clock::now();
@@ -186,7 +185,7 @@ int main()
 
     if (graph.sup_cdlp) {
         int cdlp_pass = 0;
-        std::vector<long long int> ans_cpu;
+        std::vector<string> ans_cpu;
         std::vector<int> ans_gpu;
 
         int N = graph.vertex_id_to_str.size();
@@ -202,19 +201,14 @@ int main()
         printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time);
 
 
-        elapsedTime = 0;
-        begin = std::chrono::high_resolution_clock::now();
-        gpu_Community_Detection(graph, &elapsedTime, ans_gpu);
-        end = std::chrono::high_resolution_clock::now();
-        double gpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-        printf("GPU Community Detection cost time: %f s\n", gpu_cdlp_time);
+        
 
-        cdlp_check(graph, ans_cpu, ans_gpu, cdlp_pass);
+        // cdlp_check(graph, ans_cpu, ans_gpu, cdlp_pass);
+        cdlp_check_update(graph, ans_cpu, cdlp_pass);
         
         string cdlp_pass_label = "No";
         if(cdlp_pass != 0) cdlp_pass_label = "Yes";
         umap_all_res.emplace("cpu_cdlp_time", std::to_string(cpu_cdlp_time));
-        umap_all_res.emplace("gpu_cdlp_time", std::to_string(gpu_cdlp_time));
         umap_all_res.emplace("cdlp_pass_label", cdlp_pass_label);        
     }
 
