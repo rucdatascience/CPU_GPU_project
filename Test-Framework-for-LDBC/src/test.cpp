@@ -215,9 +215,9 @@ int main()
         umap_all_res.emplace("execute_time", std::to_string(execute_time));
 
         //store test file to .csv file
-        string store_path = "../results/" + test_file_name + std::to_string(execute_time) + ".csv";
+        // string store_path = "../results/" + test_file_name + std::to_string(execute_time) + ".csv";
         // cout <<"result store path is:"<<store_path<<endl;
-        saveAsCSV(umap_all_res, store_path);
+        // saveAsCSV(umap_all_res, store_path);
     }
 
     return 0;
