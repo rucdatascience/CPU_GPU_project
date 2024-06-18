@@ -1,3 +1,11 @@
+/*
+ * @Author: Peng Liu
+ * @Date: 2024-06-18 10:15:19
+ * @LastEditTime: 2024-06-18 10:24:42
+ * @Description: 
+ * 
+ * Copyright (c) 2024 by Data Warehouse and Business Intelligence Laboratory(DW&BI) of Renmin University of China(RUC), All Rights Reserved. 
+ */
 #pragma once
 #include <graph_structure/graph_structure.hpp>
 #include <vector>
@@ -21,7 +29,7 @@ std::vector<string> CDLP(graph_structure<double>& graph, int iters)
     {
         for (int q = 0; q < 100; q++)
         {
-            results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &graph.INs, &graph.OUTs, &label, &new_label]
+            results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &(graph.INs), &(graph.OUTs), &label, &new_label]
                 {
                     int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
