@@ -1,9 +1,9 @@
 #pragma once
 
-#include <graph_structure/graph_structure.hpp>
+#include "../include/graph_structure/graph_structure.hpp"
 #include <algorithm>
 #include <cmath>
-#include "checker_cpu.hpp"
+// #include "checker_cpu.hpp"
 #include <limits.h>
 
 void saveWCCresult(string path, vector<vector<int>> & ivec);

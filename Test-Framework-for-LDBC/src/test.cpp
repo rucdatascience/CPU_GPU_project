@@ -4,12 +4,12 @@
 #include <GPU_PageRank.cuh>
 #include <GPU_Community_Detection.cuh>
 #include <chrono>
-#include <CPU_BFS.hpp>
-#include <CPU_connected_components.hpp>
-#include <CPU_shortest_paths.hpp>
-#include <CPU_PageRank.hpp>
-#include <CPU_Community_Detection_update.hpp>
-#include <CPU_Community_Detection.hpp>
+#include "../CPU/CPU_BFS.hpp"
+#include "../CPU/CPU_connected_components.hpp"
+#include "../CPU/CPU_shortest_paths.hpp"
+#include "../CPU/CPU_PageRank.hpp"
+#include "../CPU/CPU_Community_Detection_update.hpp"
+#include "../CPU/CPU_Community_Detection.hpp"
 #include <checker.hpp>
 #include <time.h>
 
