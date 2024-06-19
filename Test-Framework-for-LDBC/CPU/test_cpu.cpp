@@ -1,16 +1,11 @@
-#include <GPU_BFS.cuh>
-#include <GPU_connected_components.cuh>
-#include <GPU_shortest_paths.cuh>
-#include <GPU_PageRank.cuh>
-#include <GPU_Community_Detection.cuh>
 #include <chrono>
-#include <CPU_BFS.hpp>
-#include <CPU_connected_components.hpp>
-#include <CPU_shortest_paths.hpp>
-#include <CPU_PageRank.hpp>
-#include <CPU_Community_Detection_update.hpp>
-#include <CPU_Community_Detection.hpp>
-#include <checker.hpp>
+#include "CPU_BFS.hpp"
+#include "CPU_connected_components.hpp"
+#include "CPU_shortest_paths.hpp"
+#include "CPU_PageRank.hpp"
+#include "CPU_Community_Detection_update.hpp"
+#include "CPU_Community_Detection.hpp"
+#include "../include/checker.hpp"
 #include <time.h>
 
 //one test one result file
@@ -73,18 +68,7 @@ int main()
                 bfs_checker(graph, cpu_bfs_result, bfs_pass);
             }
 
-            if (1) {
-                std::vector<int> gpu_bfs_result;
-                begin = std::chrono::high_resolution_clock::now();
-                gpu_bfs_result = cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
-                end = std::chrono::high_resolution_clock::now();
-                double gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-                printf("GPU BFS cost time: %f s\n", gpu_bfs_time);
-
-                /*check*/
-                bfs_checker(graph, gpu_bfs_result, bfs_pass);
-
-            }
+           
         }
 
         if (graph.sup_wcc) {
@@ -102,19 +86,7 @@ int main()
                 wcc_checker(graph, cpu_wcc_result, wcc_pass);
             }
 
-            if (1) {
-                std::vector<std::vector<int>> gpu_wcc_result;
-                elapsedTime = 0;
-                auto begin = std::chrono::high_resolution_clock::now();
-                gpu_wcc_result = gpu_connected_components(csr_graph, &elapsedTime);
-                auto end = std::chrono::high_resolution_clock::now();
-                double gpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-                printf("GPU WCC cost time: %f s\n", gpu_wcc_time);
-
-                /*check*/
-                wcc_checker(graph, gpu_wcc_result, wcc_pass);
-
-            }
+           
         }
 
         if (graph.sup_sssp) {
@@ -131,18 +103,7 @@ int main()
                 sssp_checker(graph, cpu_sssp_result, sssp_pass);
             }
 
-            if (1) {
-                std::vector<double> gpu_sssp_result(graph.V, 0);
-                begin = std::chrono::high_resolution_clock::now();
-                gpu_shortest_paths(csr_graph, graph.sssp_src, gpu_sssp_result, &elapsedTime);
-                end = std::chrono::high_resolution_clock::now();
-                double gpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-                printf("GPU SSSP cost time: %f s\n", gpu_sssp_time);
-
-                /*check*/
-                sssp_checker(graph, gpu_sssp_result, sssp_pass);
-
-            }
+          
         }
 
         if (graph.sup_pr) {
@@ -163,19 +124,7 @@ int main()
 
             }
 
-            if (0) {
-                elapsedTime = 0;
-                vector<double> gpu_pr_result;
-                begin = std::chrono::high_resolution_clock::now();
-                gpu_PageRank(graph, &elapsedTime, gpu_pr_result);
-                end = std::chrono::high_resolution_clock::now();
-                double gpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-                printf("GPU PageRank cost time: %f s\n", gpu_pr_time);
-
-                /*check*/
-                pr_checker(graph, gpu_pr_result, pr_pass);
-
-            }
+           
         }
 
         if (graph.sup_cdlp) {
