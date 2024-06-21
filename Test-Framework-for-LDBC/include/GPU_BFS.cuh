@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include <graph_structure/graph_structure.hpp>
+#include <graph_structure/csr_graph.hpp>
 
 __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int* next_queue, int* queue_size, int* next_queue_size, int max_depth);
 

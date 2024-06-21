@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include <graph_structure/graph_structure.hpp>
+#include <graph_structure/csr_graph.hpp>
 
 //template <typename T>
 extern "C"

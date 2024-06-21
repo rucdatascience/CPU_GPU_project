@@ -16,6 +16,7 @@
 #include <chrono>
 #include <string.h>
 #include <graph_structure/graph_structure.hpp>
+#include <graph_structure/csr_graph.hpp>
 #include <unistd.h>
 using namespace std;
 #define CD_THREAD_PER_BLOCK 1024

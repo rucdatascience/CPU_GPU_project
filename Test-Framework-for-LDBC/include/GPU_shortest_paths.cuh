@@ -7,6 +7,7 @@
 #include <stdio.h>
 
 #include <graph_structure/graph_structure.hpp>
+#include <graph_structure/csr_graph.hpp>
 
 __device__ __forceinline__ double atomicMinDouble (double * addr, double value);
 
