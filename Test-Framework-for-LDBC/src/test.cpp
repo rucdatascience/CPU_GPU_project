@@ -37,18 +37,18 @@ public:
     std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
 };
 template <typename weight_type>
-CSR_graph<weight_type> graph_structure<weight_type>::toCSR() {
+CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph) {
 
     CSR_graph<weight_type> ARRAY;
 
-    int V = OUTs.size();
+    int V = graph.OUTs.size();
     ARRAY.INs_Neighbor_start_pointers.resize(V + 1); // Neighbor_start_pointers[V] = Edges.size() = Edge_weights.size() = the total number of edges.
     ARRAY.OUTs_Neighbor_start_pointers.resize(V + 1);
 
     int pointer = 0;
     for (int i = 0; i < V; i++) {
         ARRAY.INs_Neighbor_start_pointers[i] = pointer;
-        for (auto& xx : INs[i]) {
+        for (auto& xx : graph.INs[i]) {
             ARRAY.INs_Edges.push_back(xx.first);
             ARRAY.INs_Edge_weights.push_back(xx.second);
         }
@@ -59,7 +59,7 @@ CSR_graph<weight_type> graph_structure<weight_type>::toCSR() {
     pointer = 0;
     for (int i = 0; i < V; i++) {
         ARRAY.OUTs_Neighbor_start_pointers[i] = pointer;
-        for (auto& xx : OUTs[i]) {
+        for (auto& xx : graph.OUTs[i]) {
             ARRAY.OUTs_Edges.push_back(xx.first);
             ARRAY.OUTs_Edge_weights.push_back(xx.second);
         }
