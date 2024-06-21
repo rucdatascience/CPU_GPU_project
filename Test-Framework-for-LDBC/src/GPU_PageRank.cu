@@ -1,6 +1,6 @@
 #include <GPU_PageRank.cuh>
 static int ITERATION;
-static int N, E_in,E_out;
+static int N;
 
 static vector<int> sink_vertexs; // sink vertexs
 static int *sink_vertex_gpu;
@@ -8,34 +8,24 @@ static double *pr, *npr, *outs;
 static int out_zero_size;
 static double *sink_sum;
 static double damp, teleport;
-static int *in_pointer, *out_pointer, *in_edge, *out_edge;
 dim3 blockPerGrid,threadPerGrid;
-void GPU_PR(graph_structure<double> &graph,CSR_graph<double>&ARRAY_graph , float *elapsedTime, vector<double> &result)
+void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge)
 {
     ITERATION = graph.pr_its;
     damp = graph.pr_damping;
     N = graph.size();
-    E_in = ARRAY_graph.INs_Edges.size();
-    E_out = ARRAY_graph.OUTs_Edges.size();
     teleport = (1 - damp) / N;
 
-    cudaMallocManaged(&in_pointer, (N + 1) * sizeof(int));
-    cudaMallocManaged(&out_pointer, (N + 1) * sizeof(int));
+
     cudaMallocManaged(&outs, N * sizeof(double));
     cudaMallocManaged(&sink_sum, sizeof(double));
     cudaMallocManaged(&npr, N * sizeof(double));
     cudaMallocManaged(&pr, N * sizeof(double));
-    cudaMallocManaged(&in_edge, E_in * sizeof(int));
-    cudaMallocManaged(&out_edge, E_out * sizeof(int));
 
-    cudaMemcpy(in_pointer, ARRAY_graph.INs_Neighbor_start_pointers.data(), (N + 1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(out_pointer, ARRAY_graph.OUTs_Neighbor_start_pointers.data(), (N + 1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(in_edge, ARRAY_graph.INs_Edges.data(), E_in* sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(out_edge, ARRAY_graph.OUTs_Edges.data(), E_out * sizeof(int), cudaMemcpyHostToDevice);
 
     for (int i = 0; i < N; i++)
     {
-        if (ARRAY_graph.OUTs_Neighbor_start_pointers[i] == ARRAY_graph.OUTs_Neighbor_start_pointers[i + 1])
+        if (graph.OUTs[i].size()==0)
         {
             // This means that the vertex has no edges
             sink_vertexs.push_back(i);
@@ -47,8 +37,7 @@ void GPU_PR(graph_structure<double> &graph,CSR_graph<double>&ARRAY_graph , float
     blockPerGrid.x = (N + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
     threadPerGrid.x = THREAD_PER_BLOCK;
 
-    cudaMemcpy(in_pointer, ARRAY_graph.INs_Neighbor_start_pointers.data(), (N + 1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(out_pointer, ARRAY_graph.OUTs_Neighbor_start_pointers.data(), (N + 1) * sizeof(int), cudaMemcpyHostToDevice);
+
 
     int iteration = 0;
     cudaEvent_t GPUstart, GPUstop; // record GPU_TIME
