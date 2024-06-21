@@ -48,7 +48,7 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, flo
     cudaMallocManaged((void**)&start, V * sizeof(int));
     //Transferring the read in data to the GPU
     cudaMemcpy(edges, input_graph.OUTs_Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(start, input_graph.OUTs_Neighbor_start_pointers.data(), V * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(start, input_graph.OUTs_Neighbor_start_pointers.data(), V * sizeof(int), cudaMemcpyHostToDevice); // should be V+1???????
     
     queue[0] = source_vertex;
     for (int i = 0; i < V; i++)
