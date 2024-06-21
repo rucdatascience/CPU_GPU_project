@@ -6,15 +6,15 @@ __device__ __forceinline__ double atomicMinDouble (double * addr, double value) 
     return old;
 }
 
-__global__ void Relax(int* offsets, int* edges, double* weights, double* dis, int* queue, int* queue_size, int* visited) {
+__global__ void Relax(int* out_pointer, int* out_edge, double* out_edge_weight, double* dis, int* queue, int* queue_size, int* visited) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < *queue_size) {
         int v = queue[idx];
 
-        for (int i = offsets[v]; i < offsets[v + 1]; i++) {
-            int new_v = edges[i];
-            double weight = weights[i];
+        for (int i = out_pointer[v]; i < out_pointer[v + 1]; i++) {
+            int new_v = out_edge[i];
+            double weight = out_edge_weight[i];
 
             double new_w = dis[v] + weight;
 
@@ -42,18 +42,15 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
     int E = input_graph.OUTs_Edges.size();
 
     double* dis;
-    int* edges;
-    double* weights;
-    int* offsets;
+    int* out_edge = input_graph.out_edge;
+    double* out_edge_weight = input_graph.out_edge_weight;
+    int* out_pointer = input_graph.out_pointer;
     int* visited;
     
     int* queue, * next_queue;
     int* queue_size, * next_queue_size;
 
     cudaMallocManaged((void**)&dis, V * sizeof(double));
-    cudaMallocManaged((void**)&edges, E * sizeof(int));
-    cudaMallocManaged((void**)&weights, E * sizeof(double));
-    cudaMallocManaged((void**)&offsets, (V + 1) * sizeof(int));
     cudaMallocManaged((void**)&visited, V * sizeof(int));
     cudaMallocManaged((void**)&queue, V * sizeof(int));
     cudaMallocManaged((void**)&next_queue, V * sizeof(int));
@@ -65,9 +62,7 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
 		visited[i] = 0;
 	}
     dis[source] = 0;
-    cudaMemcpy(offsets, input_graph.OUTs_Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(edges, input_graph.OUTs_Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(weights, input_graph.OUTs_Edge_weights.data(), E * sizeof(double), cudaMemcpyHostToDevice);
+
 
     *queue_size = 1;
     queue[0] = source;
@@ -84,7 +79,7 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
 
     while (*queue_size > 0) {
 		numBlocks = (*queue_size + threadsPerBlock - 1) / threadsPerBlock;
-		Relax <<< numBlocks, threadsPerBlock >>> (offsets, edges, weights, dis, queue, queue_size, visited);
+		Relax <<< numBlocks, threadsPerBlock >>> (out_pointer, out_edge, out_edge_weight, dis, queue, queue_size, visited);
 		cudaDeviceSynchronize();
 
         cudaError_t cuda_status = cudaGetLastError();
@@ -119,9 +114,9 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
     cudaMemcpy(distance.data(), dis, V * sizeof(double), cudaMemcpyDeviceToHost);
 
     cudaFree(dis);
-    cudaFree(edges);
-    cudaFree(weights);
-    cudaFree(offsets);
+    cudaFree(out_edge);
+    cudaFree(out_edge_weight);
+    cudaFree(out_pointer);
     cudaFree(visited);
     cudaFree(queue);
     cudaFree(next_queue);
