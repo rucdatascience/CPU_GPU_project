@@ -99,7 +99,7 @@ int main()
         printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
 
         begin = std::chrono::high_resolution_clock::now();
-        CSR_graph<double> csr_graph = graph.toCSR();
+        CSR_graph<double> csr_graph = toCSR(graph);
         end = std::chrono::high_resolution_clock::now();
         double graph_to_csr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         std::cout << "Number of vertices: " << csr_graph.OUTs_Neighbor_start_pointers.size() << std::endl;
