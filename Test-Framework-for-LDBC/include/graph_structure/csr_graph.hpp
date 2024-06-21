@@ -13,6 +13,7 @@ public:
     std::vector<int> INs_Edges, OUTs_Edges;  // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
     std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
     int *in_pointer, *out_pointer, *in_edge, *out_edge;
+    double *in_edge_weight,*out_edge_weight;
 
 };
 
@@ -53,12 +54,14 @@ CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph) {
     cudaMallocManaged(&ARRAY.out_pointer, (V + 1) * sizeof(int));
     cudaMallocManaged(&ARRAY.in_edge, E_in * sizeof(int));
     cudaMallocManaged(&ARRAY.out_edge, E_out * sizeof(int));
-
+    cudaMallocManaged(&ARRAY.in_edge_weight, E_in * sizeof(double));
+    cudaMallocManaged(&ARRAY.out_edge_weight, E_out * sizeof(double));
     cudaMemcpy(ARRAY.in_pointer, ARRAY.INs_Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(ARRAY.out_pointer, ARRAY.OUTs_Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(ARRAY.in_edge, ARRAY.INs_Edges.data(), E_in* sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(ARRAY.out_edge, ARRAY.OUTs_Edges.data(), E_out * sizeof(int), cudaMemcpyHostToDevice);
-
+    cudaMemcpy(ARRAY.in_edge_weight, ARRAY.INs_Edge_weights.data(), E_in* sizeof(double), cudaMemcpyHostToDevice);
+    cudaMemcpy(ARRAY.out_edge_weight, ARRAY.OUTs_Edge_weights.data(), E_out * sizeof(double), cudaMemcpyHostToDevice);
 
     return ARRAY;
 }
