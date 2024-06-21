@@ -21,11 +21,12 @@ using namespace std;
 
 // CUDA kernels
 __device__ double _atomicAdd(double* address, double val);
-__global__ void importance(double *npr, double *pr, double tele, double red, double damp, int *in_edge, int *in_pointer, int GRAPHSIZE);
+__global__ void importance(double *npr, double *pr,  double damp, int *in_edge, int *in_pointer, int GRAPHSIZE);
 __global__ void calculate_sink(double *pr, int *N_out_zero_gpu, int out_zero_size, double *sink_sum);
 __global__ void initialization(double *pr, double *outs, int *out_pointer, int N);
-__global__ void Antecedent_division(double *pr, double *outs, int N);
+__global__ void calculate_acc(double *pr,int *in_edge, int begin,int end,double *acc);
+__global__ void Antecedent_division(double *pr,double *npr, double *outs,double redi_tele, int N);
 extern "C"
-void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &result);
+void GPU_PR(graph_structure<double> &graph,CSR_graph<double>&ARRAY_graph , float *elapsedTime, vector<double> &result);
 
 #endif // PAGERANK_CUH_

@@ -167,7 +167,7 @@ int main()
                 elapsedTime = 0;
                 vector<double> gpu_pr_result;
                 begin = std::chrono::high_resolution_clock::now();
-                GPU_PR(graph, &elapsedTime, gpu_pr_result);
+                GPU_PR(graph,csr_graph, &elapsedTime, gpu_pr_result);
                 end = std::chrono::high_resolution_clock::now();
                 double gpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("GPU PageRank cost time: %f s\n", gpu_pr_time);

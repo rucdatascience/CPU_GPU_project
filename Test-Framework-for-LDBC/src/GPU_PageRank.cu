@@ -9,10 +9,10 @@ static int out_zero_size;
 static double *sink_sum;
 static double damp, teleport;
 static int *in_pointer, *out_pointer, *in_edge, *out_edge;
-void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &result)
+dim3 blockPerGrid,threadPerGrid;
+void GPU_PR(graph_structure<double> &graph,CSR_graph<double>&ARRAY_graph , float *elapsedTime, vector<double> &result)
 {
     ITERATION = graph.pr_its;
-    CSR_graph<double> ARRAY_graph = graph.toCSR();
     damp = graph.pr_damping;
     N = graph.size();
     E_in = ARRAY_graph.INs_Edges.size();
@@ -44,9 +44,11 @@ void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &
     out_zero_size = sink_vertexs.size();
     cudaMallocManaged(&sink_vertex_gpu, sink_vertexs.size() * sizeof(int));
     cudaMemcpy(sink_vertex_gpu, sink_vertexs.data(), sink_vertexs.size() * sizeof(int), cudaMemcpyHostToDevice);
+    blockPerGrid.x = (N + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
+    threadPerGrid.x = THREAD_PER_BLOCK;
 
-    dim3 blockPerGrid((N + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK, 1, 1);
-    dim3 threadPerGrid(THREAD_PER_BLOCK, 1, 1);
+    cudaMemcpy(in_pointer, ARRAY_graph.INs_Neighbor_start_pointers.data(), (N + 1) * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(out_pointer, ARRAY_graph.OUTs_Neighbor_start_pointers.data(), (N + 1) * sizeof(int), cudaMemcpyHostToDevice);
 
     int iteration = 0;
     cudaEvent_t GPUstart, GPUstop; // record GPU_TIME
@@ -60,9 +62,9 @@ void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &
         calculate_sink<<<blockPerGrid, threadPerGrid, THREAD_PER_BLOCK * sizeof(double)>>>(pr, sink_vertex_gpu, out_zero_size, sink_sum);
         cudaDeviceSynchronize();
         *sink_sum = (*sink_sum) * damp / N;
-        Antecedent_division<<<blockPerGrid, threadPerGrid>>>(pr, outs, N);
+        Antecedent_division<<<blockPerGrid, threadPerGrid>>>(pr, npr,outs,teleport+(*sink_sum), N);
         cudaDeviceSynchronize();
-        importance<<<blockPerGrid, threadPerGrid>>>(npr, pr, teleport, *sink_sum, damp, in_edge, in_pointer, N);
+        importance<<<blockPerGrid, threadPerGrid>>>(npr, pr,  damp, in_edge, in_pointer, N);
         cudaDeviceSynchronize();
 
         std::swap(pr, npr);
@@ -103,33 +105,67 @@ __global__ void initialization(double *pr, double *outs, int *out_pointer, int N
     }
 }
 
-__global__ void Antecedent_division(double *pr, double *outs, int N)
+__global__ void Antecedent_division(double *pr,double *npr, double *outs,double redi_tele, int N)
 {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     if (tid >= 0 && tid < N)
     {
         pr[tid] *= outs[tid];
+        npr[tid] = redi_tele;
     }
 }
 
-__global__ void importance(double *npr, double *pr, double tele, double red, double damp, int *in_edge, int *in_pointer, int GRAPHSIZE)
+__global__ void importance(double *npr, double *pr,  double damp, int *in_edge, int *in_pointer, int GRAPHSIZE)
 {                                                    // importance
     int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
+    
     if (tid >= 0 && tid < GRAPHSIZE)
     {
-        int rbegin = in_pointer[tid];
-        int rend = in_pointer[tid + 1];
+
         // begin and end of in edges
-        double acc = 0; // sum of u belongs to Nin(v)
-        for (int c = rbegin; c < rend; c++)
+        double acc=0; // sum of u belongs to Nin(v)
+        //double *acc_point = &acc;
+         for (int c = in_pointer[tid]; c < in_pointer[tid+1]; c++)
         { // val_col[c] is neighbor,rank get PR(u) row_value is denominator i.e. Nout
             acc += pr[in_edge[c]];
-        }
+        } 
         // printf("tid : %d  acc : %f\n", tid, acc);
-        npr[tid] = acc * damp + red + tele; // scaling is damping factor
+        npr[tid] = acc * damp; // scaling is damping factor
     }
     return;
 }
+
+__global__ void calculate_acc(double *pr,int *in_edge, int begin,int end,double *acc){
+    extern __shared__ double temp[];
+    int tid = blockIdx.x * blockDim.x + threadIdx.x;
+    int stid = threadIdx.x;
+
+    if (tid < end)
+    {
+        temp[stid] = pr[in_edge[tid+begin]];
+    }
+    else
+    {
+        temp[stid] = 0;
+    }
+    __syncthreads(); // wait unitl finish Loading data into shared memory
+
+    for (int i = blockDim.x / 2; i > 0; i >>= 1)
+    {
+        if (stid < i)
+        {
+            temp[stid] += temp[stid + i];
+        }
+        __syncthreads(); // Synchronize again to ensure that each step of the reduction operation is completed
+    }
+    if (stid == 0)
+    {
+        _atomicAdd(acc, temp[0]); // Write the result of each thread block into the output array
+    }
+    
+
+}
+
 __global__ void calculate_sink(double *pr, int *N_out_zero_gpu, int out_zero_size, double *sink_sum)
 {
     // A reduction pattern was used to sum up
