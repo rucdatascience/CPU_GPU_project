@@ -17,8 +17,7 @@ template <typename T>
 void pre_set(graph_structure<T> &graph, int &CD_GRAPHSIZE)
 {
     
-    CSR_graph<T> ARRAY_graph;
-    ARRAY_graph = graph.toCSR();
+    CSR_graph<T> ARRAY_graph = toCSR(graph);
 
     CD_ITERATION = graph.cdlp_max_its;
     CD_GRAPHSIZE = ARRAY_graph.OUTs_Neighbor_start_pointers.size() - 1;
