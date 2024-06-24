@@ -10,9 +10,7 @@ Based on graph algorithm library of RUC
 ## File Structure
 
 - `src/`: source code
-- `include/`: header files.
-*** Please note that there is no include folder in the current folder, you need to copy the include from Test-Framework-for-LDBC to the CPU directory. ***
-*** If you want to run the entire project, execute the test.sh file in the Test-Framework-for-LDBC directory and delete the include folder in the CPU directory ***
+- `include/`: header files.**Please note that there is no include folder in the current folder, you need to copy the include from Test-Framework-for-LDBC to the CPU directory. If you want to run the entire project, execute the test.sh file in the Test-Framework-for-LDBC directory and delete the include folder in the CPU directory** 
 - `data/`: put the LDBC dataset here (.properties, .v, .e)
 - `results/`: put the baseline results here, the program will check the algorithm results automatically
 
@@ -37,6 +35,12 @@ You can also use the simpler quick test below.
 cd CPU_GPU_project/Test-Framework-for-LDBC/CPU
 chmod +x test-cpu.sh
 ./test-cpu.sh
+```
+
+or
+```shell
+cd CPU_GPU_project
+./cpu_test.sh
 ```
 
 Then the program will ask you to input the dataset configuration file name, you can input `cit-Patents.properties` to test the program.
