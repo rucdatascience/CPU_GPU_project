@@ -94,8 +94,7 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, flo
     cudaFree(next_queue);
     cudaFree(queue_size);
     cudaFree(next_queue_size);
-    cudaFree(edges);
-    cudaFree(start);
+
 
     return depth;
 }

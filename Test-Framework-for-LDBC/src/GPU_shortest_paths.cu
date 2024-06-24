@@ -114,9 +114,6 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
     cudaMemcpy(distance.data(), dis, V * sizeof(double), cudaMemcpyDeviceToHost);
 
     cudaFree(dis);
-    cudaFree(out_edge);
-    cudaFree(out_edge_weight);
-    cudaFree(out_pointer);
     cudaFree(visited);
     cudaFree(queue);
     cudaFree(next_queue);
