@@ -36,7 +36,7 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, flo
     int* queue, * next_queue;
     int* queue_size, * next_queue_size;
 
-    int* edges, * start;
+    int *edges = input_graph.out_edge, *start = input_graph.out_pointer;
     
     //Allocate GPU memory
     cudaMallocManaged((void**)&visited, V * sizeof(int));
@@ -44,12 +44,10 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, flo
     cudaMallocManaged((void**)&next_queue, V * sizeof(int));
     cudaMallocManaged((void**)&queue_size, sizeof(int));
     cudaMallocManaged((void**)&next_queue_size, sizeof(int));
-    cudaMallocManaged((void**)&edges, E * sizeof(int));
-    cudaMallocManaged((void**)&start, V * sizeof(int));
     //Transferring the read in data to the GPU
-    cudaMemcpy(edges, input_graph.OUTs_Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(start, input_graph.OUTs_Neighbor_start_pointers.data(), V * sizeof(int), cudaMemcpyHostToDevice); // should be V+1???????
-    
+   /*  cudaMemcpy(edges, input_graph.OUTs_Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(start, input_graph.OUTs_Neighbor_start_pointers.data(), (V+1) * sizeof(int), cudaMemcpyHostToDevice); // should be V+1???????
+     */
     queue[0] = source_vertex;
     for (int i = 0; i < V; i++)
         visited[i] = max_depth;//vector initialization
