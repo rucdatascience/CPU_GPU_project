@@ -9,7 +9,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin)
 
-aux_source_directory(${CMAKE_CURRENT_SOURCE_DIR} DIR_SRCS)
+aux_source_directory(src DIR_SRCS)
 
 add_executable(${PROJECT_NAME} ${DIR_SRCS})
 
