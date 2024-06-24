@@ -1,10 +1,9 @@
 cd Test-Framework-for-LDBC
+cp -r include CPU
 cd CPU
-rm -rf include
-cd ..
 rm -rf build
 mkdir build
 cd build
 cmake ..
 make
-./bin/Test
+./bin/test-cpu
