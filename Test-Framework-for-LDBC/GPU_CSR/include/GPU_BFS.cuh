@@ -6,7 +6,6 @@
 
 #include <stdio.h>
 
-#include "/home/liupeng/CPU_GPU_project/Test-Framework-for-LDBC/CPU/include/graph_structure/graph_structure.hpp"
 
 #include "csr_graph.hpp"
 

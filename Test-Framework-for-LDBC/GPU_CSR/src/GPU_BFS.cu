@@ -1,5 +1,5 @@
-// #include <GPU_BFS.cuh>
-#include "../header/GPU_BFS.cuh"
+#include <GPU_BFS.cuh>
+
 //It's not that the CPU tasks are assigned to the GPU, but rather that the GPU determines which part of the task to complete based on its own ID number
 __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int* next_queue, int* queue_size, int* next_queue_size, int max_depth) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;

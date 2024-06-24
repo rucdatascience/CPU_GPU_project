@@ -1,4 +1,4 @@
-#include "../header/GPU_PageRank.cuh"
+#include <GPU_PageRank.cuh>
 static int ITERATION;
 static int N;
 

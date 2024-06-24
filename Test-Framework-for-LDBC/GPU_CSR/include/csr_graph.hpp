@@ -1,6 +1,8 @@
 #pragma once
 #include "cuda_runtime.h"
 #include <cuda_runtime_api.h>
+#include <vector>
+#include <graph_structure/graph_structure.hpp>
 /*for GPU*/
 template <typename weight_type>
 class CSR_graph {

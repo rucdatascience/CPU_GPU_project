@@ -1,4 +1,4 @@
-#include "../header/GPU_shortest_paths.cuh"
+#include "GPU_shortest_paths.cuh"
 
 __device__ __forceinline__ double atomicMinDouble (double * addr, double value) {
     double old;

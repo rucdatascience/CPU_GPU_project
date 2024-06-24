@@ -1,8 +1,8 @@
-#include "../header/GPU_BFS.cuh"
-#include "../header/GPU_connected_components.cuh"
-#include "../header/GPU_shortest_paths.cuh"
-#include "../header/GPU_PageRank.cuh"
-#include "../header/GPU_Community_Detection.cuh"
+#include <GPU_BFS.cuh>
+#include <GPU_connected_components.cuh>
+#include <GPU_shortest_paths.cuh>
+#include <GPU_PageRank.cuh>
+#include "GPU_Community_Detection.cuh"
 #include <chrono>
 // #include "../CPU/src/CPU_BFS.hpp"
 // #include "../CPU/src/CPU_connected_components.hpp"
@@ -10,9 +10,7 @@
 // #include "../CPU/src/CPU_PageRank.hpp"
 // #include "../CPU/src/CPU_Community_Detection_update.hpp"
 // #include "../CPU/src/CPU_Community_Detection.hpp"
-// #include <checker.hpp>
-#include "/home/liupeng/CPU_GPU_project/Test-Framework-for-LDBC/CPU/include/checker.hpp"
-
+#include <checker.hpp>
 #include <time.h>
 
 //one test one result file
@@ -29,7 +27,7 @@ int main()
     // std::string config_file = "cit-Patents.properties";//quick test
 
     vector<string> datas = { "datagen-7_5-fb.properties" , "cit-Patents.properties" };
-
+    
     for (string config_file : datas) {
 
         config_file = "../data/" + config_file;
@@ -80,6 +78,7 @@ int main()
                 begin = std::chrono::high_resolution_clock::now();
                 gpu_bfs_result = cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
                 end = std::chrono::high_resolution_clock::now();
+                
                 double gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("GPU BFS cost time: %f s\n", gpu_bfs_time);
 

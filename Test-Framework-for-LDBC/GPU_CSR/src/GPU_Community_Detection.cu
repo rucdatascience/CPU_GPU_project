@@ -1,5 +1,5 @@
-// #include <GPU_Community_Detection.cuh>
-#include "../header/GPU_Community_Detection.cuh"
+#include <GPU_Community_Detection.cuh>
+
 using namespace std;
 
 static int CD_GRAPHSIZE;
