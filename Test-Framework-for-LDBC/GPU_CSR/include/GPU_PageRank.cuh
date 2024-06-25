@@ -30,6 +30,7 @@ __global__ void initialization(double *pr, double *outs, int *out_pointer, int N
 __global__ void calculate_acc(double *pr,int *in_edge, int begin,int end,double *acc);
 __global__ void Antecedent_division(double *pr,double *npr, double *outs,double redi_tele, int N);
 extern "C"
-void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
+// void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
+void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
 
 #endif // PAGERANK_CUH_

@@ -15,7 +15,7 @@ static int *new_labels_gpu, *labels_gpu;
 static int *global_space_for_label;
 
 template <typename T>
-void pre_set(graph_structure<T> &graph, int &CD_GRAPHSIZE)
+void pre_set(LDBC<T> &graph, int &CD_GRAPHSIZE)
 {
     
     CSR_graph<T> ARRAY_graph = toCSR(graph);
@@ -234,7 +234,7 @@ __global__ void LPA(int *global_space_for_label, int *in_out_ptr_gpu, int *label
     new_labels_gpu[tid] = max_label;
 }
 
-int gpu_Community_Detection(graph_structure<double> &graph, float *elapsedTime, vector<int> &ans)
+int gpu_Community_Detection(LDBC<double> &graph, float *elapsedTime, vector<int> &ans)
 {
     pre_set(graph, CD_GRAPHSIZE);
 

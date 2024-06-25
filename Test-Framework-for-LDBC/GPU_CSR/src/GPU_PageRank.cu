@@ -9,7 +9,8 @@ static int out_zero_size;
 static double *sink_sum;
 static double damp, teleport;
 dim3 blockPerGrid,threadPerGrid;
-void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge)
+// void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge)
+void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge)
 {
     ITERATION = graph.pr_its;
     damp = graph.pr_damping;

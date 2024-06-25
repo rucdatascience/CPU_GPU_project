@@ -2,7 +2,8 @@
 #include "cuda_runtime.h"
 #include <cuda_runtime_api.h>
 #include <vector>
-#include <graph_structure/graph_structure.hpp>
+// #include <graph_structure/graph_structure.hpp>
+#include <ldbc.hpp>
 /*for GPU*/
 template <typename weight_type>
 class CSR_graph {
@@ -20,7 +21,9 @@ public:
 };
 
 template <typename weight_type>
-CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph) {
+// CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph) 
+CSR_graph<weight_type> toCSR(LDBC<weight_type>& graph) 
+{
 
     CSR_graph<weight_type> ARRAY;
 
