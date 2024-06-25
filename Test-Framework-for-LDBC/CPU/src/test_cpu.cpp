@@ -5,7 +5,9 @@
 #include "CPU_PageRank.hpp"
 #include "CPU_Community_Detection_update.hpp"
 #include "CPU_Community_Detection.hpp"
-#include "../include/checker.hpp"
+// #include "../include/checker.hpp"
+#include "../include/ldbc.hpp"
+#include "../include/checkerLDBC.hpp"
 #include <time.h>
 
 //one test one result file
@@ -28,7 +30,9 @@ int main()
         config_file = "../data/" + config_file;
         std::cout << "config_file is:" << config_file << endl;
 
-        graph_structure<double> graph;
+        // graph_structure<double> graph;
+        
+        LDBC<double> graph;
         graph.read_config(config_file); //Read the ldbc configuration file to obtain key parameter information in the file
 
         auto begin = std::chrono::high_resolution_clock::now();
@@ -37,13 +41,6 @@ int main()
         double load_ldbc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
 
-        // begin = std::chrono::high_resolution_clock::now();
-        // CSR_graph<double> csr_graph = graph.toCSR();
-        // end = std::chrono::high_resolution_clock::now();
-        // double graph_to_csr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-        // std::cout << "Number of vertices: " << csr_graph.OUTs_Neighbor_start_pointers.size() << std::endl;
-        // std::cout << "Number of edges: " << csr_graph.OUTs_Edges.size() << std::endl;
-        // printf("graph_to_csr_time cost time: %f s\n", graph_to_csr_time);
 
         float elapsedTime = 0;
         unordered_map<string, string> umap_all_res;
@@ -65,7 +62,8 @@ int main()
                 printf("CPU BFS cost time: %f s\n", cpu_bfs_time);
 
                 /*check*/
-                bfs_checker(graph, cpu_bfs_result, bfs_pass);
+                // bfs_checker(graph, cpu_bfs_result, bfs_pass);
+                bfs_ldbc_checker(graph, cpu_bfs_result, bfs_pass);
             }
 
            
@@ -83,7 +81,8 @@ int main()
                 printf("CPU WCC cost time: %f s\n", cpu_wcc_time);
 
                 /*check*/
-                wcc_checker(graph, cpu_wcc_result, wcc_pass);
+                // wcc_checker(graph, cpu_wcc_result, wcc_pass);
+                wcc_ldbc_checker(graph, cpu_wcc_result, wcc_pass);
             }
 
            
@@ -100,7 +99,8 @@ int main()
                 printf("CPU SSSP cost time: %f s\n", cpu_sssp_time);
 
                 /*check*/
-                sssp_checker(graph, cpu_sssp_result, sssp_pass);
+                // sssp_checker(graph, cpu_sssp_result, sssp_pass);
+                sssp_ldbc_checker(graph, cpu_sssp_result, sssp_pass);
             }
 
           
@@ -120,8 +120,8 @@ int main()
                 printf("CPU PageRank cost time: %f s\n", cpu_pr_time);
 
                 /*check*/
-                pr_checker(graph, cpu_pr_result, pr_pass);
-
+                // pr_checker(graph, cpu_pr_result, pr_pass);
+                pr_ldbc_checker(graph, cpu_pr_result, pr_pass);
             }
 
            
@@ -147,7 +147,8 @@ int main()
                 printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time);
 
                 /*check*/
-                cdlp_check(graph, ans_cpu, cdlp_pass);
+                // cdlp_check(graph, ans_cpu, cdlp_pass);
+                cdlp_ldbc_check(graph, ans_cpu, cdlp_pass);
             }
 
             if (1) {

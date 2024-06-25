@@ -1,12 +1,14 @@
 #pragma once
-#include "../include/graph_structure/graph_structure.hpp"
+// #include "../include/graph_structure/graph_structure.hpp"
+#include "../include/ldbc.hpp"
 #include <vector>
 #include <iostream>
 #include <unordered_map>
 #include "../include/ThreadPool.h"
 #include <numeric>
 
-std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
+// std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
+std::vector<std::string> CDLP(LDBC<double>& graph, int iters)
 /*     call this function like:ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its); */
 {
     auto& in_edges = graph.INs;
