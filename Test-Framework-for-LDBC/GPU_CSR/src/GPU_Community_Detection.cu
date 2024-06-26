@@ -1,19 +1,20 @@
 #include <GPU_Community_Detection.cuh>
-
 using namespace std;
 
 static int CD_GRAPHSIZE;
 static int CD_ITERATION;
-static int CD_SET_THREAD;
-// static int CD_M;
-static vector<int> outs_ptr, ins_ptr, outs_neighbor, ins_neighbor, in_out_ptr;
-//The pointer indicates the starting and ending positions of the vertex's outgoing and incoming edges
-static int *in_out_ptr_gpu;
-static int *outs_ptr_gpu, *ins_ptr_gpu;
-static int *outs_neighbor_gpu, *ins_neighbor_gpu;
-static int *new_labels_gpu, *labels_gpu;
-static int *global_space_for_label;
 
+static vector<int> outs_ptr, ins_ptr, outs_neighbor, ins_neighbor, in_out_ptr; //CSR information in CPU
+
+                         
+static int *outs_ptr_gpu, *ins_ptr_gpu;                //two array of pointer to store the start point of each nodes in GPU
+static int *outs_neighbor_gpu, *ins_neighbor_gpu;      //the ins/outs neighbor of each node in GPU
+static int *new_labels_gpu, *labels_gpu;               //two array to store the labels of nodes
+static int *global_space_for_label;                    //store all the labels of nodes , using CSR format
+static int *in_out_ptr_gpu;                            //the pointer array of global_space_for_label
+
+
+//init the CSR information depending on the graph_structure
 template <typename T>
 void pre_set(LDBC<T> &graph, int &CD_GRAPHSIZE)
 {
@@ -72,6 +73,9 @@ __global__ void init_label(int *labels_gpu,int *new_labels_gpu, int CD_GRAPHSIZE
     }
 }
 
+
+//extract the labels of each segmentation , get the ins_neighbor's labels , outs_neighbor's labels and the node's label
+//all the labels of node i are stored form in_out_ptr[i] to in_out_ptr[i+1] , the length is length of ins_neighbor + length of outs_neighbor + 1
 __global__ void extract_labels(int *in_out_ptr_gpu, int *ins_ptr_gpu, int *outs_ptr_gpu, int *ins_neighbor_gpu, int *outs_neighbor_gpu, int *labels, int *labels_out, int CD_GRAPHSIZE)
 {   //This function is used to obtain the labels of vertex neighbors
     int tid = blockIdx.x * blockDim.x + threadIdx.x;//Calculate which vertex to process
@@ -151,43 +155,10 @@ void checkCudaError(cudaError_t err, const char *msg)
     }
 }
 
-void checkDeviceProperties()
-{
-    cudaDeviceProp prop;
-    cudaGetDeviceProperties(&prop, 0);
-    cout << "Device name: " << prop.name << endl;
-    cout << "Max threads per block: " << prop.maxThreadsPerBlock << endl;
-    cout << "Max threads per multiprocessor: " << prop.maxThreadsPerMultiProcessor << endl;
-    cout << "Max blocks per dimension: (" << prop.maxGridSize[0] << ", " << prop.maxGridSize[1] << ", " << prop.maxGridSize[2] << ")" << endl;
-    cout << "Max shared memory per block: " << prop.sharedMemPerBlock << " bytes" << endl;
-    cout << "Total global memory: " << prop.totalGlobalMem << " bytes" << endl;
-}
-
-void get_size()
-{
-    size_t freeMem = 0;
-    size_t totalMem = 0;
-
-    cudaError_t err = cudaMemGetInfo(&freeMem, &totalMem);
-
-    if (err != cudaSuccess)
-    {
-        std::cerr << "Error: " << cudaGetErrorString(err) << std::endl;
-        return;
-    }
-
-    std::cout << "Free memory: " << freeMem << " Byte" << std::endl;
-    std::cout << "Total memory: " << totalMem << " Byte" << std::endl;
-    size_t a = CD_GRAPHSIZE * 8;
-    cout << "space for single thread  : " << a << endl;
-    cout << "max thread num : " << freeMem / a << endl;
-    size_t t = (size_t)(20LL * (1LL << 30)) / a;
-
-    cout << "if use 20GB : " << t << endl;
-
-    return;
-}
-
+//each thread is responsible for one vertex
+//every segmentation are sorted
+//count Frequency from the start in the global_space_for_label to the end in the global_space_for_label
+//the new labels are stroed in the new_labels_gpu
 __global__ void LPA(int *global_space_for_label, int *in_out_ptr_gpu, int *labels_gpu, int *new_labels_gpu, int CD_GRAPHSIZE)
 {   //Use GPU to propagate all labels at the same time.
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
@@ -240,8 +211,7 @@ int gpu_Community_Detection(LDBC<double> &graph, float *elapsedTime, vector<int>
 
     dim3 init_label_block((CD_GRAPHSIZE + CD_THREAD_PER_BLOCK - 1) / CD_THREAD_PER_BLOCK, 1, 1);
     dim3 init_label_thread(CD_THREAD_PER_BLOCK, 1, 1);
-    // dim3 LPA_block((CD_SET_THREAD + CD_THREAD_PER_BLOCK - 1) / CD_THREAD_PER_BLOCK, 1, 1);
-    // dim3 LPA_thread(CD_THREAD_PER_BLOCK, 1, 1);
+
 
     // cout << 1 << endl;
     cudaMalloc(&outs_ptr_gpu, (CD_GRAPHSIZE + 1) * sizeof(int));
@@ -259,8 +229,7 @@ int gpu_Community_Detection(LDBC<double> &graph, float *elapsedTime, vector<int>
     cudaMemcpy(ins_neighbor_gpu, ins_neighbor.data(), ins_neighbor.size() * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(in_out_ptr_gpu, in_out_ptr.data(), in_out_ptr.size() * sizeof(int), cudaMemcpyHostToDevice);
 
-    // checkDeviceProperties();
-    // get_size();
+
     // cout << 2 << endl;
     cudaError_t err;
     init_label<<<init_label_block, init_label_thread>>>(labels_gpu,new_labels_gpu, CD_GRAPHSIZE);
