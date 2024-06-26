@@ -11,6 +11,16 @@
 #include "../include/graph_structure/sorted_vector_binary_operations.hpp"
 #include "../include/graph_structure/binary_save_read_vector_of_vectors.hpp"
 
+/* 
+	LDBC test process
+	At the beginning: give LDBC file path, data name, so that batch read different LDBC data
+	step1: Read the Properties file first: determine whether the graph is directed or undirected bool; Whether weight bool;
+	the graph contains 5 bool variables: List of supported algorithms on the graph;
+	After reading the graph, test the parameters of each supported operator BFS, CDLP, PR, SSSP, and SSSP;
+	Read V first, then E
+	LDBC the results of the test method: https://www.jianguoyun.com/p/DW-YrpAQvbHvCRiO_bMFIAA
+	For the verification method, see 2.4 Output Validation
+*/
 
 template <typename weight_type> // weight_type may be int, long long int, float, double...
 class LDBC {
