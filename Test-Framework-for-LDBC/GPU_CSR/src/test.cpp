@@ -7,7 +7,6 @@
 // #include <checker.hpp>
 #include <checkerLDBC.hpp>
 #include <time.h>
-
 //one test one result file
 void saveAsCSV(const unordered_map<string, string>& data, const string& filename);
 
@@ -21,7 +20,7 @@ int main()
     // std::string config_file = "datagen-7_5-fb.properties";//quick test
     // std::string config_file = "cit-Patents.properties";//quick test
 
-    vector<string> datas = { "datagen-7_5-fb.properties" , "cit-Patents.properties" };
+    vector<string> datas = {"cit-Patents.properties" , "datagen-7_5-fb.properties" };
     
     for (string config_file : datas) {
 
@@ -42,7 +41,7 @@ int main()
         CSR_graph<double> csr_graph = toCSR(graph);
         end = std::chrono::high_resolution_clock::now();
         double graph_to_csr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-        std::cout << "Number of vertices: " << csr_graph.OUTs_Neighbor_start_pointers.size() << std::endl;
+        std::cout << "Number of vertices: " << csr_graph.OUTs_Neighbor_start_pointers.size()-1 << std::endl;
         std::cout << "Number of edges: " << csr_graph.OUTs_Edges.size() << std::endl;
         printf("graph_to_csr_time cost time: %f s\n", graph_to_csr_time);
 
@@ -52,11 +51,44 @@ int main()
         size_t lastDotPos = config_file.find_last_of(".");
         string test_file_name = config_file.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1);
         umap_all_res.emplace("test_file_name", test_file_name);
+if (graph.sup_cdlp) {
 
+            if (1) {
+
+                int cdlp_pass = 0;
+                std::vector<string> ans_gpu(graph.size());
+                begin = std::chrono::high_resolution_clock::now();
+                CDLP_GPU(graph, csr_graph,ans_gpu);
+                end = std::chrono::high_resolution_clock::now();
+                double gpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+                printf("GPU Community Detection cost time: %f s\n", gpu_cdlp_time);
+                /*check*/
+                // cdlp_check(graph, ans_cpu, cdlp_pass);
+                cdlp_ldbc_check(graph, ans_gpu, cdlp_pass);
+            }
+        }
+        if (graph.sup_pr) {
+            int pr_pass = 0;
+
+            if (1) {
+                elapsedTime = 0;
+                vector<double> gpu_pr_result;
+                begin = std::chrono::high_resolution_clock::now();
+                GPU_PR(graph, &elapsedTime, gpu_pr_result,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
+                end = std::chrono::high_resolution_clock::now();
+                double gpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+                printf("GPU PageRank cost time: %f s\n", gpu_pr_time);
+
+                /*check*/
+                // pr_checker(graph, gpu_pr_result, pr_pass);
+                pr_ldbc_checker(graph, gpu_pr_result, pr_pass);
+            }
+        }
+        continue;
 
         if (graph.sup_bfs) {
             int bfs_pass = 0;
-
+        
             if (1) {
                 std::vector<int> gpu_bfs_result;
                 begin = std::chrono::high_resolution_clock::now();
@@ -108,33 +140,9 @@ int main()
             }
         }
 
-        if (graph.sup_pr) {
-            int pr_pass = 0;
+        
 
-            if (1) {
-                elapsedTime = 0;
-                vector<double> gpu_pr_result;
-                begin = std::chrono::high_resolution_clock::now();
-                GPU_PR(graph, &elapsedTime, gpu_pr_result,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
-                end = std::chrono::high_resolution_clock::now();
-                double gpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-                printf("GPU PageRank cost time: %f s\n", gpu_pr_time);
-
-                /*check*/
-                // pr_checker(graph, gpu_pr_result, pr_pass);
-                pr_ldbc_checker(graph, gpu_pr_result, pr_pass);
-            }
-        }
-
-        if (graph.sup_cdlp) {
-
-            if (1) {
-
-                /*GPU*/
-
-                /*check*/
-            }
-        }
+        
 
 
         time_t execute_time;
