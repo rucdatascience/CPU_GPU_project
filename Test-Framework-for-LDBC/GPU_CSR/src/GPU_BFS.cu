@@ -1,5 +1,35 @@
 #include <GPU_BFS.cuh>
 
+__global__ void bfs_Relax(int* start, int* edge, int* depth, int* visited, int* queue, int* queue_size) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (idx < *queue_size) {
+        int v = queue[idx];
+
+        for (int i = start[v]; i < start[v + 1]; i++) {
+            int new_v = edge[i];
+
+            int new_depth = depth[v] + 1;
+
+            int old = atomicMin(&depth[new_v], new_depth);
+
+            if (old <= new_depth)
+				continue;
+
+            atomicExch(&visited[new_v], 1);
+        }
+    }
+}
+
+__global__ void bfs_CompactQueue(int V, int* next_queue, int* next_queue_size, int* visited) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < V && visited[idx]) {
+        int pos = atomicAdd(next_queue_size, 1);
+        next_queue[pos] = idx;
+        visited[idx] = 0;
+    }
+}
+
 //It's not that the CPU tasks are assigned to the GPU, but rather that the GPU determines which part of the task to complete based on its own ID number
 __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int* next_queue, int* queue_size, int* next_queue_size, int max_depth) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
@@ -21,82 +51,92 @@ __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int
 }
 
 //template <typename T>
-std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, float* elapsedTime, int max_depth) {
+std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source, float* elapsedTime, int max_depth) {
     int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
-    
-    std::vector<int> depth(V, max_depth);
 
-    if (source_vertex < 0 || source_vertex >= V) {
-        fprintf(stderr, "Invalid source vertex\n");
-        return depth;
-    }
+    int* depth;
+    int* edge = input_graph.out_edge;
 
+    int* start = input_graph.out_pointer;
     int* visited;
+    
     int* queue, * next_queue;
     int* queue_size, * next_queue_size;
 
-    int *edges = input_graph.out_edge, *start = input_graph.out_pointer;
-    
-    //Allocate GPU memory
+    cudaMallocManaged((void**)&depth, V * sizeof(int));
     cudaMallocManaged((void**)&visited, V * sizeof(int));
     cudaMallocManaged((void**)&queue, V * sizeof(int));
     cudaMallocManaged((void**)&next_queue, V * sizeof(int));
     cudaMallocManaged((void**)&queue_size, sizeof(int));
     cudaMallocManaged((void**)&next_queue_size, sizeof(int));
-    //Transferring the read in data to the GPU
-   /*  cudaMemcpy(edges, input_graph.OUTs_Edges.data(), E * sizeof(int), cudaMemcpyHostToDevice);
-    cudaMemcpy(start, input_graph.OUTs_Neighbor_start_pointers.data(), (V+1) * sizeof(int), cudaMemcpyHostToDevice); // should be V+1???????
-     */
-    queue[0] = source_vertex;
-    for (int i = 0; i < V; i++)
-        visited[i] = max_depth;//vector initialization
-    visited[source_vertex] = 0;//Record whether the node has been accessed
-    *queue_size = 1, *next_queue_size = 1;
+
+    for (int i = 0; i < V; i++) {
+		depth[i] = max_depth;
+		visited[i] = 0;
+	}
+    depth[source] = 0;
+
+
+    *queue_size = 1;
+    queue[0] = source;
+    *next_queue_size = 0;
 
     int threadsPerBlock = 1024;
     int numBlocks = 0;
 
-    cudaEvent_t start_clock, stop_clock;
+    std::vector<int> res(V, max_depth);
 
-    cudaEventCreate(&start_clock);
-    cudaEventCreate(&stop_clock);
-    cudaEventRecord(start_clock, 0);
+    cudaEvent_t start_timer, stop_timer;
+
+    cudaEventCreate(&start_timer);
+    cudaEventCreate(&stop_timer);
+    cudaEventRecord(start_timer, 0);
 
     while (*queue_size > 0) {
-        //The BFS operation continues to loop until the queue is empty
-        numBlocks = (*queue_size + threadsPerBlock - 1) / threadsPerBlock;
-        //Assign tasks to threads
-        bfs_kernel << <numBlocks, threadsPerBlock >> > (edges, start, visited, queue, next_queue, queue_size, next_queue_size, max_depth);
-        cudaDeviceSynchronize();
-        //Print error messages
+		numBlocks = (*queue_size + threadsPerBlock - 1) / threadsPerBlock;
+		bfs_Relax <<< numBlocks, threadsPerBlock >>> (start, edge, depth, visited, queue, queue_size);
+		cudaDeviceSynchronize();
+
         cudaError_t cuda_status = cudaGetLastError();
         if (cuda_status != cudaSuccess) {
-            fprintf(stderr, "Kernel launch failed: %s\n", cudaGetErrorString(cuda_status));
-            return depth;
+            fprintf(stderr, "Relax kernel launch failed: %s\n", cudaGetErrorString(cuda_status));
+            return res;
         }
-        //Exchange to obtain the queue for the next round of circulation
-        std::swap(queue, next_queue);
-        *queue_size = *next_queue_size;
-        *next_queue_size = 0;
-    }
-    //accord time cost
-    cudaEventRecord(stop_clock, 0);
-    cudaEventSynchronize(stop_clock);
-    cudaEventElapsedTime(elapsedTime, start_clock, stop_clock);
 
-    cudaEventDestroy(start_clock);
-    cudaEventDestroy(stop_clock);
-    //free memory
-    cudaMemcpy(depth.data(), visited, V * sizeof(int), cudaMemcpyDeviceToHost);
+		numBlocks = (V + threadsPerBlock - 1) / threadsPerBlock;
+		bfs_CompactQueue <<< numBlocks, threadsPerBlock >>> (V, next_queue, next_queue_size, visited);
+		cudaDeviceSynchronize();
+
+        cuda_status = cudaGetLastError();
+		if (cuda_status != cudaSuccess) {
+			fprintf(stderr, "CompactQueue kernel launch failed: %s\n", cudaGetErrorString(cuda_status));
+			return res;
+		}
+		
+        std::swap(queue, next_queue);
+
+		*queue_size = *next_queue_size;
+        *next_queue_size = 0;
+	}
+
+    cudaEventRecord(stop_timer, 0);
+    cudaEventSynchronize(stop_timer);
+    cudaEventElapsedTime(elapsedTime, start_timer, stop_timer);
+
+    cudaEventDestroy(start_timer);
+    cudaEventDestroy(stop_timer);
+
+    cudaMemcpy(res.data(), depth, V * sizeof(int), cudaMemcpyDeviceToHost);
+
+    cudaFree(depth);
     cudaFree(visited);
     cudaFree(queue);
     cudaFree(next_queue);
     cudaFree(queue_size);
     cudaFree(next_queue_size);
 
-
-    return depth;
+    return res;
 }
 
 /*int main()

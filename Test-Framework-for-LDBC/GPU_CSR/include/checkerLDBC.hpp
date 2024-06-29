@@ -60,6 +60,7 @@ void bfs_ldbc_checker(LDBC<double>& graph, std::vector<int>& cpu_res, int & is_p
             if(!(cpu_res[v_id] == INT_MAX && std::stol(tokens[1]) == LLONG_MAX)){
                 std::cout << "Baseline file and GPU BFS results are not the same!" << std::endl;
                 std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
+                std::cout << "GPU BFS result: " << graph.vertex_id_to_str[v_id] << " " << cpu_res[v_id] << std::endl;
                 base_line.close();
                 return;
             }

@@ -51,7 +51,7 @@ int main()
         size_t lastDotPos = config_file.find_last_of(".");
         string test_file_name = config_file.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1);
         umap_all_res.emplace("test_file_name", test_file_name);
-if (graph.sup_cdlp) {
+        if (graph.sup_cdlp) {
 
             if (1) {
 
