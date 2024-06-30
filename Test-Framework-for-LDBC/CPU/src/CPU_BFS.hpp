@@ -3,6 +3,7 @@
 #include "../include/graph_structure/graph_structure.hpp"
 #include <queue>
 #include <climits>
+#include "../include/ldbc.hpp"
 
 template<typename T> // T is float or double
 std::vector<int> CPU_BFS(std::vector<std::vector<std::pair<int, T>>>& input_graph, int root = 0, int min_depth = 0, int max_depth = INT_MAX) {
@@ -39,4 +40,14 @@ std::vector<int> CPU_BFS(std::vector<std::vector<std::pair<int, T>>>& input_grap
 }
 
 
+std::unordered_map<std::string, int> getUserBFS(std::vector<std::string>& userName, LDBC<double> & graph){
+	std::vector<int> bfsValue = CPU_BFS(graph.OUTs, graph.bfs_src, 0, INT_MAX);
+	std::unordered_map<std::string, int> strId2value;
 
+    for(int i = 0; i < bfsValue.size(); ++i){
+        // strId2value.emplace(graph.vertex_id_to_str[i], bfsValue[i]);
+        strId2value.emplace(userName[i], bfsValue[i]);
+    }
+    
+    return strId2value;
+}

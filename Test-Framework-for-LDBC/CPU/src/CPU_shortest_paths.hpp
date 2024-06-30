@@ -6,6 +6,7 @@
 #include <numeric>
 #include <iostream>
 #include <queue>
+#include "../include/ldbc.hpp"
 
 using namespace std;
 
@@ -61,4 +62,16 @@ std::vector<double> CPU_shortest_paths(std::vector<std::vector<std::pair<int, do
 	}
 
 	return distances;
+}
+
+std::unordered_map<string, double> getUserSSSP(std::vector<string> & userName, LDBC<double> & graph){
+	vector<double> sssp =  CPU_shortest_paths(graph.OUTs, graph.sssp_src);
+	std::unordered_map<string, double> strId2value;
+
+    for(int i = 0; i < sssp.size(); ++i){
+        // strId2value.emplace(graph.vertex_id_to_str[i], sssp[i]);
+        strId2value.emplace(userName[i], sssp[i]);
+    }
+    
+    return strId2value;
 }

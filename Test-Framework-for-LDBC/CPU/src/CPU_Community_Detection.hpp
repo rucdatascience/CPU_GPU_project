@@ -1,5 +1,4 @@
 #pragma once
-// #include "../include/graph_structure/graph_structure.hpp"
 #include "../include/ldbc.hpp"
 #include <vector>
 #include <iostream>
@@ -7,7 +6,6 @@
 #include "../include/ThreadPool.h"
 #include <numeric>
 
-// std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
 std::vector<std::string> CDLP(LDBC<double>& graph, int iters)
 /*     call this function like:ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its); */
 {
@@ -76,4 +74,17 @@ std::vector<std::string> CDLP(LDBC<double>& graph, int iters)
     }
 
     return res;
+}
+
+std::unordered_map<string, string> getUserCDLP(std::vector<string>& userName, LDBC<double> & graph){
+    vector<string> cdlpVec = CDLP(graph, graph.cdlp_max_its);
+    std::unordered_map<string, string> strId2value;
+
+    for(int i = 0; i < cdlpVec.size(); ++i){
+        // strId2value.emplace(graph.vertex_id_to_str[i], cdlpVec[i]);
+        strId2value.emplace(userName[i], cdlpVec[i]);
+    }
+    
+    return strId2value;
+
 }

@@ -3,6 +3,7 @@
 #include <vector>
 #include <iostream>
 #include "../include/ThreadPool.h"
+#include "../include/ldbc.hpp"
 #include <algorithm>
 
 std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& in_edge,
@@ -74,4 +75,18 @@ std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& i
         rank.swap(new_rank);
     }
     return rank;
+}
+
+std::unordered_map<string, double> getUserPageRank(std::vector<string>& userName, LDBC<double> & graph){
+
+    vector<double> prValueVec =  PageRank(graph.INs, graph.OUTs, graph.pr_damping, graph.pr_its);
+    std::unordered_map<string, double> strId2value;
+
+    for(int i = 0; i < prValueVec.size(); ++i){
+        // strId2value.emplace(graph.vertex_id_to_str[i], prValueVec[i]);
+        strId2value.emplace(userName[i], prValueVec[i]);
+    }
+    
+    return strId2value;
+
 }
