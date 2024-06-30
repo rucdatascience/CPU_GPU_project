@@ -202,3 +202,17 @@ __device__ double _atomicAdd(double *address, double val)
     } while (assumed != old);
     return __longlong_as_double(old);
 }
+
+std::unordered_map<std::string, double> getGPUPR(std::vector<std::string>& userName, LDBC<double> & graph, CSR_graph<double> & csr_graph){
+    vector<double> gpuPrVec(graph.size());
+    GPU_PR(graph, 0, gpuPrVec,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
+
+    std::unordered_map<std::string, double> strId2value;
+
+    for(int i = 0; i < gpuPrVec.size(); ++i){
+        // strId2value.emplace(graph.vertex_id_to_str[i], gpuPrVec[i]);
+        strId2value.emplace(userName[i], gpuPrVec[i]);
+    }
+    
+    return strId2value;
+}

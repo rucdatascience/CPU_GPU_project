@@ -139,6 +139,18 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source, float* ela
     return res;
 }
 
+std::unordered_map<std::string, int> getGPUBFS(std::vector<std::string>& userName, LDBC<double> & graph, CSR_graph<double> &csr_graph){
+    std::vector<int> gpuBfsVec = cuda_bfs(csr_graph, graph.bfs_src, 0);
+    std::unordered_map<std::string, int> strId2value;
+
+    for(int i = 0; i < gpuBfsVec.size(); ++i){
+        // strId2value.emplace(graph.vertex_id_to_str[i], gpuBfsVec[i]);
+        strId2value.emplace(userName[i], gpuBfsVec[i]);
+    }
+    
+    return strId2value;
+}
+
 /*int main()
 {
     std::string file_path;

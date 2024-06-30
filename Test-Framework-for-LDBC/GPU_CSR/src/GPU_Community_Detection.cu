@@ -144,3 +144,17 @@ void checkCudaError(cudaError_t err, const char *msg)
     new_labels[tid] = output_key[index];
 
      */
+
+std::unordered_map<string, string> getGPUCDLP(std::vector<string>& userName, LDBC<double> & graph, CSR_graph<double> & csr_graph){
+    std::vector<string> ans_gpu(graph.size());
+    CDLP_GPU(graph, csr_graph,ans_gpu);
+
+    std::unordered_map<string, string> strId2value;
+
+    for(int i = 0; i < ans_gpu.size(); ++i){
+        // strId2value.emplace(graph.vertex_id_to_str[i], ans_gpu[i]);
+        strId2value.emplace(userName[i], ans_gpu[i]);
+    }
+    
+    return strId2value;
+}

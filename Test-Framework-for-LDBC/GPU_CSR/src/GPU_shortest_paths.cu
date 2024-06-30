@@ -123,3 +123,16 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
     return;
 }
 
+std::unordered_map<std::string, double> getGPUSSSP(std::vector<std::string>& userName, LDBC<double> & graph, CSR_graph<double> & csr_graph){
+    std::vector<double> gpuSSSPvec(graph.V, 0);
+    gpu_shortest_paths(csr_graph, graph.sssp_src, gpuSSSPvec, 0);
+
+    std::unordered_map<std::string, double> strId2value;
+
+    for(int i = 0; i < gpuSSSPvec.size(); ++i){
+        // strId2value.emplace(graph.vertex_id_to_str[i], gpuSSSPvec[i]);
+        strId2value.emplace(userName[i], gpuSSSPvec[i]);
+    }
+    
+    return strId2value;
+}

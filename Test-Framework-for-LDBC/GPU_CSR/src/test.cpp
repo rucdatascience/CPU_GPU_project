@@ -8,6 +8,7 @@
 #include <checkerLDBC.hpp>
 #include <time.h>
 //one test one result file
+#include "../include/UserInfo.hpp"
 void saveAsCSV(const unordered_map<string, string>& data, const string& filename);
 
 //all test one result file
@@ -45,6 +46,12 @@ int main()
         std::cout << "Number of edges: " << csr_graph.OUTs_Edges.size() << std::endl;
         printf("graph_to_csr_time cost time: %f s\n", graph_to_csr_time);
 
+        // vector<string> userNameVec;
+        // std::vector<UserInfo> users = readUserFile();
+        // for(auto & it : graph.vertex_id_to_str){
+        //     userNameVec.push_back(getUserNameById(it));//Note that there is no user name in the current file
+        // }
+
         float elapsedTime = 0;
         unordered_map<string, string> umap_all_res;
         size_t lastSlashPos = config_file.find_last_of("/\\");
@@ -64,6 +71,7 @@ int main()
                 printf("GPU Community Detection cost time: %f s\n", gpu_cdlp_time);
                 /*check*/
                 // cdlp_check(graph, ans_cpu, cdlp_pass);
+                // std::unordered_map<string, string> gpuCDLP4name = getGPUCDLP(userNameVec, graph, csr_graph);
                 cdlp_ldbc_check(graph, ans_gpu, cdlp_pass);
             }
         }
@@ -81,6 +89,7 @@ int main()
 
                 /*check*/
                 // pr_checker(graph, gpu_pr_result, pr_pass);
+                // std::unordered_map<string, double> gpuPR4name = getGPUPR(userNameVec, graph, csr_graph);
                 pr_ldbc_checker(graph, gpu_pr_result, pr_pass);
             }
         }
@@ -100,6 +109,7 @@ int main()
 
                 /*check*/
                 // bfs_checker(graph, gpu_bfs_result, bfs_pass);
+                // std::unordered_map<string, int> gpuBFS4name = getGPUBFS(userNameVec, graph, csr_graph);
                 bfs_ldbc_checker(graph, gpu_bfs_result, bfs_pass);
             }
         }
@@ -136,6 +146,7 @@ int main()
 
                 /*check*/
                 // sssp_checker(graph, gpu_sssp_result, sssp_pass);
+                // std::unordered_map<string, double> gpuSSSP4name = getGPUSSSP(userNameVec, graph, csr_graph);
                 sssp_ldbc_checker(graph, gpu_sssp_result, sssp_pass);
             }
         }
