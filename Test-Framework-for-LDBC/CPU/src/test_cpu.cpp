@@ -43,11 +43,11 @@ int main()
         printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
 
         
-        vector<string> userNameVec;
-        std::vector<UserInfo> users = readUserFile();
-        for(auto & it : graph.vertex_id_to_str){
-            userNameVec.push_back(getUserNameById(it));//Note that there is no user name in the current file
-        }
+        // vector<string> userNameVec;
+        // std::vector<UserInfo> users = readUserFile();
+        // for(auto & it : graph.vertex_id_to_str){
+        //     userNameVec.push_back(getUserNameById(it));//Note that there is no user name in the current file
+        // }
 
         float elapsedTime = 0;
         unordered_map<string, string> umap_all_res;
@@ -70,7 +70,7 @@ int main()
 
                 /*check*/
                 // bfs_checker(graph, cpu_bfs_result, bfs_pass);
-                std::unordered_map<string, int> bfs4name = getUserBFS(userNameVec, graph);
+                // std::unordered_map<string, int> bfs4name = getUserBFS(userNameVec, graph);
                 bfs_ldbc_checker(graph, cpu_bfs_result, bfs_pass);
             }
 
@@ -108,7 +108,7 @@ int main()
 
                 /*check*/
                 // sssp_checker(graph, cpu_sssp_result, sssp_pass);
-                std::unordered_map<string, double> sssp4name = getUserSSSP(userNameVec, graph);
+                // std::unordered_map<string, double> sssp4name = getUserSSSP(userNameVec, graph);
                 sssp_ldbc_checker(graph, cpu_sssp_result, sssp_pass);
             }
 
@@ -130,7 +130,7 @@ int main()
 
                 /*check*/
                 // pr_checker(graph, cpu_pr_result, pr_pass);
-                std::unordered_map<string, double> pr4name = getUserPageRank(userNameVec, graph);
+                // std::unordered_map<string, double> pr4name = getUserPageRank(userNameVec, graph);
                 pr_ldbc_checker(graph, cpu_pr_result, pr_pass);
             }
 

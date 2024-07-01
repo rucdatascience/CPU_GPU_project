@@ -60,7 +60,7 @@ int main()
         umap_all_res.emplace("test_file_name", test_file_name);
         if (graph.sup_cdlp) {
 
-            if (1) {
+            if (0) {
 
                 int cdlp_pass = 0;
                 std::vector<string> ans_gpu(graph.size());
@@ -93,7 +93,6 @@ int main()
                 pr_ldbc_checker(graph, gpu_pr_result, pr_pass);
             }
         }
-        continue;
 
         if (graph.sup_bfs) {
             int bfs_pass = 0;
