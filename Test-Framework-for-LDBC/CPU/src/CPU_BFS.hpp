@@ -1,9 +1,11 @@
 #pragma once
 
-#include "../include/graph_structure/graph_structure.hpp"
 #include <queue>
 #include <climits>
 #include "../include/ldbc.hpp"
+#include <map>
+#include <algorithm>
+#include <stdexcept>
 
 template<typename T> // T is float or double
 std::vector<int> CPU_BFS(std::vector<std::vector<std::pair<int, T>>>& input_graph, int root = 0, int min_depth = 0, int max_depth = INT_MAX) {
@@ -40,14 +42,26 @@ std::vector<int> CPU_BFS(std::vector<std::vector<std::pair<int, T>>>& input_grap
 }
 
 
-std::unordered_map<std::string, int> getUserBFS(std::vector<std::string>& userName, LDBC<double> & graph){
+std::map<long long int,  int> BFS_bind_node(LDBC<double> & graph){
 	std::vector<int> bfsValue = CPU_BFS(graph.OUTs, graph.bfs_src, 0, INT_MAX);
-	std::unordered_map<std::string, int> strId2value;
+	
+	std::map<long long int,   int> strId2value;
 
-    for(int i = 0; i < bfsValue.size(); ++i){
-        // strId2value.emplace(graph.vertex_id_to_str[i], bfsValue[i]);
-        strId2value.emplace(userName[i], bfsValue[i]);
+    std::vector<long long int> converted_numbers;
+
+    for (const auto& str : graph.vertex_id_to_str) {
+        long long int num = std::stoll(str);
+        converted_numbers.push_back(num);
     }
-    
+
+    std::sort(converted_numbers.begin(), converted_numbers.end());
+
+	for( int i = 0; i < bfsValue.size(); ++i){
+		strId2value.emplace(converted_numbers[i], bfsValue[i]);
+    }
+
+	// std::string path = "../data/cpu_bfs_75.txt";
+	// storeResult(strId2value, path);//ldbc file
+
     return strId2value;
 }

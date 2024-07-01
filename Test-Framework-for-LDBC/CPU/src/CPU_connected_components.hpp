@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../include/graph_structure/graph_structure.hpp"
+#include "../include/ldbc.hpp"
 #include <queue>
 #include <vector>
 
@@ -53,4 +53,12 @@ std::vector<std::vector<int>> CPU_connected_components(std::vector<std::vector<s
 	}
 	return components;
 
+}
+
+std::map<std::string, int> getUserWCC(LDBC<double> & graph){
+	std::vector<std::vector<int>> wccVec = CPU_connected_components(graph.OUTs, graph.INs);
+
+	std::map<std::string,   int> strId2value;
+
+    return strId2value;
 }

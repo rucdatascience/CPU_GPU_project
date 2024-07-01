@@ -7,6 +7,9 @@
 #include <cstring>
 #include <fstream>
 #include <unordered_map>
+#include <map>
+#include <algorithm>
+#include <stdexcept>
 #include "../include/graph_structure/parse_string.hpp"
 #include "../include/graph_structure/sorted_vector_binary_operations.hpp"
 #include "../include/graph_structure/binary_save_read_vector_of_vectors.hpp"
@@ -335,5 +338,20 @@ void LDBC<weight_type>::print() {
 		std::cout << std::endl;
 	}
 	std::cout << "LDBC_print END" << std::endl;
+
+}
+
+void storeResult(std::map<long long int, int> & strId2value, std::string & path){
+    std::ofstream outFile(path);
+
+    if (outFile.is_open()) {
+        for (const auto& pair : strId2value) {
+            outFile << pair.first << " " << pair.second << std::endl;
+        }
+        outFile.close();
+        std::cout << "File write complete!" << std::endl;
+    } else {
+        std::cerr << "Unable to open file!" << std::endl;
+    }
 
 }

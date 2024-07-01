@@ -64,14 +64,26 @@ std::vector<double> CPU_shortest_paths(std::vector<std::vector<std::pair<int, do
 	return distances;
 }
 
-std::unordered_map<string, double> getUserSSSP(std::vector<string> & userName, LDBC<double> & graph){
-	vector<double> sssp =  CPU_shortest_paths(graph.OUTs, graph.sssp_src);
-	std::unordered_map<string, double> strId2value;
+std::map<long long int, double> SSSP_bind_node(LDBC<double> & graph){
+	vector<double> ssspVec =  CPU_shortest_paths(graph.OUTs, graph.sssp_src);
 
-    for(int i = 0; i < sssp.size(); ++i){
-        // strId2value.emplace(graph.vertex_id_to_str[i], sssp[i]);
-        strId2value.emplace(userName[i], sssp[i]);
+    std::map<long long int,   double> strId2value;
+
+    std::vector<long long int> converted_numbers;
+
+    for (const auto& str : graph.vertex_id_to_str) {
+        long long int num = std::stoll(str);
+        converted_numbers.push_back(num);
     }
-    
+
+    std::sort(converted_numbers.begin(), converted_numbers.end());
+
+	for( int i = 0; i < ssspVec.size(); ++i){
+		strId2value.emplace(converted_numbers[i], ssspVec[i]);
+    }
+
+	// std::string path = "../data/cpu_bfs_75.txt";
+	// storeResult(strId2value, path);//ldbc file
+
     return strId2value;
 }

@@ -77,16 +77,27 @@ std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& i
     return rank;
 }
 
-std::unordered_map<string, double> getUserPageRank(std::vector<string>& userName, LDBC<double> & graph){
+std::map<long long int, double> PR_Bind_node(LDBC<double> & graph){
 
     vector<double> prValueVec =  PageRank(graph.INs, graph.OUTs, graph.pr_damping, graph.pr_its);
-    std::unordered_map<string, double> strId2value;
+    std::map<long long int, double> strId2value;
 
-    for(int i = 0; i < prValueVec.size(); ++i){
-        // strId2value.emplace(graph.vertex_id_to_str[i], prValueVec[i]);
-        strId2value.emplace(userName[i], prValueVec[i]);
+    std::vector<long long int> converted_numbers;
+
+    for (const auto& str : graph.vertex_id_to_str) {
+        long long int num = std::stoll(str);
+        converted_numbers.push_back(num);
     }
-    
+
+    std::sort(converted_numbers.begin(), converted_numbers.end());
+
+	for( int i = 0; i < prValueVec.size(); ++i){
+		strId2value.emplace(converted_numbers[i], prValueVec[i]);
+    }
+
+	// std::string path = "../data/cpu_pr_75.txt";
+	// storeResult(strId2value, path);//ldbc file
+
     return strId2value;
 
 }

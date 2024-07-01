@@ -76,14 +76,25 @@ std::vector<std::string> CDLP(LDBC<double>& graph, int iters)
     return res;
 }
 
-std::unordered_map<string, string> getUserCDLP(std::vector<string>& userName, LDBC<double> & graph){
+std::map<long long int, string> CDLP_Bind_node(LDBC<double> & graph){
     vector<string> cdlpVec = CDLP(graph, graph.cdlp_max_its);
-    std::unordered_map<string, string> strId2value;
+    std::map<long long int, string> strId2value;
+
+    std::vector<long long int> converted_numbers;
+
+    for (const auto& str : graph.vertex_id_to_str) {
+        long long int num = std::stoll(str);
+        converted_numbers.push_back(num);
+    }
+
+    std::sort(converted_numbers.begin(), converted_numbers.end());
 
     for(int i = 0; i < cdlpVec.size(); ++i){
-        // strId2value.emplace(graph.vertex_id_to_str[i], cdlpVec[i]);
-        strId2value.emplace(userName[i], cdlpVec[i]);
+        strId2value.emplace(converted_numbers[i], cdlpVec[i]);
     }
+
+    // std::string path = "../data/cpu_bfs_75.txt";
+	// storeResult(strId2value, path);//ldbc file
     
     return strId2value;
 

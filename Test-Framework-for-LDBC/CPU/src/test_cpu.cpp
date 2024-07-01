@@ -10,6 +10,8 @@
 #include "../include/checkerLDBC.hpp"
 #include <time.h>
 #include "../include/UserInfo.hpp"
+#include <map>
+#include "../include/resultVSldbc.hpp"
 
 //one test one result file
 void saveAsCSV(const unordered_map<string, string>& data, const string& filename);
@@ -42,12 +44,6 @@ int main()
         double load_ldbc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
 
-        
-        // vector<string> userNameVec;
-        // std::vector<UserInfo> users = readUserFile();
-        // for(auto & it : graph.vertex_id_to_str){
-        //     userNameVec.push_back(getUserNameById(it));//Note that there is no user name in the current file
-        // }
 
         float elapsedTime = 0;
         unordered_map<string, string> umap_all_res;
@@ -70,8 +66,10 @@ int main()
 
                 /*check*/
                 // bfs_checker(graph, cpu_bfs_result, bfs_pass);
-                // std::unordered_map<string, int> bfs4name = getUserBFS(userNameVec, graph);
+                std::map<long long int, int> bfs_node_bind_value = BFS_bind_node(graph);
                 bfs_ldbc_checker(graph, cpu_bfs_result, bfs_pass);
+                std::cout<<"BFS第二种验证方案:"<<std::endl;
+                bfs_result_vs_ldbc(graph, bfs_node_bind_value, bfs_pass);
             }
 
            
@@ -90,6 +88,7 @@ int main()
 
                 /*check*/
                 // wcc_checker(graph, cpu_wcc_result, wcc_pass);
+                // std::map<std::string, int> wcc4name = getUserWCC(graph);
                 wcc_ldbc_checker(graph, cpu_wcc_result, wcc_pass);
             }
 
@@ -108,8 +107,10 @@ int main()
 
                 /*check*/
                 // sssp_checker(graph, cpu_sssp_result, sssp_pass);
-                // std::unordered_map<string, double> sssp4name = getUserSSSP(userNameVec, graph);
+                std::map<long long int, double> sssp_node_bind_value = SSSP_bind_node(graph);
                 sssp_ldbc_checker(graph, cpu_sssp_result, sssp_pass);
+                std::cout<<"SSSP第二种验证方案:"<<std::endl;
+                sssp_result_vs_ldbc(graph, sssp_node_bind_value, sssp_pass);
             }
 
           
@@ -130,8 +131,10 @@ int main()
 
                 /*check*/
                 // pr_checker(graph, cpu_pr_result, pr_pass);
-                // std::unordered_map<string, double> pr4name = getUserPageRank(userNameVec, graph);
+                std::map<long long int, double> pr_node_bind_value = PR_Bind_node(graph);
                 pr_ldbc_checker(graph, cpu_pr_result, pr_pass);
+                std::cout<<"PR第二种验证方案:"<<std::endl;
+                sssp_result_vs_ldbc(graph, pr_node_bind_value, pr_pass);
             }
 
            
@@ -158,8 +161,10 @@ int main()
 
                 /*check*/
                 // cdlp_check(graph, ans_cpu, cdlp_pass);
-                // std::unordered_map<string, int> bfs4name = getUserCDLP(userNameVec, graph);
+                std::map<long long int, std::string> cdlp_node_bind_value = CDLP_Bind_node(graph);
                 cdlp_ldbc_check(graph, ans_cpu, cdlp_pass);
+                std::cout<<"CDLP第二种验证方案:"<<std::endl;
+                cdlp_result_vs_ldbc(graph, cdlp_node_bind_value, cdlp_pass);
             }
 
         }
