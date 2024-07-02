@@ -139,15 +139,27 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source, float* ela
     return res;
 }
 
-std::unordered_map<std::string, int> getGPUBFS(std::vector<std::string>& userName, LDBC<double> & graph, CSR_graph<double> &csr_graph){
+std::map<long long int, int> getGPUBFS(LDBC<double> & graph, CSR_graph<double> &csr_graph){
     std::vector<int> gpuBfsVec = cuda_bfs(csr_graph, graph.bfs_src, 0);
-    std::unordered_map<std::string, int> strId2value;
-
-    for(int i = 0; i < gpuBfsVec.size(); ++i){
-        // strId2value.emplace(graph.vertex_id_to_str[i], gpuBfsVec[i]);
-        strId2value.emplace(userName[i], gpuBfsVec[i]);
-    }
     
+    std::map<long long int,   int> strId2value;
+
+    std::vector<long long int> converted_numbers;
+
+    for (const auto& str : graph.vertex_id_to_str) {
+        long long int num = std::stoll(str);
+        converted_numbers.push_back(num);
+    }
+
+    std::sort(converted_numbers.begin(), converted_numbers.end());
+
+	for( int i = 0; i < gpuBfsVec.size(); ++i){
+		strId2value.emplace(converted_numbers[i], gpuBfsVec[i]);
+    }
+
+	// std::string path = "../data/cpu_bfs_75.txt";
+	// storeResult(strId2value, path);//ldbc file
+
     return strId2value;
 }
 

@@ -203,16 +203,26 @@ __device__ double _atomicAdd(double *address, double val)
     return __longlong_as_double(old);
 }
 
-std::unordered_map<std::string, double> getGPUPR(std::vector<std::string>& userName, LDBC<double> & graph, CSR_graph<double> & csr_graph){
+std::map<long long int, double> getGPUPR(LDBC<double> & graph, CSR_graph<double> & csr_graph){
     vector<double> gpuPrVec(graph.size());
     GPU_PR(graph, 0, gpuPrVec,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
+    std::map<long long int, double> strId2value;
 
-    std::unordered_map<std::string, double> strId2value;
+    std::vector<long long int> converted_numbers;
 
-    for(int i = 0; i < gpuPrVec.size(); ++i){
-        // strId2value.emplace(graph.vertex_id_to_str[i], gpuPrVec[i]);
-        strId2value.emplace(userName[i], gpuPrVec[i]);
+    for (const auto& str : graph.vertex_id_to_str) {
+        long long int num = std::stoll(str);
+        converted_numbers.push_back(num);
     }
-    
+
+    std::sort(converted_numbers.begin(), converted_numbers.end());
+
+	for( int i = 0; i < gpuPrVec.size(); ++i){
+		strId2value.emplace(converted_numbers[i], gpuPrVec[i]);
+    }
+
+	// std::string path = "../data/cpu_pr_75.txt";
+	// storeResult(strId2value, path);//ldbc file
+
     return strId2value;
 }

@@ -9,7 +9,7 @@
 #include <vector>
 #include <string.h>
 #include "csr_graph.hpp"
-
+#include "ldbc.hpp"
 
 using namespace std;
 #define CD_THREAD_PER_BLOCK 512
@@ -22,6 +22,6 @@ void checkDeviceProperties();
 extern "C"
 // int gpu_Community_Detection(graph_structure<double> & graph, float* elapsedTime,vector<int> &ans);
 void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph,std::vector<string>&res);
-std::unordered_map<string, string> getGPUCDLP(std::vector<string>& userName, LDBC<double> & graph, CSR_graph<double> & csr_graph);
+std::map<long long int, string> getGPUCDLP(LDBC<double> & graph, CSR_graph<double> & csr_graph);
 
 #endif

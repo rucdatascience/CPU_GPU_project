@@ -145,16 +145,27 @@ void checkCudaError(cudaError_t err, const char *msg)
 
      */
 
-std::unordered_map<string, string> getGPUCDLP(std::vector<string>& userName, LDBC<double> & graph, CSR_graph<double> & csr_graph){
+std::map<long long int, string> getGPUCDLP(LDBC<double> & graph, CSR_graph<double> & csr_graph){
     std::vector<string> ans_gpu(graph.size());
     CDLP_GPU(graph, csr_graph,ans_gpu);
 
-    std::unordered_map<string, string> strId2value;
+    std::map<long long int, string> strId2value;
+
+    std::vector<long long int> converted_numbers;
+
+    for (const auto& str : graph.vertex_id_to_str) {
+        long long int num = std::stoll(str);
+        converted_numbers.push_back(num);
+    }
+
+    std::sort(converted_numbers.begin(), converted_numbers.end());
 
     for(int i = 0; i < ans_gpu.size(); ++i){
-        // strId2value.emplace(graph.vertex_id_to_str[i], ans_gpu[i]);
-        strId2value.emplace(userName[i], ans_gpu[i]);
+        strId2value.emplace(converted_numbers[i], ans_gpu[i]);
     }
+
+    // std::string path = "../data/cpu_bfs_75.txt";
+	// storeResult(strId2value, path);//ldbc file
     
     return strId2value;
 }

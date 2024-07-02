@@ -1,4 +1,4 @@
-#include "GPU_shortest_paths.cuh"
+#include <GPU_shortest_paths.cuh>
 
 __device__ __forceinline__ double atomicMinDouble (double * addr, double value) {
     double old;
@@ -123,16 +123,27 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
     return;
 }
 
-std::unordered_map<std::string, double> getGPUSSSP(std::vector<std::string>& userName, LDBC<double> & graph, CSR_graph<double> & csr_graph){
+std::map<long long int, double> getGPUSSSP(LDBC<double> & graph, CSR_graph<double> & csr_graph){
     std::vector<double> gpuSSSPvec(graph.V, 0);
-    gpu_shortest_paths(csr_graph, graph.sssp_src, gpuSSSPvec, 0);
+    gpu_shortest_paths(csr_graph, graph.sssp_src, gpuSSSPvec, 0, 10000000000);
 
-    std::unordered_map<std::string, double> strId2value;
+    std::map<long long int,   double> strId2value;
 
-    for(int i = 0; i < gpuSSSPvec.size(); ++i){
-        // strId2value.emplace(graph.vertex_id_to_str[i], gpuSSSPvec[i]);
-        strId2value.emplace(userName[i], gpuSSSPvec[i]);
+    std::vector<long long int> converted_numbers;
+
+    for (const auto& str : graph.vertex_id_to_str) {
+        long long int num = std::stoll(str);
+        converted_numbers.push_back(num);
     }
-    
+
+    std::sort(converted_numbers.begin(), converted_numbers.end());
+
+	for( int i = 0; i < gpuSSSPvec.size(); ++i){
+		strId2value.emplace(converted_numbers[i], gpuSSSPvec[i]);
+    }
+
+	// std::string path = "../data/cpu_bfs_75.txt";
+	// storeResult(strId2value, path);//ldbc file
+
     return strId2value;
 }

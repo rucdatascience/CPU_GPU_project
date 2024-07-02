@@ -11,7 +11,7 @@
 
 
 #include "csr_graph.hpp"
-
+#include "ldbc.hpp"
 using namespace std;
 
 // Constants
@@ -32,5 +32,5 @@ __global__ void Antecedent_division(double *pr,double *npr, double *outs,double 
 extern "C"
 // void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
 void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
-std::unordered_map<std::string, double> getGPUPR(std::vector<std::string>& userName, LDBC<double> & graph, CSR_graph<double> & csr_graph);
+std::map<long long int, double> getGPUPR(LDBC<double> & graph, CSR_graph<double> & csr_graph);
 #endif // PAGERANK_CUH_
