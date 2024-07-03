@@ -68,7 +68,7 @@ int main()
                 // bfs_checker(graph, cpu_bfs_result, bfs_pass);
                 std::map<long long int, int> bfs_node_bind_value = BFS_bind_node(graph);
                 bfs_ldbc_checker(graph, cpu_bfs_result, bfs_pass);
-                std::cout<<"BFS第二种验证方案:"<<std::endl;
+                std::cout<<"BFS第二种验证方案:";
                 bfs_result_vs_ldbc(graph, bfs_node_bind_value, bfs_pass);
             }
 
@@ -88,8 +88,10 @@ int main()
 
                 /*check*/
                 // wcc_checker(graph, cpu_wcc_result, wcc_pass);
-                // std::map<std::string, int> wcc4name = getUserWCC(graph);
+                std::vector<std::vector<std::string>> wcc4name = getUserWCC(graph);
                 wcc_ldbc_checker(graph, cpu_wcc_result, wcc_pass);
+                std::cout<<"WCC第二种验证方案:";
+                wcc_result_vs_ldbc(graph, wcc4name, wcc_pass);
             }
 
            
@@ -109,7 +111,7 @@ int main()
                 // sssp_checker(graph, cpu_sssp_result, sssp_pass);
                 std::map<long long int, double> sssp_node_bind_value = SSSP_bind_node(graph);
                 sssp_ldbc_checker(graph, cpu_sssp_result, sssp_pass);
-                std::cout<<"SSSP第二种验证方案:"<<std::endl;
+                std::cout<<"SSSP第二种验证方案:";
                 sssp_result_vs_ldbc(graph, sssp_node_bind_value, sssp_pass);
             }
 
@@ -133,7 +135,7 @@ int main()
                 // pr_checker(graph, cpu_pr_result, pr_pass);
                 std::map<long long int, double> pr_node_bind_value = PR_Bind_node(graph);
                 pr_ldbc_checker(graph, cpu_pr_result, pr_pass);
-                std::cout<<"PR第二种验证方案:"<<std::endl;
+                std::cout<<"PR第二种验证方案:";
                 sssp_result_vs_ldbc(graph, pr_node_bind_value, pr_pass);
             }
 
@@ -163,7 +165,7 @@ int main()
                 // cdlp_check(graph, ans_cpu, cdlp_pass);
                 std::map<long long int, std::string> cdlp_node_bind_value = CDLP_Bind_node(graph);
                 cdlp_ldbc_check(graph, ans_cpu, cdlp_pass);
-                std::cout<<"CDLP第二种验证方案:"<<std::endl;
+                std::cout<<"CDLP第二种验证方案:";
                 cdlp_result_vs_ldbc(graph, cdlp_node_bind_value, cdlp_pass);
             }
 

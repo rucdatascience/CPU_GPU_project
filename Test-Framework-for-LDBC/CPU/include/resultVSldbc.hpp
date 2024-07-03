@@ -77,7 +77,87 @@ void bfs_result_vs_ldbc(LDBC<double> & graph, std::map<long long int, int> & bfs
 
 }
 
-void wcc_result_vs_ldbc(){
+void wcc_result_vs_ldbc(LDBC<double>& graph, std::vector<std::vector<string>>& wcc_result, int & is_pass){
+    int size = wcc_result.size();
+
+    std::string base_line_file = "../results/" + graph.vertex_file;
+
+    base_line_file.pop_back();
+    base_line_file.pop_back();
+
+    base_line_file += "-WCC";
+
+    std::ifstream base_line(base_line_file);
+
+    if (!base_line.is_open()) {
+        std::cout << "Baseline file not found!" << std::endl;
+        return;
+    }
+
+    std::vector<std::vector<int>> base_res;
+    std::vector<int> component;
+
+    component.resize(graph.V, 0);
+
+    std::string line;
+
+    while (std::getline(base_line, line)) {
+        std::vector<std::string> tokens;
+        tokens = parse_string(line, " ");
+        if (tokens.size() != 2) {
+            std::cout << "Baseline file format error!" << std::endl;
+            base_line.close();
+            return;
+        }
+        //store baseline file per row value to component
+        component[graph.vertex_str_to_id[tokens[0]]] = graph.vertex_str_to_id[tokens[1]];
+    }
+
+    std::vector<std::vector<int>> componentLists(graph.V);
+
+    for (int i = 0; i < graph.V; i++) {
+        componentLists[component[i]].push_back(i);
+    }
+
+    for (int i = 0; i < graph.V; i++) {
+		if (componentLists[i].size() > 0)
+			base_res.push_back(componentLists[i]);
+	}
+
+
+    for (auto &v : base_res) {
+        if (!v.size()) {
+            std::cout << "One of baseline WCC results is empty!" << std::endl;
+            base_line.close();
+            return;
+        }
+        std::sort(v.begin(), v.end());
+    }
+
+    std::sort(base_res.begin(), base_res.end(), compare);
+
+    for (int i = 0; i < size; i++) {
+        if (base_res[i].size() != wcc_result[i].size()) {
+            std::cout << "Baseline file and GPU WCC results are not the same!" << std::endl;
+            std::cout << "Baseline file: " << graph.vertex_id_to_str[i] << " " << base_res[i][0] << std::endl;
+            std::cout << "CPU WCC result: " << wcc_result[i][0] << std::endl;
+            base_line.close();
+            return;
+        }
+        for (int j = 0; j < base_res[i].size(); j++) {
+            if (base_res[i][j] != std::stoi(wcc_result[i][j])) {
+                std::cout << "Baseline file and GPU WCC results are not the same!" << std::endl;
+                std::cout << "Difference at: " << graph.vertex_id_to_str[base_res[i][j]] << " " << wcc_result[i][j] << std::endl;
+                base_line.close();
+                return;
+            }
+        }
+    }
+
+    std::cout << "WCC results is same!" << std::endl;
+    is_pass = 1;
+    base_line.close();
+
 
 }
 
