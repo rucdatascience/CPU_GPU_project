@@ -15,5 +15,6 @@ std::vector<std::vector<int>> gpu_connected_components(CSR_graph<double>& input_
 
 __device__ int findRoot(int* parent, int i);
 __global__ void Hook(int* parent, int* Start_v, int* End_v, int E);
+std::vector<std::vector<std::string>> getGPUWCC(LDBC<double> & graph, CSR_graph<double>& csr_graph);
 
 #endif

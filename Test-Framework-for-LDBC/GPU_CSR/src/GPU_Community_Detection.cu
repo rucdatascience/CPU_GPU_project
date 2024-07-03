@@ -149,7 +149,7 @@ void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph, std::vector<s
         it++;
         std::swap(labels, new_labels);
 
-        cout << "round " << it << " finish" << endl;
+        // cout << "round " << it << " finish" << endl;
     }
     cudaFree(prop_labels);
     cudaFree(new_prop_labels);

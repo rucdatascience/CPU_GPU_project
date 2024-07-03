@@ -56,7 +56,7 @@ int main()
         umap_all_res.emplace("test_file_name", test_file_name);
         if (graph.sup_cdlp) {
 
-            if (0) {
+            if (1) {
 
                 int cdlp_pass = 0;
                 std::vector<string> ans_gpu(graph.size());
@@ -69,7 +69,7 @@ int main()
                 // cdlp_check(graph, ans_cpu, cdlp_pass);
                 std::map<long long int, string> gpuCDLP_Bind_node = getGPUCDLP(graph, csr_graph);
                 cdlp_ldbc_check(graph, ans_gpu, cdlp_pass);
-                std::cout<<"CDLP GPU第二种验证方案:"<<std::endl;
+                std::cout<<"CDLP GPU第二种验证方案:";
                 cdlp_result_vs_ldbc(graph, gpuCDLP_Bind_node, cdlp_pass);
             }
         }
@@ -89,7 +89,7 @@ int main()
                 // pr_checker(graph, gpu_pr_result, pr_pass);
                 pr_ldbc_checker(graph, gpu_pr_result, pr_pass);
                 // std::map<long long int, double> gpuPR_Bind_node = getGPUPR(graph, csr_graph);
-                // std::cout<<"PR GPU第二种验证方案:"<<std::endl;
+                // std::cout<<"PR GPU第二种验证方案:";
                 // sssp_result_vs_ldbc(graph, gpuPR_Bind_node, pr_pass);
             }
         }
@@ -110,7 +110,7 @@ int main()
                 // bfs_checker(graph, gpu_bfs_result, bfs_pass);
                 std::map<long long int, int> gpuBFS_Bind_node = getGPUBFS(graph, csr_graph);
                 bfs_ldbc_checker(graph, gpu_bfs_result, bfs_pass);
-                std::cout<<"BFS GPU第二种验证方案:"<<std::endl;
+                std::cout<<"BFS GPU第二种验证方案:";
                 bfs_result_vs_ldbc(graph, gpuBFS_Bind_node, bfs_pass);
             }
         }
@@ -131,6 +131,9 @@ int main()
                 /*check*/
                 // wcc_checker(graph, gpu_wcc_result, wcc_pass);
                 wcc_ldbc_checker(graph, gpu_wcc_result, wcc_pass);
+                std::vector<std::vector<std::string>> wccGPU = getGPUWCC(graph, csr_graph);
+                std::cout<<"WCC GPU第二种验证方案:";
+                wcc_result_vs_ldbc(graph, wccGPU, wcc_pass);
             }
         }
 
@@ -149,7 +152,7 @@ int main()
                 // sssp_checker(graph, gpu_sssp_result, sssp_pass);
                 std::map<long long int, double> gpuSSSP_Bind_node = getGPUSSSP(graph, csr_graph);
                 sssp_ldbc_checker(graph, gpu_sssp_result, sssp_pass);
-                std::cout<<"SSSP GPU第二种验证方案:"<<std::endl;
+                std::cout<<"SSSP GPU第二种验证方案:";
                 sssp_result_vs_ldbc(graph, gpuSSSP_Bind_node, sssp_pass);
             }
         }

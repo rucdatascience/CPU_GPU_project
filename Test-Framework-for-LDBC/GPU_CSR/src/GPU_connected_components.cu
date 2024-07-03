@@ -127,6 +127,31 @@ std::vector<std::vector<int>> gpu_connected_components(CSR_graph<double>& input_
     return components;
 }
 
+std::vector<std::vector<std::string>> getGPUWCC(LDBC<double> & graph, CSR_graph<double>& csr_graph){
+    std::vector<std::vector<int>> wccVecGPU = gpu_connected_components(csr_graph, 0);
+
+	std::vector<std::vector<std::string>> componentLists;
+	
+	for(int i = 0; i < wccVecGPU.size(); ++i){
+    	std::vector<std::string> component;
+		for(int j = 0; j < wccVecGPU[i].size(); ++j){
+			std::string vertex_name = graph.vertex_id_to_str[wccVecGPU[i][j]];
+			component.push_back(vertex_name);
+		}
+		componentLists.push_back(component);
+	}
+
+
+	//sort result
+    for (auto& vec : componentLists) {
+        std::sort(vec.begin(), vec.end(), [](const std::string& a, const std::string& b) {
+            return std::stoll(a) < std::stoll(b);
+        });
+    }
+
+
+    return componentLists;
+}
 /*int main()
 {
     graph_v_of_v<int> graph;
