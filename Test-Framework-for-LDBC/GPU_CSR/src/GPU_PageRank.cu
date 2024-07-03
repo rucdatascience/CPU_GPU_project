@@ -226,3 +226,16 @@ std::map<long long int, double> getGPUPR(LDBC<double> & graph, CSR_graph<double>
 
     return strId2value;
 }
+
+std::vector<std::string> GPU_PR_v2(LDBC<double> & graph, CSR_graph<double> &csr_graph){
+    vector<double> gpuPrVec(graph.size());
+    GPU_PR(graph, 0, gpuPrVec,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
+
+    std::vector<std::string> resultVec;
+
+    for(auto & it : gpuPrVec){
+		resultVec.push_back(std::to_string(it));
+	}
+
+	return resultVec;
+}
