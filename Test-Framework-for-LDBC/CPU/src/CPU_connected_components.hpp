@@ -55,10 +55,28 @@ std::vector<std::vector<int>> CPU_connected_components(std::vector<std::vector<s
 
 }
 
-std::map<std::string, int> getUserWCC(LDBC<double> & graph){
+std::vector<std::vector<std::string>> getUserWCC(LDBC<double> & graph){
 	std::vector<std::vector<int>> wccVec = CPU_connected_components(graph.OUTs, graph.INs);
 
-	std::map<std::string,   int> strId2value;
+	std::vector<std::vector<std::string>> componentLists;
+	
+	for(int i = 0; i < wccVec.size(); ++i){
+    	std::vector<std::string> component;
+		for(int j = 0; j < wccVec[i].size(); ++j){
+			std::string vertex_name = graph.vertex_id_to_str[wccVec[i][j]];
+			component.push_back(vertex_name);
+		}
+		componentLists.push_back(component);
+	}
 
-    return strId2value;
+
+	//sort result
+    for (auto& vec : componentLists) {
+        std::sort(vec.begin(), vec.end(), [](const std::string& a, const std::string& b) {
+            return std::stoll(a) < std::stoll(b);
+        });
+    }
+
+
+    return componentLists;
 }

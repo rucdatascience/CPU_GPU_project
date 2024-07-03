@@ -2,7 +2,7 @@
 #include <cub/cub.cuh>
 static int CD_ITERATION;
 static int *new_labels, *labels; // two array to prop_labels the labels of nodes
-static int *all_pointer, *all_edge, *prop_labels, *counts, *new_prop_labels;
+static int *all_pointer, *all_edge, *prop_labels,  *new_prop_labels;
 static int N;
 static long long E;
 
@@ -36,7 +36,7 @@ __global__ void Label_init(int *labels, int *all_pointer, int N)
 // every segmentation are sorted
 // count Frequency from the start in the global_space_for_label to the end in the global_space_for_label
 // the new labels are stroed in the new_labels_gpu
-__global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels, int *labels, int *counts, int N)
+__global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels, int *labels,  int N)
 { // Use GPU to propagate all labels at the same time.
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
     if (tid >= 0 && tid < N)
@@ -111,13 +111,10 @@ void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph, std::vector<s
     all_edge = input_graph.all_edge, all_pointer = input_graph.all_pointer;
     CD_ITERATION = graph.cdlp_max_its;
     E = input_graph.E_all;
-
-    cout << N << " and " << E << endl;
     cudaMallocManaged(&new_labels, N * sizeof(int));
     cudaMallocManaged(&labels, N * sizeof(int));
     cudaMallocManaged(&prop_labels, E * sizeof(int));
     cudaMallocManaged(&new_prop_labels, E * sizeof(int));
-    cudaMallocManaged(&counts, E * sizeof(int));
     // cudaMallocManaged(&flags, E * sizeof(int));
     Label_init<<<init_label_block, init_label_thread>>>(labels, all_pointer, N);
     // thrust::sequence(labels, labels + N, 0, 1);
@@ -147,29 +144,25 @@ void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph, std::vector<s
             d_temp_storage, temp_storage_bytes, prop_labels, new_prop_labels,
             N, N, all_pointer, all_pointer + 1);
         std::swap(new_prop_labels, prop_labels);
-        Get_New_Label<<<init_label_block, init_label_thread>>>(all_pointer, prop_labels, new_labels, labels, counts, N);
+        Get_New_Label<<<init_label_block, init_label_thread>>>(all_pointer, prop_labels, new_labels, labels,  N);
         cudaDeviceSynchronize();
         it++;
         std::swap(labels, new_labels);
 
-        cout << "round " << it << " finish" << endl;
+        // cout << "round " << it << " finish" << endl;
     }
     cudaFree(prop_labels);
+    cudaFree(new_prop_labels);
     cudaFree(new_labels);
-    printf("\n result:");
 
     for (int i = 0; i < N; i++)
     {
         res[i] = graph.vertex_id_to_str[labels[i]];
     }
 
-    for (int i = 0; i < 100; i++)
-    {
-        cout << res[i] << " ";
-    }
     cout << endl;
     cudaFree(labels);
-    cudaFree(new_prop_labels);
+    
 }
 
 void checkCudaError(cudaError_t err, const char *msg)
