@@ -116,21 +116,12 @@ void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph, std::vector<s
     cudaMallocManaged(&labels, N * sizeof(int));
     cudaMallocManaged(&prop_labels, E * sizeof(int));
     cudaMallocManaged(&new_prop_labels, E * sizeof(int));
+
     // cudaMallocManaged(&flags, E * sizeof(int));
     Label_init<<<init_label_block, init_label_thread>>>(labels, all_pointer, N);
     // thrust::sequence(labels, labels + N, 0, 1);
 
     int it = 0;
-
-
-    while (it < CD_ITERATION)
-    {
-        /* thrust::stable_sort_by_key(thrust::device, prop_labels.begin(), prop_labels.end(), flags);
-        thrust::stable_sort_by_key(thrust::device, flags, flags + E, prop_labels); */
-        // Calculate the neighbor label array for each vertex
-        LabelPropagation<<<init_label_block, init_label_thread>>>(all_pointer, prop_labels, labels, all_edge, N);
-        cudaDeviceSynchronize();
-
         // Determine temporary device storage requirements
     void *d_temp_storage = NULL;
     size_t temp_storage_bytes = 0;
@@ -140,6 +131,16 @@ void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph, std::vector<s
     cout<<temp_storage_bytes<<endl;
     // Allocate temporary storage
     cudaMalloc(&d_temp_storage, temp_storage_bytes);
+
+    while (it < CD_ITERATION)
+    {
+        /* thrust::stable_sort_by_key(thrust::device, prop_labels.begin(), prop_labels.end(), flags);
+        thrust::stable_sort_by_key(thrust::device, flags, flags + E, prop_labels); */
+        // Calculate the neighbor label array for each vertex
+        LabelPropagation<<<init_label_block, init_label_thread>>>(all_pointer, prop_labels, labels, all_edge, N);
+        cudaDeviceSynchronize();
+
+
         // Run sorting operation
         cub::DeviceSegmentedSort::SortKeys(
             d_temp_storage, temp_storage_bytes, prop_labels, new_prop_labels,
