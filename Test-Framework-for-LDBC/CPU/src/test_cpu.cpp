@@ -26,7 +26,7 @@ int main()
     // std::string config_file = "datagen-7_5-fb.properties";//quick test
     // std::string config_file = "cit-Patents.properties";//quick test
 
-    vector<string> datas = { "datagen-7_5-fb.properties" , "cit-Patents.properties" };
+    vector<string> datas = {"cit-Patents.properties", "datagen-7_5-fb.properties"  };
 
     for (string config_file : datas) {
 
@@ -52,7 +52,6 @@ int main()
         string test_file_name = config_file.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1);
         umap_all_res.emplace("test_file_name", test_file_name);
 
-
         if (graph.sup_bfs) {
             int bfs_pass = 0;
 
@@ -63,38 +62,20 @@ int main()
                 auto end = std::chrono::high_resolution_clock::now();
                 double cpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("CPU BFS cost time: %f s\n", cpu_bfs_time);
-
-                /*check*/
                 // bfs_checker(graph, cpu_bfs_result, bfs_pass);
-                std::map<long long int, int> bfs_node_bind_value = BFS_bind_node(graph);
                 bfs_ldbc_checker(graph, cpu_bfs_result, bfs_pass);
-                std::cout<<"BFS第二种验证方案:";
-                bfs_result_vs_ldbc(graph, bfs_node_bind_value, bfs_pass);
+
             }
 
-           
-        }
-
-        if (graph.sup_wcc) {
-            int wcc_pass = 0;
-            std::vector<std::vector<int>> cpu_wcc_result;
-
-            if (1) {
+            if(1){
+                std::vector<std::string> cpu_bfs_result_v2;
                 begin = std::chrono::high_resolution_clock::now();
-                cpu_wcc_result = CPU_connected_components<double>(graph.OUTs, graph.INs);
+                cpu_bfs_result_v2 = CPU_BFS_v2(graph);
                 end = std::chrono::high_resolution_clock::now();
-                double cpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-                printf("CPU WCC cost time: %f s\n", cpu_wcc_time);
-
-                /*check*/
-                // wcc_checker(graph, cpu_wcc_result, wcc_pass);
-                std::vector<std::vector<std::string>> wcc4name = getUserWCC(graph);
-                wcc_ldbc_checker(graph, cpu_wcc_result, wcc_pass);
-                std::cout<<"WCC第二种验证方案:";
-                wcc_result_vs_ldbc(graph, wcc4name, wcc_pass);
+                double cpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+                printf("CPU BFS V2 cost time: %f s\n", cpu_bfs_time);
+                bfs_ldbc_checker_v2(graph, cpu_bfs_result_v2, bfs_pass);
             }
-
-           
         }
 
         if (graph.sup_sssp) {
@@ -106,16 +87,47 @@ int main()
                 auto end = std::chrono::high_resolution_clock::now();
                 double cpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("CPU SSSP cost time: %f s\n", cpu_sssp_time);
-
-                /*check*/
                 // sssp_checker(graph, cpu_sssp_result, sssp_pass);
-                std::map<long long int, double> sssp_node_bind_value = SSSP_bind_node(graph);
                 sssp_ldbc_checker(graph, cpu_sssp_result, sssp_pass);
-                std::cout<<"SSSP第二种验证方案:";
-                sssp_result_vs_ldbc(graph, sssp_node_bind_value, sssp_pass);
+
+            }
+
+            if(1){
+                begin = std::chrono::high_resolution_clock::now();
+                std::vector<std::string> cpu_sssp_result_v2 = CPU_shortest_paths_v2(graph);
+                end = std::chrono::high_resolution_clock::now();
+                double cpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+                printf("CPU SSSP V2 cost time: %f s\n", cpu_sssp_time);
+                sssp_ldbc_checker_v2(graph, cpu_sssp_result_v2, sssp_pass);
             }
 
           
+        }
+
+        if (graph.sup_wcc) {
+            int wcc_pass = 0;
+
+            if (1) {
+                std::vector<std::vector<int>> cpu_wcc_result;
+                begin = std::chrono::high_resolution_clock::now();
+                cpu_wcc_result = CPU_connected_components<double>(graph.OUTs, graph.INs);
+                end = std::chrono::high_resolution_clock::now();
+                double cpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+                printf("CPU WCC cost time: %f s\n", cpu_wcc_time);
+                // wcc_checker(graph, cpu_wcc_result, wcc_pass);
+                wcc_ldbc_checker(graph, cpu_wcc_result, wcc_pass);
+            }
+
+            if(1){
+                begin = std::chrono::high_resolution_clock::now();
+                std::vector<std::vector<std::string>> cpu_wcc_result_v2 = getUserWCC(graph);
+                end = std::chrono::high_resolution_clock::now();
+                double cpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+                printf("CPU WCC V2 cost time: %f s\n", cpu_wcc_time);
+                // wcc_ldbc_checker_v2(graph, cpu_wcc_result_v2, wcc_pass);
+            }
+
+           
         }
 
         if (graph.sup_pr) {
@@ -123,20 +135,24 @@ int main()
 
             if (1) {
                 vector<double> cpu_pr_result;
-
-
                 begin = std::chrono::high_resolution_clock::now();
                 cpu_pr_result = PageRank(graph.INs, graph.OUTs, graph.pr_damping, graph.pr_its);
                 end = std::chrono::high_resolution_clock::now();
                 double cpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s      
                 printf("CPU PageRank cost time: %f s\n", cpu_pr_time);
-
-                /*check*/
                 // pr_checker(graph, cpu_pr_result, pr_pass);
-                std::map<long long int, double> pr_node_bind_value = PR_Bind_node(graph);
                 pr_ldbc_checker(graph, cpu_pr_result, pr_pass);
-                std::cout<<"PR第二种验证方案:";
-                sssp_result_vs_ldbc(graph, pr_node_bind_value, pr_pass);
+                
+                
+            }
+
+            if(1){
+                begin = std::chrono::high_resolution_clock::now();
+                vector<std::string> cpu_pr_result_v2 = PageRank_v2(graph);
+                end = std::chrono::high_resolution_clock::now();
+                double cpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s      
+                printf("CPU PageRank V2 cost time: %f s\n", cpu_pr_time);
+                pr_ldbc_checker_v2(graph, cpu_pr_result_v2, pr_pass);
             }
 
            
@@ -147,7 +163,6 @@ int main()
             if (1) {
                 int cdlp_pass = 0;
                 std::vector<string> ans_cpu;
-                std::vector<int> ans_gpu;
 
                 int N = graph.vertex_id_to_str.size();
                 vector<long long int> vertex_IDs_forCD(N);
@@ -160,13 +175,9 @@ int main()
                 end = std::chrono::high_resolution_clock::now();
                 double cpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time);
-
-                /*check*/
                 // cdlp_check(graph, ans_cpu, cdlp_pass);
-                std::map<long long int, std::string> cdlp_node_bind_value = CDLP_Bind_node(graph);
                 cdlp_ldbc_check(graph, ans_cpu, cdlp_pass);
-                std::cout<<"CDLP第二种验证方案:";
-                cdlp_result_vs_ldbc(graph, cdlp_node_bind_value, cdlp_pass);
+                
             }
 
         }

@@ -71,11 +71,11 @@ std::vector<std::vector<std::string>> getUserWCC(LDBC<double> & graph){
 
 
 	//sort result
-    for (auto& vec : componentLists) {
-        std::sort(vec.begin(), vec.end(), [](const std::string& a, const std::string& b) {
-            return std::stoll(a) < std::stoll(b);
-        });
-    }
+    // for (auto& vec : componentLists) {
+    //     std::sort(vec.begin(), vec.end(), [](const std::string& a, const std::string& b) {
+    //         return std::stoll(a) < std::stoll(b);
+    //     });
+    // }
 
 
     return componentLists;
