@@ -157,7 +157,7 @@ void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph, std::vector<s
     cudaFree(prop_labels);
     cudaFree(new_prop_labels);
     cudaFree(new_labels);
-
+    cudaFree(d_temp_storage);
     for (int i = 0; i < N; i++)
     {
         res[i] = graph.vertex_id_to_str[labels[i]];
