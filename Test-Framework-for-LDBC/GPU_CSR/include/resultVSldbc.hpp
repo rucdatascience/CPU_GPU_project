@@ -356,14 +356,7 @@ void cdlp_result_vs_ldbc(LDBC<double> & graph, std::map<long long int, std::stri
 
 void bfs_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& bfs_res, int & is_pass) {
     
-    vector<int> cpu_res;
-    
-    for (const auto& str : bfs_res) {
-        int num = stoi(str);
-        cpu_res.push_back(num);
-    }
-
-    int size = cpu_res.size();
+    int size = bfs_res.size();
 
     if (size != graph.V) {
         std::cout << "Size of BFS results is not equal to the number of vertices!" << std::endl;
@@ -406,11 +399,11 @@ void bfs_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& bfs_res,
             return;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
-        if (cpu_res[v_id] != std::stol(tokens[1])) {
-            if(!(cpu_res[v_id] == INT_MAX && std::stol(tokens[1]) == LLONG_MAX)){
+        if (std::stol(bfs_res[v_id]) != std::stol(tokens[1])) {
+            if(!(std::stol(bfs_res[v_id]) == INT_MAX && std::stol(tokens[1]) == LLONG_MAX)){
                 std::cout << "Baseline file and GPU BFS results are not the same!" << std::endl;
                 std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
-                std::cout << "GPU BFS result: " << graph.vertex_id_to_str[v_id] << " " << cpu_res[v_id] << std::endl;
+                std::cout << "GPU BFS result: " << graph.vertex_id_to_str[v_id] << " " << bfs_res[v_id] << std::endl;
                 base_line.close();
                 return;
             }
@@ -538,15 +531,8 @@ void wcc_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::vector<std::strin
 }
 
 void sssp_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& sssp_res, int & is_pass) {
-    
-    vector<double> cpu_res;
-    
-    for (const auto& str : sssp_res) {
-        int num = stod(str);
-        cpu_res.push_back(num);
-    }
 
-    int size = cpu_res.size();
+    int size = sssp_res.size();
 
     if (size != graph.V) {
         std::cout << "Size of SSSP results is not equal to the number of vertices!" << std::endl;
@@ -590,11 +576,12 @@ void sssp_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& sssp_re
             return;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
-
-        if (fabs(cpu_res[v_id] - std::stod(tokens[1])) > 1e-4) {
+        double xx = std::stod(sssp_res[v_id]);
+        double yy = std::stod(tokens[1]);
+        if (fabs(yy - xx) > 1e-4) {
             std::cout << "Baseline file and GPU SSSP results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
-            std::cout << "GPU SSSP result: " << graph.vertex_id_to_str[v_id] << " " << cpu_res[v_id] << std::endl;
+            std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id] << " " << sssp_res[v_id] << std::endl;
             base_line.close();
             return;
         }
@@ -606,22 +593,14 @@ void sssp_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& sssp_re
         return;
     }
 
-    std::cout << "SSSP results are correct!" << std::endl;
+    std::cout << "SSSP results V2 are correct!" << std::endl;
     is_pass = 1;
     base_line.close();
 }
 
 void pr_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& pr_res, int & is_pass) {
-    
-    vector<double> cpu_res;
-    
-    for (const auto& str : pr_res) {
-        int num = stod(str);
-        cpu_res.push_back(num);
-    }
 
-    int size = cpu_res.size();
-
+    int size = pr_res.size();
     if (size != graph.V) {
         std::cout << "Size of PageRank results is not equal to the number of vertices!" << std::endl;
         return;
@@ -664,11 +643,12 @@ void pr_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& pr_res, i
             return;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
-
-        if (fabs(cpu_res[v_id] - std::stod(tokens[1])) > 1e-4) {
+        double xx = std::stod(pr_res[v_id]);
+        double yy = std::stod(tokens[1]);
+        if (fabs(yy - xx) > 1e-4) {
             std::cout << "Baseline file and GPU PageRank results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
-            std::cout << "GPU PageRank result: " << graph.vertex_id_to_str[v_id] << " " << cpu_res[v_id] << std::endl;
+            std::cout << "PageRank result: " << graph.vertex_id_to_str[v_id] << " " << pr_res[v_id] << std::endl;
             base_line.close();
             return;
         }

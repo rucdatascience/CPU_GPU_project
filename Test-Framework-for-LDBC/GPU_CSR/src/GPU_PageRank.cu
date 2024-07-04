@@ -41,10 +41,10 @@ void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int 
 
 
     int iteration = 0;
-    cudaEvent_t GPUstart, GPUstop; // record GPU_TIME
-    cudaEventCreate(&GPUstart);
-    cudaEventCreate(&GPUstop);
-    cudaEventRecord(GPUstart, 0);
+    // cudaEvent_t GPUstart, GPUstop; // record GPU_TIME
+    // cudaEventCreate(&GPUstart);
+    // cudaEventCreate(&GPUstop);
+    // cudaEventRecord(GPUstart, 0);
     initialization<<<blockPerGrid, threadPerGrid>>>(pr, outs, out_pointer, N);
     while (iteration < ITERATION)
     {
@@ -68,14 +68,16 @@ void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int 
     // }
     std::copy(gpu_res, gpu_res + N, std::back_inserter(result));
 
-    cudaEventRecord(GPUstop, 0);
-    cudaEventSynchronize(GPUstop);
+    // cudaEventRecord(GPUstop, 0);
+    // cudaEventSynchronize(GPUstop);
 
-    float CUDAtime = 0;
-    cudaEventElapsedTime(&CUDAtime, GPUstart, GPUstop);
-    *elapsedTime += CUDAtime;
-    cudaEventDestroy(GPUstart);
-    cudaEventDestroy(GPUstop);
+    // float CUDAtime = 0;
+    // cudaEventElapsedTime(&CUDAtime, GPUstart, GPUstop);
+    // *elapsedTime += CUDAtime;
+    // cudaEventDestroy(GPUstart);
+    // cudaEventDestroy(GPUstop);
+
+
 }
 
 __global__ void initialization(double *pr, double *outs, int *out_pointer, int N)
@@ -231,7 +233,7 @@ std::vector<std::string> GPU_PR_v2(LDBC<double> & graph, CSR_graph<double> &csr_
     vector<double> gpuPrVec(graph.size());
     GPU_PR(graph, 0, gpuPrVec,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
 
-    std::vector<std::string> resultVec;
+    std::vector<std::string> resultVec(graph.size());
 
     for(auto & it : gpuPrVec){
 		resultVec.push_back(std::to_string(it));

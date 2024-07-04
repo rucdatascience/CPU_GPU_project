@@ -7,8 +7,7 @@
 #include "device_launch_parameters.h"
 #include <iostream>
 #include <vector>
-// #include <graph_structure/graph_structure.hpp> // Assuming graph_structure.h is properly set up with its own header guards
-
+#include "../include/ldbc.hpp"
 
 #include "csr_graph.hpp"
 #include "ldbc.hpp"
