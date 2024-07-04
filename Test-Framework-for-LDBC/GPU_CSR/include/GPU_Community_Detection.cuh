@@ -17,7 +17,7 @@ using namespace std;
 #define CD_THREAD_PER_BLOCK 512
 __global__ void Label_init(int *labels, int *all_pointer, int N);
 __global__ void LabelPropagation(int *all_pointer, int *prop_labels, int *labels, int *all_edge, int N);
-__global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels, int *labels,   int N);
+__global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels,  int N);
 void checkCudaError(cudaError_t err, const char* msg);
 void checkDeviceProperties();
 extern "C"
