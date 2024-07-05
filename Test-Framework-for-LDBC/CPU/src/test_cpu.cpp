@@ -106,8 +106,8 @@ int main()
         if (graph.sup_wcc) {
             int wcc_pass = 0;
 
-            std::vector<std::vector<int>> cpu_wcc_result;
             if (1) {
+                std::vector<std::vector<int>> cpu_wcc_result;
                 begin = std::chrono::high_resolution_clock::now();
                 cpu_wcc_result = CPU_connected_components<double>(graph.OUTs, graph.INs);
                 end = std::chrono::high_resolution_clock::now();
@@ -118,25 +118,15 @@ int main()
             }
 
             if(1){
-                begin = std::chrono::high_resolution_clock::now();
-                // std::vector<std::vector<std::string>> cpu_wcc_result_v2 = getUserWCC(graph);
-
-                //temp method to check validate
                 std::vector<std::vector<std::string>> cpu_wcc_result_v2;
-                 for (const auto& inner_vec : cpu_wcc_result) {
-                    std::vector<std::string> inner_result;
-                        for (int value : inner_vec) {
-                            inner_result.push_back(std::to_string(value)); // 将 int 转换为 std::string
-                    }
-                    cpu_wcc_result_v2.push_back(inner_result);
-                }
+                begin = std::chrono::high_resolution_clock::now();
+                cpu_wcc_result_v2 = CPU_connected_components_v2(graph);
 
                 end = std::chrono::high_resolution_clock::now();
                 double cpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("CPU WCC V2 cost time: %f s\n", cpu_wcc_time);
                 wcc_ldbc_checker_v2(graph, cpu_wcc_result_v2, wcc_pass);
             }
-
            
         }
 

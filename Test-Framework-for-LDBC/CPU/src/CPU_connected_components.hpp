@@ -55,28 +55,19 @@ std::vector<std::vector<int>> CPU_connected_components(std::vector<std::vector<s
 
 }
 
-std::vector<std::vector<std::string>> getUserWCC(LDBC<double> & graph){
+std::vector<std::vector<std::string>> CPU_connected_components_v2(LDBC<double> & graph){
 	std::vector<std::vector<int>> wccVec = CPU_connected_components(graph.OUTs, graph.INs);
 
-	std::vector<std::vector<std::string>> componentLists;
-	
-	for(int i = 0; i < wccVec.size(); ++i){
-    	std::vector<std::string> component;
-		for(int j = 0; j < wccVec[i].size(); ++j){
-			std::string vertex_name = graph.vertex_id_to_str[wccVec[i][j]];
-			component.push_back(vertex_name);
-		}
-		componentLists.push_back(component);
-	}
+    std::vector<std::vector<std::string>> cpu_wcc_result_v2;
 
+    for (const auto& inner_vec : wccVec) {
+            std::vector<std::string> inner_result;
+            for (int value : inner_vec) {
+                inner_result.push_back(std::to_string(value)); 
+            }
+            cpu_wcc_result_v2.push_back(inner_result);
+    }
 
-	//sort result
-    // for (auto& vec : componentLists) {
-    //     std::sort(vec.begin(), vec.end(), [](const std::string& a, const std::string& b) {
-    //         return std::stoll(a) < std::stoll(b);
-    //     });
-    // }
+    return cpu_wcc_result_v2;
 
-
-    return componentLists;
 }
