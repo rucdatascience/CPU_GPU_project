@@ -241,3 +241,18 @@ std::vector<std::string> GPU_PR_v2(LDBC<double> & graph, CSR_graph<double> &csr_
 
 	return resultVec;
 }
+
+void GPU_PR_v3(LDBC<double> &graph, float *elapsedTime, std::vector<std::string> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge){
+    vector<double> gpuPrVec(graph.size());
+
+    // std::cout<<"PR V3 before size ="<<gpuPrVec.size()<<std::endl;
+
+    GPU_PR(graph, elapsedTime, gpuPrVec, in_pointer, out_pointer, in_edge, out_edge);
+    
+    // std::cout<<"PR V3 size ="<<gpuPrVec.size()<<std::endl;
+    
+    for(int i = 0; i < graph.size(); ++i){
+		result.push_back(std::to_string(gpuPrVec[i]));
+    }
+
+}

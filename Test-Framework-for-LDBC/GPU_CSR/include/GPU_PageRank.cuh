@@ -33,4 +33,5 @@ extern "C"
 void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
 std::map<long long int, double> getGPUPR(LDBC<double> & graph, CSR_graph<double> & csr_graph);
 std::vector<std::string> GPU_PR_v2(LDBC<double> & graph, CSR_graph<double> &csr_graph);
+void GPU_PR_v3(LDBC<double> &graph,float *elapsedTime, std::vector<std::string> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
 #endif // PAGERANK_CUH_

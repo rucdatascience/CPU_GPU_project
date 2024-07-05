@@ -123,17 +123,7 @@ int main()
             if(1){
                 elapsedTime = 0;
                 begin = std::chrono::high_resolution_clock::now();
-                // std::vector<std::vector<std::string>> gpu_wcc_result_v2 = getGPUWCC(graph, csr_graph);
-
-                std::vector<std::vector<std::string>> gpu_wcc_result_v2;
-                 for (const auto& inner_vec : gpu_wcc_result) {
-                    std::vector<std::string> inner_result;
-                        for (int value : inner_vec) {
-                            inner_result.push_back(std::to_string(value)); // 将 int 转换为 std::string
-                    }
-                    gpu_wcc_result_v2.push_back(inner_result);
-                }
-
+                std::vector<std::vector<std::string>> gpu_wcc_result_v2 = gpu_connected_components_v2(csr_graph, &elapsedTime);
                 end = std::chrono::high_resolution_clock::now();
                 double gpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("GPU WCC V2 cost time: %f s\n", gpu_wcc_time);
@@ -144,10 +134,10 @@ int main()
          if (graph.sup_pr) {
             int pr_pass = 0;
 
-            vector<double> gpu_pr_result;
 
             if (1) {
                 elapsedTime = 0;
+                vector<double> gpu_pr_result;
                 begin = std::chrono::high_resolution_clock::now();
                 GPU_PR(graph, &elapsedTime, gpu_pr_result,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
                 end = std::chrono::high_resolution_clock::now();
@@ -160,13 +150,10 @@ int main()
             if(1){
                 vector<std::string> gpu_pr_result_v2;
                 begin = std::chrono::high_resolution_clock::now();
-                // vector<std::string> gpu_pr_result_v2 = GPU_PR_v2(graph,csr_graph);//This method is wrong, the result is larger than graph.size
 
-                for(auto & it : gpu_pr_result){
-                    gpu_pr_result_v2.push_back(std::to_string(it));
-                }
+                GPU_PR_v3(graph, &elapsedTime,gpu_pr_result_v2,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
+                
                 end = std::chrono::high_resolution_clock::now();
-
                 double gpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("GPU PageRank V2 cost time: %f s\n", gpu_pr_time);
                 pr_ldbc_checker_v2(graph, gpu_pr_result_v2, pr_pass);
