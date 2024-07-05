@@ -65,3 +65,15 @@ std::map<long long int,  int> BFS_bind_node(LDBC<double> & graph){
 
     return strId2value;
 }
+
+std::vector<std::string> CPU_BFS_v2(LDBC<double> & graph) {
+	std::vector<std::string> resultVec;
+
+	std::vector<int> depth = CPU_BFS(graph.OUTs, graph.bfs_src, 0, INT_MAX);
+
+	for(auto & it : depth){
+		resultVec.push_back(std::to_string(it));
+	}
+
+	return resultVec;
+}

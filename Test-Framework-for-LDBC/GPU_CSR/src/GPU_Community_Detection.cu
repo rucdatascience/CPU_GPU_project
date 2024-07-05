@@ -1,10 +1,11 @@
-#include <GPU_Community_Detection.cuh>
 #include <cub/cub.cuh>
+#include <GPU_Community_Detection.cuh>
+
 static int CD_ITERATION;
-static int *new_labels, *labels; // two array to prop_labels the labels of nodes
-static int *all_pointer, *all_edge, *prop_labels,  *new_prop_labels;
-static int N;
-static long long E;
+int *new_labels, *labels; // two array to prop_labels the labels of nodes
+int *all_pointer, *all_edge, *prop_labels, *new_prop_labels;
+int N;
+long long E;
 
 __global__ void LabelPropagation(int *all_pointer, int *prop_labels, int *labels, int *all_edge, int N)
 {
@@ -36,7 +37,7 @@ __global__ void Label_init(int *labels, int *all_pointer, int N)
 // every segmentation are sorted
 // count Frequency from the start in the global_space_for_label to the end in the global_space_for_label
 // the new labels are stroed in the new_labels_gpu
-__global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels, int *labels,  int N)
+__global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels,  int N)
 { // Use GPU to propagate all labels at the same time.
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
     if (tid >= 0 && tid < N)
@@ -115,46 +116,48 @@ void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph, std::vector<s
     cudaMallocManaged(&labels, N * sizeof(int));
     cudaMallocManaged(&prop_labels, E * sizeof(int));
     cudaMallocManaged(&new_prop_labels, E * sizeof(int));
+
     // cudaMallocManaged(&flags, E * sizeof(int));
     Label_init<<<init_label_block, init_label_thread>>>(labels, all_pointer, N);
     // thrust::sequence(labels, labels + N, 0, 1);
 
     int it = 0;
+        // Determine temporary device storage requirements
+    void *d_temp_storage = NULL;
+    size_t temp_storage_bytes = 0;
+    cub::DeviceSegmentedSort::SortKeys(
+        d_temp_storage, temp_storage_bytes, prop_labels, new_prop_labels,
+        E, N, all_pointer, all_pointer + 1);
+    cout<<temp_storage_bytes<<endl;
+    // Allocate temporary storage
+    cudaMalloc(&d_temp_storage, temp_storage_bytes);
+
     while (it < CD_ITERATION)
     {
         /* thrust::stable_sort_by_key(thrust::device, prop_labels.begin(), prop_labels.end(), flags);
         thrust::stable_sort_by_key(thrust::device, flags, flags + E, prop_labels); */
         // Calculate the neighbor label array for each vertex
         LabelPropagation<<<init_label_block, init_label_thread>>>(all_pointer, prop_labels, labels, all_edge, N);
-
         cudaDeviceSynchronize();
 
-        // Determine temporary device storage requirements
-        void *d_temp_storage = NULL;
-        size_t temp_storage_bytes = 0;
-        cub::DeviceSegmentedSort::SortKeys(
-            d_temp_storage, temp_storage_bytes, prop_labels, new_prop_labels,
-            N, N, all_pointer, all_pointer + 1);
-
-        // Allocate temporary storage
-        cudaMalloc(&d_temp_storage, temp_storage_bytes);
 
         // Run sorting operation
         cub::DeviceSegmentedSort::SortKeys(
             d_temp_storage, temp_storage_bytes, prop_labels, new_prop_labels,
-            N, N, all_pointer, all_pointer + 1);
-        std::swap(new_prop_labels, prop_labels);
-        Get_New_Label<<<init_label_block, init_label_thread>>>(all_pointer, prop_labels, new_labels, labels,  N);
+            E, N, all_pointer, all_pointer + 1);
+        cudaDeviceSynchronize();
+        
+        Get_New_Label<<<init_label_block, init_label_thread>>>(all_pointer, new_prop_labels, new_labels,  N);
         cudaDeviceSynchronize();
         it++;
         std::swap(labels, new_labels);
 
-        // cout << "round " << it << " finish" << endl;
+        cout << "round " << it << " finish" << endl;
     }
     cudaFree(prop_labels);
     cudaFree(new_prop_labels);
     cudaFree(new_labels);
-
+    cudaFree(d_temp_storage);
     for (int i = 0; i < N; i++)
     {
         res[i] = graph.vertex_id_to_str[labels[i]];
@@ -162,7 +165,6 @@ void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph, std::vector<s
 
     cout << endl;
     cudaFree(labels);
-    
 }
 
 void checkCudaError(cudaError_t err, const char *msg)

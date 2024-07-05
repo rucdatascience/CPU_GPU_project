@@ -87,3 +87,15 @@ std::map<long long int, double> SSSP_bind_node(LDBC<double> & graph){
 
     return strId2value;
 }
+
+std::vector<std::string> CPU_shortest_paths_v2(LDBC<double> & graph) {
+
+    std::vector<std::string> ssspVec;
+	vector<double> ssspResult =  CPU_shortest_paths(graph.OUTs, graph.sssp_src);
+
+    for(auto & it : ssspResult){
+        ssspVec.push_back(std::to_string(it));
+    }
+    
+    return ssspVec;
+}

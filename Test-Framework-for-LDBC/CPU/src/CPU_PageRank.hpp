@@ -101,3 +101,15 @@ std::map<long long int, double> PR_Bind_node(LDBC<double> & graph){
     return strId2value;
 
 }
+
+std::vector<std::string> PageRank_v2(LDBC<double> & graph) {
+
+    std::vector<std::string> PageRankVec;
+    vector<double> prValueVec =  PageRank(graph.INs, graph.OUTs, graph.pr_damping, graph.pr_its);
+
+    for(auto & it : prValueVec){
+        PageRankVec.push_back(std::to_string(it));
+    }
+    
+    return PageRankVec;
+}

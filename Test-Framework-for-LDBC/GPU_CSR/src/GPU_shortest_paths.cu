@@ -147,3 +147,16 @@ std::map<long long int, double> getGPUSSSP(LDBC<double> & graph, CSR_graph<doubl
 
     return strId2value;
 }
+
+std::vector<std::string> gpu_shortest_paths_v2(LDBC<double> & graph, CSR_graph<double> &csr_graph){
+    std::vector<double> gpuSSSPvec(graph.V, 0);
+    gpu_shortest_paths(csr_graph, graph.sssp_src, gpuSSSPvec, 0, 10000000000);
+
+    std::vector<std::string> resultVec;
+
+    for(auto & it : gpuSSSPvec){
+		resultVec.push_back(std::to_string(it));
+	}
+
+	return resultVec;
+}

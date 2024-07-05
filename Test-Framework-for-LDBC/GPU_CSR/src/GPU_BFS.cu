@@ -163,6 +163,18 @@ std::map<long long int, int> getGPUBFS(LDBC<double> & graph, CSR_graph<double> &
     return strId2value;
 }
 
+std::vector<std::string> cuda_bfs_v2(LDBC<double> & graph, CSR_graph<double> &csr_graph){
+    std::vector<int> gpuBfsVec = cuda_bfs(csr_graph, graph.bfs_src, 0);
+
+    std::vector<std::string> resultVec;
+
+    for(auto & it : gpuBfsVec){
+		resultVec.push_back(std::to_string(it));
+	}
+
+	return resultVec;
+}
+
 /*int main()
 {
     std::string file_path;

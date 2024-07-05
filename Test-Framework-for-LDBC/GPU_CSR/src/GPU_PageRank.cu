@@ -41,10 +41,10 @@ void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int 
 
 
     int iteration = 0;
-    cudaEvent_t GPUstart, GPUstop; // record GPU_TIME
-    cudaEventCreate(&GPUstart);
-    cudaEventCreate(&GPUstop);
-    cudaEventRecord(GPUstart, 0);
+    // cudaEvent_t GPUstart, GPUstop; // record GPU_TIME
+    // cudaEventCreate(&GPUstart);
+    // cudaEventCreate(&GPUstop);
+    // cudaEventRecord(GPUstart, 0);
     initialization<<<blockPerGrid, threadPerGrid>>>(pr, outs, out_pointer, N);
     while (iteration < ITERATION)
     {
@@ -68,14 +68,16 @@ void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int 
     // }
     std::copy(gpu_res, gpu_res + N, std::back_inserter(result));
 
-    cudaEventRecord(GPUstop, 0);
-    cudaEventSynchronize(GPUstop);
+    // cudaEventRecord(GPUstop, 0);
+    // cudaEventSynchronize(GPUstop);
 
-    float CUDAtime = 0;
-    cudaEventElapsedTime(&CUDAtime, GPUstart, GPUstop);
-    *elapsedTime += CUDAtime;
-    cudaEventDestroy(GPUstart);
-    cudaEventDestroy(GPUstop);
+    // float CUDAtime = 0;
+    // cudaEventElapsedTime(&CUDAtime, GPUstart, GPUstop);
+    // *elapsedTime += CUDAtime;
+    // cudaEventDestroy(GPUstart);
+    // cudaEventDestroy(GPUstop);
+
+
 }
 
 __global__ void initialization(double *pr, double *outs, int *out_pointer, int N)
@@ -225,4 +227,32 @@ std::map<long long int, double> getGPUPR(LDBC<double> & graph, CSR_graph<double>
 	// storeResult(strId2value, path);//ldbc file
 
     return strId2value;
+}
+
+std::vector<std::string> GPU_PR_v2(LDBC<double> & graph, CSR_graph<double> &csr_graph){
+    vector<double> gpuPrVec(graph.size());
+    GPU_PR(graph, 0, gpuPrVec,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
+
+    std::vector<std::string> resultVec(graph.size());
+
+    for(auto & it : gpuPrVec){
+		resultVec.push_back(std::to_string(it));
+	}
+
+	return resultVec;
+}
+
+void GPU_PR_v3(LDBC<double> &graph, float *elapsedTime, std::vector<std::string> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge){
+    vector<double> gpuPrVec(graph.size());
+
+    // std::cout<<"PR V3 before size ="<<gpuPrVec.size()<<std::endl;
+
+    GPU_PR(graph, elapsedTime, gpuPrVec, in_pointer, out_pointer, in_edge, out_edge);
+    
+    // std::cout<<"PR V3 size ="<<gpuPrVec.size()<<std::endl;
+    
+    for(int i = 0; i < graph.size(); ++i){
+		result.push_back(std::to_string(gpuPrVec[i]));
+    }
+
 }
