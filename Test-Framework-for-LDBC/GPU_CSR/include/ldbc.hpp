@@ -81,8 +81,10 @@ public:
 	std::vector<std::string> vertex_id_to_str; // vertex_id_to_str[vertex_id] = vertex_name
 	std::string vertex_file, edge_file;
 
-	
-	
+	template <typename T>
+	std::vector<std::pair<std::string, T>> res_trans_id_val(std::vector<T>& res);
+
+	std::vector<std::pair<std::string, std::string>> res_trans_id_id(std::vector<std::vector<int>>& wcc_res);
 };
 
 
@@ -341,17 +343,44 @@ void LDBC<weight_type>::print() {
 
 }
 
-// void storeResult(std::map<long long int, int> & strId2value, std::string & path){
-//     std::ofstream outFile(path);
+template <typename weight_type>
+template <typename T>
+std::vector<std::pair<std::string, T>> LDBC<weight_type>::res_trans_id_val(std::vector<T>& res) {
+	std::vector<std::pair<std::string, T>> res_str;
+	int res_size = res.size();
+	for (int i = 0; i < res_size; i++) {
+		res_str.push_back(std::make_pair(vertex_id_to_str[i], res[i]));
+	}
 
-//     if (outFile.is_open()) {
-//         for (const auto& pair : strId2value) {
-//             outFile << pair.first << " " << pair.second << std::endl;
-//         }
-//         outFile.close();
-//         std::cout << "File write complete!" << std::endl;
-//     } else {
-//         std::cerr << "Unable to open file!" << std::endl;
-//     }
+	// output for test to a file
+	//std::ofstream out("../output.txt");
 
-// }
+	//for (int i = 0; i < res_str.size(); i++)
+		//out << res_str[i].first << " " << res_str[i].second << std::endl;
+
+	//out.close();
+
+	return res_str;
+}
+
+template <typename weight_type>
+std::vector<std::pair<std::string, std::string>> LDBC<weight_type>::res_trans_id_id(std::vector<std::vector<int>>& wcc_res) {
+	std::vector<std::pair<std::string, std::string>> res_str;
+	int res_size = wcc_res.size();
+	for (int i = 0; i < res_size; i++) {
+		int root = wcc_res[i][0];
+		int group_size = wcc_res[i].size();
+		for (int j = 0; j < group_size; j++)
+			res_str.push_back(std::make_pair(vertex_id_to_str[wcc_res[i][j]], vertex_id_to_str[root]));
+	}
+
+	// output for test to a file
+	//std::ofstream out("../output.txt");
+
+	//for (int i = 0; i < res_str.size(); i++)
+		//out << res_str[i].first << " " << res_str[i].second << std::endl;
+
+	//out.close();
+
+	return res_str;
+}
