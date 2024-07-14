@@ -4,8 +4,8 @@
 #include <GPU_PageRank.cuh>
 #include "GPU_Community_Detection.cuh"
 #include <chrono>
-// #include <checker.hpp>
-#include <checkerLDBC.hpp>
+#include <checker.hpp>
+//#include <checkerLDBC.hpp>
 #include "../include/resultVSldbc.hpp"
 #include <time.h>
 #include <map>
@@ -30,11 +30,11 @@ int main()
         std::cout << "config_file is:" << config_file << endl;
 
         // graph_structure<double> graph;
-        LDBC<double> graph;
+        graph_structure<double> graph;
         graph.read_config(config_file); //Read the ldbc configuration file to obtain key parameter information in the file
 
         auto begin = std::chrono::high_resolution_clock::now();
-        graph.load_LDBC(); //Read the vertex and edge files corresponding to the configuration file, // The vertex information in graph is converted to csr format for storage   
+        graph.load_graph(); //Read the vertex and edge files corresponding to the configuration file, // The vertex information in graph is converted to csr format for storage   
         auto end = std::chrono::high_resolution_clock::now();
         double load_ldbc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
@@ -56,17 +56,23 @@ int main()
         umap_all_res.emplace("test_file_name", test_file_name);
 
         if (graph.sup_bfs) {
-            int bfs_pass = 0;
-        
-            if (1) {
+            /*bool bfs_pass = 0;
+            std::vector<std::pair<std::string, int>> bfs_result;
+            begin = std::chrono::high_resolution_clock::now();
+            bfs_result = Cuda_Bfs(graph, csr_graph, graph.bfs_src_name);
+            end = std::chrono::high_resolution_clock::now();
+            double gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
+            printf("GPU BFS cost time: %f s\n", gpu_bfs_time);
+            Bfs_checker(graph, bfs_result, bfs_pass);*/
+            /*if (1) {
                 std::vector<int> gpu_bfs_result;
                 begin = std::chrono::high_resolution_clock::now();
-                gpu_bfs_result = cuda_bfs(csr_graph, graph.bfs_src, &elapsedTime);
+                gpu_bfs_result = cuda_bfs(csr_graph, graph.bfs_src);
                 end = std::chrono::high_resolution_clock::now();
                 double gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("GPU BFS cost time: %f s\n", gpu_bfs_time);
                 // bfs_checker(graph, gpu_bfs_result, bfs_pass);
-                bfs_ldbc_checker(graph, gpu_bfs_result, bfs_pass);   
+                bfs_ldbc_checker(graph, gpu_bfs_result, bfs_pass);
             }
 
             if(1){
@@ -77,50 +83,68 @@ int main()
                 double gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("GPU BFS V2 cost time: %f s\n", gpu_bfs_time);
                 bfs_ldbc_checker_v2(graph, gpu_bfs_result_v2, bfs_pass);
-            }
+            }*/
         }
+        //continue;
 
         if (graph.sup_sssp) {
-            int sssp_pass = 0;
+            /*bool sssp_pass = 0;
 
-            if (1) {
+            std::vector<std::pair<std::string, double>> sssp_result;
+            begin = std::chrono::high_resolution_clock::now();
+            sssp_result = Cuda_SSSP(graph, csr_graph, graph.sssp_src_name, 10000000000);
+            end = std::chrono::high_resolution_clock::now();
+            double gpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
+            printf("GPU SSSP cost time: %f s\n", gpu_sssp_time);
+            SSSP_checker(graph, sssp_result, sssp_pass);*/
+
+            /*if (1) {
                 std::vector<double> gpu_sssp_result(graph.V, 0);
                 begin = std::chrono::high_resolution_clock::now();
-                gpu_shortest_paths(csr_graph, graph.sssp_src, gpu_sssp_result, &elapsedTime);
+                gpu_shortest_paths(csr_graph, graph.sssp_src, gpu_sssp_result, 0, 10000000000);
                 end = std::chrono::high_resolution_clock::now();
                 double gpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("GPU SSSP cost time: %f s\n", gpu_sssp_time);
                 // sssp_checker(graph, gpu_sssp_result, sssp_pass);
                 sssp_ldbc_checker(graph, gpu_sssp_result, sssp_pass);
+                graph.res_trans_id_val(gpu_sssp_result);
+            }*/
 
-            }
-
-            if(1){
+            /*if(1){
                 begin = std::chrono::high_resolution_clock::now();
                 std::vector<std::string> gpu_sssp_result_v2 = gpu_shortest_paths_v2(graph, csr_graph);
                 end = std::chrono::high_resolution_clock::now();
                 double gpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("GPU SSSP v2 cost time: %f s\n", gpu_sssp_time);
                 sssp_ldbc_checker_v2(graph, gpu_sssp_result_v2, sssp_pass);
-            }
+            }*/
         }
 
         if (graph.sup_wcc) {
-            int wcc_pass = 0;
+            /*bool wcc_pass = false;
 
-            std::vector<std::vector<int>> gpu_wcc_result;
+            std::vector<std::pair<std::string, std::string>> wcc_result;
+            begin = std::chrono::high_resolution_clock::now();
+            wcc_result = Cuda_WCC(graph, csr_graph);
+            end = std::chrono::high_resolution_clock::now();
+            double gpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
+            printf("GPU WCC cost time: %f s\n", gpu_wcc_time);
+            WCC_checker(graph, wcc_result, wcc_pass);*/
+
+            /*std::vector<std::vector<int>> gpu_wcc_result;
             if (1) {
                 elapsedTime = 0;
                 begin = std::chrono::high_resolution_clock::now();
-                gpu_wcc_result = gpu_connected_components(csr_graph, &elapsedTime);
+                gpu_wcc_result = gpu_connected_components(csr_graph);
                 end = std::chrono::high_resolution_clock::now();
                 double gpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("GPU WCC cost time: %f s\n", gpu_wcc_time);
                 // wcc_checker(graph, gpu_wcc_result, wcc_pass);
                 wcc_ldbc_checker(graph, gpu_wcc_result, wcc_pass);
-            }
+                graph.res_trans_id_id(gpu_wcc_result);
+            }*/
             
-            if(1){
+            /*if(1){
                 elapsedTime = 0;
                 begin = std::chrono::high_resolution_clock::now();
                 std::vector<std::vector<std::string>> gpu_wcc_result_v2 = gpu_connected_components_v2(csr_graph, &elapsedTime);
@@ -128,13 +152,19 @@ int main()
                 double gpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("GPU WCC V2 cost time: %f s\n", gpu_wcc_time);
                 wcc_ldbc_checker_v2(graph, gpu_wcc_result_v2, wcc_pass);
-            }
+            }*/
         }
 
-         if (graph.sup_pr) {
+        if (graph.sup_pr) {
+            /*bool pr_pass = false;
+
+            begin = std::chrono::high_resolution_clock::now();
+            std::vector<std::pair<std::string, double>> pr_result = Cuda_PR(graph, csr_graph, graph.pr_its, graph.pr_damping);
+            end = std::chrono::high_resolution_clock::now();
+            double gpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
+            printf("GPU PageRank cost time: %f s\n", gpu_pr_time);
+            PR_checker(graph, pr_result, pr_pass);*/
             int pr_pass = 0;
-
-
             if (1) {
                 elapsedTime = 0;
                 vector<double> gpu_pr_result;
@@ -159,8 +189,9 @@ int main()
                 pr_ldbc_checker_v2(graph, gpu_pr_result_v2, pr_pass);
             }
         }
+        continue;
 
-         if (graph.sup_cdlp) {
+        if (graph.sup_cdlp) {
             int cdlp_pass = 0;
 
             if (1) {
@@ -238,7 +269,7 @@ void writeToCSV(const unordered_map<string, string>& data, const string& filenam
     // Check if the file is empty, and insert a header line if it is
     file.seekp(0, ios::end); // Locate end of file
 
-    // write title（if file point in the start position）  
+    // write title（if file point in the start position�?  
     if (file.tellp() == 0) {
         // write title  
         for (auto it = data.begin(); it != data.end(); ++it) {
@@ -252,7 +283,7 @@ void writeToCSV(const unordered_map<string, string>& data, const string& filenam
         }
     }
 
-    // write value（no matter what the pointer position）  
+    // write value（no matter what the pointer position�?  
     for (auto it = data.begin(); it != data.end(); ++it) {
         file << it->second;
         if (std::next(it) != data.end()) {
