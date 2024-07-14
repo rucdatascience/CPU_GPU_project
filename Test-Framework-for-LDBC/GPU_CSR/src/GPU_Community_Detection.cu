@@ -1,7 +1,6 @@
 #include <cub/cub.cuh>
 #include <GPU_Community_Detection.cuh>
 
-static int CD_ITERATION;
 int *new_labels, *labels; // two array to prop_labels the labels of nodes
 int *all_pointer, *all_edge, *prop_labels, *new_prop_labels;
 int N;
@@ -104,13 +103,13 @@ __global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_label
     }
 }
 
-void CDLP_GPU(graph_structure<double> &graph, CSR_graph<double> &input_graph, std::vector<string> &res)
+void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, std::vector<string>& res, int max_iterations)
 {
     N = graph.size();
     dim3 init_label_block((N + CD_THREAD_PER_BLOCK - 1) / CD_THREAD_PER_BLOCK, 1, 1);
     dim3 init_label_thread(CD_THREAD_PER_BLOCK, 1, 1);
     all_edge = input_graph.all_edge, all_pointer = input_graph.all_pointer;
-    CD_ITERATION = graph.cdlp_max_its;
+    int CD_ITERATION = max_iterations;
     E = input_graph.E_all;
     cudaMallocManaged(&new_labels, N * sizeof(int));
     cudaMallocManaged(&labels, N * sizeof(int));
@@ -158,6 +157,9 @@ void CDLP_GPU(graph_structure<double> &graph, CSR_graph<double> &input_graph, st
     cudaFree(new_prop_labels);
     cudaFree(new_labels);
     cudaFree(d_temp_storage);
+
+    res.resize(N);
+
     for (int i = 0; i < N; i++)
     {
         res[i] = graph.vertex_id_to_str[labels[i]];
@@ -176,7 +178,7 @@ void checkCudaError(cudaError_t err, const char *msg)
     }
 }
 
-std::map<long long int, string> getGPUCDLP(graph_structure<double> &graph, CSR_graph<double> &csr_graph)
+/*std::map<long long int, string> getGPUCDLP(graph_structure<double> &graph, CSR_graph<double> &csr_graph)
 {
     std::vector<string> ans_gpu(graph.size());
     CDLP_GPU(graph, csr_graph, ans_gpu);
@@ -202,4 +204,16 @@ std::map<long long int, string> getGPUCDLP(graph_structure<double> &graph, CSR_g
     // storeResult(strId2value, path);//ldbc file
 
     return strId2value;
+}*/
+
+std::vector<std::pair<std::string, std::string>> Cuda_CDLP(graph_structure<double>& graph, CSR_graph<double>& input_graph, int max_iterations) {
+    std::vector<std::string> result;
+    CDLP_GPU(graph, input_graph, result, max_iterations);
+
+    std::vector<std::pair<std::string, std::string>> res;
+    int size = result.size();
+    for (int i = 0; i < size; i++)
+        res.push_back(std::make_pair(graph.vertex_id_to_str[i], result[i]));
+    
+    return res;
 }

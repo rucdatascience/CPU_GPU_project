@@ -22,7 +22,9 @@ void checkCudaError(cudaError_t err, const char* msg);
 void checkDeviceProperties();
 
 // int gpu_Community_Detection(graph_structure<double> & graph, float* elapsedTime,vector<int> &ans);
-void CDLP_GPU(graph_structure<double> &graph, CSR_graph<double> &input_graph,std::vector<string>&res);
+void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, std::vector<string>& res, int max_iterations);
 std::map<long long int, string> getGPUCDLP(graph_structure<double> & graph, CSR_graph<double> & csr_graph);
+
+std::vector<std::pair<std::string, std::string>> Cuda_CDLP(graph_structure<double>& graph, CSR_graph<double>& input_graph, int max_iterations);
 
 #endif
