@@ -104,7 +104,7 @@ __global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_label
     }
 }
 
-void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph, std::vector<string> &res)
+void CDLP_GPU(graph_structure<double> &graph, CSR_graph<double> &input_graph, std::vector<string> &res)
 {
     N = graph.size();
     dim3 init_label_block((N + CD_THREAD_PER_BLOCK - 1) / CD_THREAD_PER_BLOCK, 1, 1);
@@ -176,7 +176,7 @@ void checkCudaError(cudaError_t err, const char *msg)
     }
 }
 
-std::map<long long int, string> getGPUCDLP(LDBC<double> &graph, CSR_graph<double> &csr_graph)
+std::map<long long int, string> getGPUCDLP(graph_structure<double> &graph, CSR_graph<double> &csr_graph)
 {
     std::vector<string> ans_gpu(graph.size());
     CDLP_GPU(graph, csr_graph, ans_gpu);

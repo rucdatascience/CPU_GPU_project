@@ -62,7 +62,7 @@ __global__ void Hook(int* parent, int* Start_v, int* End_v, int E, int threads, 
 }
 
 //template <typename T>
-std::vector<std::vector<int>> gpu_connected_components(CSR_graph<double>& input_graph, float* elapsedTime, int threads) {
+std::vector<int> gpu_connected_components(CSR_graph<double>& input_graph, int threads) {
     int N = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
     //Number of nodes and edges
@@ -86,12 +86,6 @@ std::vector<std::vector<int>> gpu_connected_components(CSR_graph<double>& input_
         Parent[i] = i;//initialization
     }
 
-    cudaEvent_t start, stop;
-    //Used to create events and measure the time of GPU operations.
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, 0);
-
     int threadsPerBlock = 1024;
     int blocksPerGrid = 0;
     //Disperse E operations on threads
@@ -110,11 +104,10 @@ std::vector<std::vector<int>> gpu_connected_components(CSR_graph<double>& input_
     cudaError_t cuda_status = cudaGetLastError();
     if (cuda_status != cudaSuccess) {
 		fprintf(stderr, "Kernel launch failed: %s\n", cudaGetErrorString(cuda_status));
-		return std::vector<std::vector<int>>();
+		return std::vector<int>();
 	}
     // Process components on CPU
-    std::vector<std::vector<int>> components;
-    std::vector<std::vector<int>> componentLists(N);
+    std::vector<int> result;
     //Using a linked list to record connected components
     for (int i = 0; i < N; i++) {
         if (Parent[i] != i) {
@@ -123,35 +116,27 @@ std::vector<std::vector<int>> gpu_connected_components(CSR_graph<double>& input_
             while (Parent[j] != j)
                 j = Parent[j];
             Parent[i] = j;
-            componentLists[j].push_back(i);
+            result.push_back(j);
         }
         else  //The root node is directly added to the root node linked list
-            componentLists[i].push_back(i);
+            result.push_back(i);
     }
-
-    for (int i = 0; i < N; i++) {
-		if (componentLists[i].size() > 0)
-            //Filter non empty connected components
-			components.push_back(componentLists[i]);
-	}
-
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(elapsedTime, start, stop);
-    //printf("Cost time is %f\n", elapsedTime);
-
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
 
     // Free GPU memory
     cudaFree(Start_v);
     cudaFree(End_v);
     cudaFree(Parent);
 
-    return components;
+    return result;
 }
 
-std::vector<std::vector<std::string>> gpu_connected_components_v2(CSR_graph<double>& csr_graph, float* elapsedTime){
+
+std::vector<std::pair<std::string, std::string>> Cuda_WCC(graph_structure<double>& graph, CSR_graph<double>& csr_graph) {
+    std::vector<int> wccVecGPU = gpu_connected_components(csr_graph);
+    return graph.res_trans_id_id(wccVecGPU);
+}
+
+/*std::vector<std::vector<std::string>> gpu_connected_components_v2(CSR_graph<double>& csr_graph, float* elapsedTime){
     std::vector<std::vector<int>> wccVecGPU = gpu_connected_components(csr_graph, elapsedTime);
 
     std::vector<std::vector<std::string>> gpu_wcc_result_v2;
@@ -166,7 +151,7 @@ std::vector<std::vector<std::string>> gpu_connected_components_v2(CSR_graph<doub
 
     return gpu_wcc_result_v2;
 
-}
+}*/
 /*int main()
 {
     graph_v_of_v<int> graph;

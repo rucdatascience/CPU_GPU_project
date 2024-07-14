@@ -37,7 +37,7 @@ __global__ void CompactQueue(int V, int* next_queue, int* next_queue_size, int* 
     }
 }
 
-void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<double>& distance, float* elapsedTime, double max_dis) {
+void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<double>& distance, double max_dis) {
     int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
 
@@ -71,12 +71,6 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
     int threadsPerBlock = 1024;
     int numBlocks = 0;
 
-    cudaEvent_t start, stop;
-
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-    cudaEventRecord(start, 0);
-
     while (*queue_size > 0) {
 		numBlocks = (*queue_size + threadsPerBlock - 1) / threadsPerBlock;
 		Relax <<< numBlocks, threadsPerBlock >>> (out_pointer, out_edge, out_edge_weight, dis, queue, queue_size, visited);
@@ -104,13 +98,6 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
         *next_queue_size = 0;
 	}
 
-    cudaEventRecord(stop, 0);
-    cudaEventSynchronize(stop);
-    cudaEventElapsedTime(elapsedTime, start, stop);
-
-    cudaEventDestroy(start);
-    cudaEventDestroy(stop);
-
     cudaMemcpy(distance.data(), dis, V * sizeof(double), cudaMemcpyDeviceToHost);
 
     cudaFree(dis);
@@ -123,9 +110,9 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
     return;
 }
 
-std::map<long long int, double> getGPUSSSP(LDBC<double> & graph, CSR_graph<double> & csr_graph){
+std::map<long long int, double> getGPUSSSP(graph_structure<double> & graph, CSR_graph<double> & csr_graph){
     std::vector<double> gpuSSSPvec(graph.V, 0);
-    gpu_shortest_paths(csr_graph, graph.sssp_src, gpuSSSPvec, 0, 10000000000);
+    gpu_shortest_paths(csr_graph, graph.sssp_src, gpuSSSPvec, 10000000000);
 
     std::map<long long int,   double> strId2value;
 
@@ -148,9 +135,9 @@ std::map<long long int, double> getGPUSSSP(LDBC<double> & graph, CSR_graph<doubl
     return strId2value;
 }
 
-std::vector<std::string> gpu_shortest_paths_v2(LDBC<double> & graph, CSR_graph<double> &csr_graph){
+std::vector<std::string> gpu_shortest_paths_v2(graph_structure<double> & graph, CSR_graph<double> &csr_graph){
     std::vector<double> gpuSSSPvec(graph.V, 0);
-    gpu_shortest_paths(csr_graph, graph.sssp_src, gpuSSSPvec, 0, 10000000000);
+    gpu_shortest_paths(csr_graph, graph.sssp_src, gpuSSSPvec, 10000000000);
 
     std::vector<std::string> resultVec;
 
@@ -159,4 +146,12 @@ std::vector<std::string> gpu_shortest_paths_v2(LDBC<double> & graph, CSR_graph<d
 	}
 
 	return resultVec;
+}
+
+std::vector<std::pair<std::string, double>> Cuda_SSSP(graph_structure<double>& graph, CSR_graph<double>& csr_graph, std::string src_v, double max_dis) {
+    int src_v_id = graph.vertex_str_to_id[src_v];
+    std::vector<double> gpuSSSPvec(graph.V, 0);
+    gpu_shortest_paths(csr_graph, src_v_id, gpuSSSPvec, max_dis);
+
+    return graph.res_trans_id_val(gpuSSSPvec);
 }

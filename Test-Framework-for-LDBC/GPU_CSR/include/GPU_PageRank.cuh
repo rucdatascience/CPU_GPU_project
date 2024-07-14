@@ -7,10 +7,8 @@
 #include "device_launch_parameters.h"
 #include <iostream>
 #include <vector>
-#include "../include/ldbc.hpp"
+#include <csr_graph.hpp>
 
-#include "csr_graph.hpp"
-#include "ldbc.hpp"
 using namespace std;
 
 // Constants
@@ -28,10 +26,13 @@ __global__ void calculate_sink(double *pr, int *N_out_zero_gpu, int out_zero_siz
 __global__ void initialization(double *pr, double *outs, int *out_pointer, int N);
 __global__ void calculate_acc(double *pr,int *in_edge, int begin,int end,double *acc);
 __global__ void Antecedent_division(double *pr,double *npr, double *outs,double redi_tele, int N);
-extern "C"
+
 // void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
-void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
-std::map<long long int, double> getGPUPR(LDBC<double> & graph, CSR_graph<double> & csr_graph);
-std::vector<std::string> GPU_PR_v2(LDBC<double> & graph, CSR_graph<double> &csr_graph);
-void GPU_PR_v3(LDBC<double> &graph,float *elapsedTime, std::vector<std::string> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
+void GPU_PR(graph_structure<double> &graph, CSR_graph<double>& csr_graph, vector<double> &result, int iterations, double damping);
+//std::map<long long int, double> getGPUPR(graph_structure<double>& graph, CSR_graph<double>& csr_graph);
+//std::vector<std::string> GPU_PR_v2(graph_structure<double> & graph, CSR_graph<double> &csr_graph);
+//void GPU_PR_v3(graph_structure<double> &graph,float *elapsedTime, std::vector<std::string> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge);
+
+std::vector<std::pair<std::string, double>> Cuda_PR(graph_structure<double> &graph, CSR_graph<double> &csr_graph, int iterations, double damping);
+
 #endif // PAGERANK_CUH_

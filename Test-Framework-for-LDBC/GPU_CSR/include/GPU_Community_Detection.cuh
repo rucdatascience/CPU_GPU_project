@@ -9,8 +9,7 @@
 #include<thrust/host_vector.h>
 #include <vector>
 #include <string.h>
-#include "csr_graph.hpp"
-#include "ldbc.hpp"
+#include <csr_graph.hpp>
 
 
 using namespace std;
@@ -21,9 +20,9 @@ __global__ void LabelPropagation(int *all_pointer, int *prop_labels, int *labels
 __global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels,  int N);
 void checkCudaError(cudaError_t err, const char* msg);
 void checkDeviceProperties();
-extern "C"
+
 // int gpu_Community_Detection(graph_structure<double> & graph, float* elapsedTime,vector<int> &ans);
-void CDLP_GPU(LDBC<double> &graph, CSR_graph<double> &input_graph,std::vector<string>&res);
-std::map<long long int, string> getGPUCDLP(LDBC<double> & graph, CSR_graph<double> & csr_graph);
+void CDLP_GPU(graph_structure<double> &graph, CSR_graph<double> &input_graph,std::vector<string>&res);
+std::map<long long int, string> getGPUCDLP(graph_structure<double> & graph, CSR_graph<double> & csr_graph);
 
 #endif

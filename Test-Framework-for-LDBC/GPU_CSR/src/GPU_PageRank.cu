@@ -1,5 +1,4 @@
 #include <GPU_PageRank.cuh>
-static int ITERATION;
 static int N;
 
 static vector<int> sink_vertexs; // sink vertexs
@@ -7,22 +6,23 @@ static int *sink_vertex_gpu;
 static double *pr, *npr, *outs;
 static int out_zero_size;
 static double *sink_sum;
-static double damp, teleport;
+static double teleport;
 dim3 blockPerGrid,threadPerGrid;
 // void GPU_PR(graph_structure<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge)
-void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge)
+void GPU_PR(graph_structure<double> &graph, CSR_graph<double>& csr_graph, vector<double>& result, int iterations, double damping)
 {
-    ITERATION = graph.pr_its;
-    damp = graph.pr_damping;
-    N = graph.size();
-    teleport = (1 - damp) / N;
+    N = graph.V;
+    teleport = (1 - damping) / N;
 
+    int* in_pointer = csr_graph.in_pointer;
+    int* out_pointer = csr_graph.out_pointer;
+    int* in_edge = csr_graph.in_edge;
+    int* out_edge = csr_graph.out_edge;
 
     cudaMallocManaged(&outs, N * sizeof(double));
     cudaMallocManaged(&sink_sum, sizeof(double));
     cudaMallocManaged(&npr, N * sizeof(double));
     cudaMallocManaged(&pr, N * sizeof(double));
-
 
     for (int i = 0; i < N; i++)
     {
@@ -38,46 +38,40 @@ void GPU_PR(LDBC<double> &graph, float *elapsedTime, vector<double> &result,int 
     blockPerGrid.x = (N + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
     threadPerGrid.x = THREAD_PER_BLOCK;
 
-
-
     int iteration = 0;
-    // cudaEvent_t GPUstart, GPUstop; // record GPU_TIME
-    // cudaEventCreate(&GPUstart);
-    // cudaEventCreate(&GPUstop);
-    // cudaEventRecord(GPUstart, 0);
+
     initialization<<<blockPerGrid, threadPerGrid>>>(pr, outs, out_pointer, N);
-    while (iteration < ITERATION)
+    cudaDeviceSynchronize();
+    while (iteration < iterations)
     {
         *sink_sum = 0;
         calculate_sink<<<blockPerGrid, threadPerGrid, THREAD_PER_BLOCK * sizeof(double)>>>(pr, sink_vertex_gpu, out_zero_size, sink_sum);
         cudaDeviceSynchronize();
-        *sink_sum = (*sink_sum) * damp / N;
-        Antecedent_division<<<blockPerGrid, threadPerGrid>>>(pr, npr,outs,teleport+(*sink_sum), N);
+        *sink_sum = (*sink_sum) * damping / N;
+        Antecedent_division<<<blockPerGrid, threadPerGrid>>>(pr, npr, outs, teleport + (*sink_sum), N);
         cudaDeviceSynchronize();
-        importance<<<blockPerGrid, threadPerGrid>>>(npr, pr,  damp, in_edge, in_pointer, N);
+        importance<<<blockPerGrid, threadPerGrid>>>(npr, pr, damping, in_edge, in_pointer, N);
         cudaDeviceSynchronize();
 
         std::swap(pr, npr);
         iteration++;
     }
     // get gpu PR algorithm result
-    double *gpu_res = new double[N];
-    cudaMemcpy(gpu_res, pr, N * sizeof(double), cudaMemcpyDeviceToHost);
+    //double *gpu_res = new double[N];
+    //cudaMemcpy(gpu_res, pr, N * sizeof(double), cudaMemcpyDeviceToHost);
     // for(int i = 0; i < GRAPHSIZE; ++i){
     //     cout<<"the gpu_res is:"<<gpu_res[i]<<endl;
     // }
-    std::copy(gpu_res, gpu_res + N, std::back_inserter(result));
+    //std::copy(gpu_res, gpu_res + N, std::back_inserter(result));
 
-    // cudaEventRecord(GPUstop, 0);
-    // cudaEventSynchronize(GPUstop);
+    result.resize(N);
+    cudaMemcpy(result.data(), pr, N * sizeof(double), cudaMemcpyDeviceToHost);
 
-    // float CUDAtime = 0;
-    // cudaEventElapsedTime(&CUDAtime, GPUstart, GPUstop);
-    // *elapsedTime += CUDAtime;
-    // cudaEventDestroy(GPUstart);
-    // cudaEventDestroy(GPUstop);
-
-
+    cudaFree(pr);
+    cudaFree(npr);
+    cudaFree(outs);
+    cudaFree(sink_vertex_gpu);
+    cudaFree(sink_sum);
 }
 
 __global__ void initialization(double *pr, double *outs, int *out_pointer, int N)
@@ -115,9 +109,9 @@ __global__ void importance(double *npr, double *pr,  double damp, int *in_edge, 
     {
 
         // begin and end of in edges
-        double acc=0; // sum of u belongs to Nin(v)
+        double acc = 0; // sum of u belongs to Nin(v)
         //double *acc_point = &acc;
-         for (int c = in_pointer[tid]; c < in_pointer[tid+1]; c++)
+         for (int c = in_pointer[tid]; c < in_pointer[tid + 1]; c++)
         { // val_col[c] is neighbor,rank get PR(u) row_value is denominator i.e. Nout
             acc += pr[in_edge[c]];
         } 
@@ -205,7 +199,7 @@ __device__ double _atomicAdd(double *address, double val)
     return __longlong_as_double(old);
 }
 
-std::map<long long int, double> getGPUPR(LDBC<double> & graph, CSR_graph<double> & csr_graph){
+/*std::map<long long int, double> getGPUPR(graph_structure<double> & graph, CSR_graph<double> & csr_graph){
     vector<double> gpuPrVec(graph.size());
     GPU_PR(graph, 0, gpuPrVec,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
     std::map<long long int, double> strId2value;
@@ -227,9 +221,9 @@ std::map<long long int, double> getGPUPR(LDBC<double> & graph, CSR_graph<double>
 	// storeResult(strId2value, path);//ldbc file
 
     return strId2value;
-}
+}*/
 
-std::vector<std::string> GPU_PR_v2(LDBC<double> & graph, CSR_graph<double> &csr_graph){
+/*std::vector<std::string> GPU_PR_v2(graph_structure<double> & graph, CSR_graph<double> &csr_graph){
     vector<double> gpuPrVec(graph.size());
     GPU_PR(graph, 0, gpuPrVec,csr_graph.in_pointer,csr_graph.out_pointer,csr_graph.in_edge,csr_graph.out_edge);
 
@@ -240,9 +234,9 @@ std::vector<std::string> GPU_PR_v2(LDBC<double> & graph, CSR_graph<double> &csr_
 	}
 
 	return resultVec;
-}
+}*/
 
-void GPU_PR_v3(LDBC<double> &graph, float *elapsedTime, std::vector<std::string> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge){
+/*void GPU_PR_v3(graph_structure<double> &graph, float *elapsedTime, std::vector<std::string> &result,int *in_pointer, int *out_pointer,int *in_edge,int *out_edge){
     vector<double> gpuPrVec(graph.size());
 
     // std::cout<<"PR V3 before size ="<<gpuPrVec.size()<<std::endl;
@@ -255,4 +249,11 @@ void GPU_PR_v3(LDBC<double> &graph, float *elapsedTime, std::vector<std::string>
 		result.push_back(std::to_string(gpuPrVec[i]));
     }
 
+}*/
+
+std::vector<std::pair<std::string, double>> Cuda_PR(graph_structure<double> &graph, CSR_graph<double> &csr_graph, int iterations, double damping){
+    std::vector<double> result;
+    GPU_PR(graph, csr_graph, result, iterations, damping);
+
+    return graph.res_trans_id_val(result);
 }

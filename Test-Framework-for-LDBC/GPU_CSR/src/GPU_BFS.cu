@@ -51,7 +51,7 @@ __global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int
 }
 
 //template <typename T>
-std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source, float* elapsedTime, int max_depth) {
+std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source, int max_depth) {
     int V = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
 
@@ -87,12 +87,6 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source, float* ela
 
     std::vector<int> res(V, max_depth);
 
-    cudaEvent_t start_timer, stop_timer;
-
-    cudaEventCreate(&start_timer);
-    cudaEventCreate(&stop_timer);
-    cudaEventRecord(start_timer, 0);
-
     while (*queue_size > 0) {
 		numBlocks = (*queue_size + threadsPerBlock - 1) / threadsPerBlock;
 		bfs_Relax <<< numBlocks, threadsPerBlock >>> (start, edge, depth, visited, queue, queue_size);
@@ -120,13 +114,6 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source, float* ela
         *next_queue_size = 0;
 	}
 
-    cudaEventRecord(stop_timer, 0);
-    cudaEventSynchronize(stop_timer);
-    cudaEventElapsedTime(elapsedTime, start_timer, stop_timer);
-
-    cudaEventDestroy(start_timer);
-    cudaEventDestroy(stop_timer);
-
     cudaMemcpy(res.data(), depth, V * sizeof(int), cudaMemcpyDeviceToHost);
 
     cudaFree(depth);
@@ -139,7 +126,7 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source, float* ela
     return res;
 }
 
-std::map<long long int, int> getGPUBFS(LDBC<double> & graph, CSR_graph<double> &csr_graph){
+std::map<long long int, int> getGPUBFS(graph_structure<double> & graph, CSR_graph<double> &csr_graph){
     std::vector<int> gpuBfsVec = cuda_bfs(csr_graph, graph.bfs_src, 0);
     
     std::map<long long int,   int> strId2value;
@@ -163,8 +150,8 @@ std::map<long long int, int> getGPUBFS(LDBC<double> & graph, CSR_graph<double> &
     return strId2value;
 }
 
-std::vector<std::string> cuda_bfs_v2(LDBC<double> & graph, CSR_graph<double> &csr_graph){
-    std::vector<int> gpuBfsVec = cuda_bfs(csr_graph, graph.bfs_src, 0);
+std::vector<std::string> cuda_bfs_v2(graph_structure<double> & graph, CSR_graph<double> &csr_graph){
+    std::vector<int> gpuBfsVec = cuda_bfs(csr_graph, graph.bfs_src);
 
     std::vector<std::string> resultVec;
 
@@ -175,30 +162,9 @@ std::vector<std::string> cuda_bfs_v2(LDBC<double> & graph, CSR_graph<double> &cs
 	return resultVec;
 }
 
-/*int main()
-{
-    std::string file_path;
-    std::cout << "Please input the file path of the graph: ";
-    std::cin >> file_path;
-    graph_v_of_v<int> graph;
-    graph.txt_read(file_path);
-    ARRAY_graph<int> array_graph = graph.toARRAY();
-    int V = array_graph.Neighbor_start_pointers.size();
-    cuda_bfs(array_graph, 0);
-    float sum = 0;
-    for (int i = 0; i < V; i++) {
-        cuda_bfs(array_graph, i);
-        sum += elapsedTime;
-        elapsedTime = 0;
-    }
-    printf("GPU average cost time: %f ms\n", sum / V);
-    return 0;
-}*/
+std::vector<std::pair<std::string, int>> Cuda_Bfs(graph_structure<double>& graph, CSR_graph<double>& csr_graph, std::string src_v, int min_depth, int max_depth) {
+    int src_v_id = graph.vertex_str_to_id[src_v];
+    std::vector<int> gpuBfsVec = cuda_bfs(csr_graph, src_v_id, max_depth);
 
-/*
-
-nvcc -O3 -std=c++17 -o GPU_BFS.out GPU_BFS.cu
-./GPU_BFS.out
-rm GPU_BFS.out
-
-*/
+    return graph.res_trans_id_val(gpuBfsVec);
+}
