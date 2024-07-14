@@ -687,6 +687,77 @@ void cdlp_ldbc_check(graph_structure<double>& graph, std::vector<string>& cpu_re
     base_line.close();
 }
 
+void CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<string, string>>& res, bool& is_pass) {
+    int size = res.size();
+
+    std::vector<string> id_res;
+
+    for (auto &p : res)
+        id_res.push_back(p.second);
+
+    if (size != graph.V) {
+        std::cout << "Size of CDLP results is not equal to the number of vertices!" << std::endl;
+        return;
+    }
+
+    std::string base_line_file = "../results/" + graph.vertex_file;
+    // remove the last two char
+
+    base_line_file.pop_back();
+    base_line_file.pop_back();
+
+    base_line_file += "-CDLP";
+
+    std::ifstream base_line(base_line_file);
+
+    if (!base_line.is_open()) {
+        std::cout << "Baseline file not found!" << std::endl;
+        return;
+    }
+
+    int id = 0;
+    std::string line;
+    while (std::getline(base_line, line)) {
+        std::vector<std::string> tokens;
+        tokens = parse_string(line, " ");
+        if (tokens.size() != 2) {
+            std::cout << "Baseline file format error!" << std::endl;
+            base_line.close();
+            return;
+        }
+        if (id >= size) {
+            std::cout << "Size of baseline file is larger than the result!" << std::endl;
+            base_line.close();
+            return;
+        }
+
+        if (graph.vertex_str_to_id.find(tokens[0]) == graph.vertex_str_to_id.end()) {
+            std::cout << "Baseline file contains a vertex that is not in the graph!" << std::endl;
+            base_line.close();
+            return;
+        }
+        int v_id = graph.vertex_str_to_id[tokens[0]];
+        
+        if (id_res[v_id] != tokens[1]) {
+            std::cout << "Baseline file and GPU CDLP results are not the same!" << std::endl;
+            std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
+            std::cout << "CPU CDLP result: " << id_res[v_id] << std::endl;
+            base_line.close();
+            return;
+        }
+        id++;
+    }
+    if (id != size) {
+        std::cout << "Size of baseline file is smaller than the result!" << std::endl;
+        base_line.close();
+        return;
+    }
+
+    std::cout << "CDLP results are correct!" << std::endl;
+    is_pass = 1;
+    base_line.close();
+}
+
 void saveWCCresult(string path, vector<vector<int>> & ivec){
     std::ofstream outFile(path);
 
