@@ -3,21 +3,17 @@
 #include "CPU_connected_components.hpp"
 #include "CPU_shortest_paths.hpp"
 #include "CPU_PageRank.hpp"
-#include "CPU_Community_Detection_update.hpp"
 #include "CPU_Community_Detection.hpp"
-// #include "../include/checker.hpp"
-#include "../include/ldbc.hpp"
-#include "../include/checkerLDBC.hpp"
+#include <checker.hpp>
 #include <time.h>
 #include <map>
-#include "../include/resultVSldbc.hpp"
+#include <resultVSldbc.hpp>
 
 //one test one result file
 void saveAsCSV(const unordered_map<string, string>& data, const string& filename);
 
 //all test one result file
 void writeToCSV(const unordered_map<string, string>& data, const string& filename);
-
 
 int main()
 {
@@ -34,15 +30,14 @@ int main()
 
         // graph_structure<double> graph;
         
-        LDBC<double> graph;
+        graph_structure<double> graph;
         graph.read_config(config_file); //Read the ldbc configuration file to obtain key parameter information in the file
 
         auto begin = std::chrono::high_resolution_clock::now();
-        graph.load_LDBC(); //Read the vertex and edge files corresponding to the configuration file, // The vertex information in graph is converted to csr format for storage   
+        graph.load_graph(); //Read the vertex and edge files corresponding to the configuration file, // The vertex information in graph is converted to csr format for storage   
         auto end = std::chrono::high_resolution_clock::now();
         double load_ldbc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
-
 
         float elapsedTime = 0;
         unordered_map<string, string> umap_all_res;
@@ -52,9 +47,16 @@ int main()
         umap_all_res.emplace("test_file_name", test_file_name);
 
         if (graph.sup_bfs) {
-            int bfs_pass = 0;
+            bool bfs_pass = false;
 
-            if (1) {
+            std::vector<std::pair<std::string, int>> cpu_bfs_result;
+            begin = std::chrono::high_resolution_clock::now();
+            cpu_bfs_result = CPU_Bfs(graph, graph.bfs_src_name);
+            end = std::chrono::high_resolution_clock::now();
+            double cpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
+            printf("CPU BFS cost time: %f s\n", cpu_bfs_time);
+            Bfs_checker(graph, cpu_bfs_result, bfs_pass);
+            /*if (1) {
                 std::vector<int> cpu_bfs_result;
                 auto begin = std::chrono::high_resolution_clock::now();
                 cpu_bfs_result = CPU_BFS<double>(graph.OUTs, graph.bfs_src);
@@ -63,7 +65,6 @@ int main()
                 printf("CPU BFS cost time: %f s\n", cpu_bfs_time);
                 // bfs_checker(graph, cpu_bfs_result, bfs_pass);
                 bfs_ldbc_checker(graph, cpu_bfs_result, bfs_pass);
-
             }
 
             if(1){
@@ -74,13 +75,20 @@ int main()
                 double cpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("CPU BFS V2 cost time: %f s\n", cpu_bfs_time);
                 bfs_ldbc_checker_v2(graph, cpu_bfs_result_v2, bfs_pass);
-            }
+            }*/
         }
 
         if (graph.sup_sssp) {
-            int sssp_pass = 0;
+            bool sssp_pass = false;
 
-            if (1) {
+            begin = std::chrono::high_resolution_clock::now();
+            std::vector<std::pair<std::string, double>> cpu_sssp_result = CPU_SSSP(graph, graph.sssp_src_name);
+            end = std::chrono::high_resolution_clock::now();
+            double cpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
+            printf("CPU SSSP cost time: %f s\n", cpu_sssp_time);
+            SSSP_checker(graph, cpu_sssp_result, sssp_pass);
+
+            /*if (1) {
                 auto begin = std::chrono::high_resolution_clock::now();
                 std::vector<double> cpu_sssp_result = CPU_shortest_paths(graph.OUTs, graph.sssp_src);
                 auto end = std::chrono::high_resolution_clock::now();
@@ -98,15 +106,22 @@ int main()
                 double cpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("CPU SSSP V2 cost time: %f s\n", cpu_sssp_time);
                 sssp_ldbc_checker_v2(graph, cpu_sssp_result_v2, sssp_pass);
-            }
+            }*/
 
           
         }
 
         if (graph.sup_wcc) {
-            int wcc_pass = 0;
+            bool wcc_pass = false;
 
-            if (1) {
+            begin = std::chrono::high_resolution_clock::now();
+            std::vector<std::pair<std::string, std::string>> cpu_wcc_result = CPU_WCC(graph);
+            end = std::chrono::high_resolution_clock::now();
+            double cpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
+            printf("CPU WCC cost time: %f s\n", cpu_wcc_time);
+            WCC_checker(graph, cpu_wcc_result, wcc_pass);
+
+            /*if (1) {
                 std::vector<std::vector<int>> cpu_wcc_result;
                 begin = std::chrono::high_resolution_clock::now();
                 cpu_wcc_result = CPU_connected_components<double>(graph.OUTs, graph.INs);
@@ -126,14 +141,21 @@ int main()
                 double cpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
                 printf("CPU WCC V2 cost time: %f s\n", cpu_wcc_time);
                 wcc_ldbc_checker_v2(graph, cpu_wcc_result_v2, wcc_pass);
-            }
+            }*/
            
         }
 
         if (graph.sup_pr) {
-            int pr_pass = 0;
+            bool pr_pass = false;
 
-            if (1) {
+            begin = std::chrono::high_resolution_clock::now();
+            std::vector<std::pair<std::string, double>> cpu_pr_result = CPU_PR(graph, graph.pr_its, graph.pr_damping);
+            end = std::chrono::high_resolution_clock::now();
+            double cpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
+            printf("CPU PageRank cost time: %f s\n", cpu_pr_time);
+            PR_checker(graph, cpu_pr_result, pr_pass);
+
+            /*if (1) {
                 vector<double> cpu_pr_result;
                 begin = std::chrono::high_resolution_clock::now();
                 cpu_pr_result = PageRank(graph.INs, graph.OUTs, graph.pr_damping, graph.pr_its);
@@ -153,14 +175,22 @@ int main()
                 double cpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s      
                 printf("CPU PageRank V2 cost time: %f s\n", cpu_pr_time);
                 pr_ldbc_checker_v2(graph, cpu_pr_result_v2, pr_pass);
-            }
+            }*/
 
            
         }
 
         if (graph.sup_cdlp) {
+            bool cdlp_pass = false;
 
-            if (1) {
+            begin = std::chrono::high_resolution_clock::now();
+            std::vector<std::pair<std::string, std::string>> cpu_cdlp_result = CPU_CDLP(graph, graph.cdlp_max_its);
+            end = std::chrono::high_resolution_clock::now();
+            double cpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
+            printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time);
+            CDLP_checker(graph, cpu_cdlp_result, cdlp_pass);
+
+            /*if (1) {
                 int cdlp_pass = 0;
                 std::vector<string> ans_cpu;
 
@@ -178,7 +208,7 @@ int main()
                 // cdlp_check(graph, ans_cpu, cdlp_pass);
                 cdlp_ldbc_check(graph, ans_cpu, cdlp_pass);
                 
-            }
+            }*/
 
         }
 
@@ -244,7 +274,7 @@ void writeToCSV(const unordered_map<string, string>& data, const string& filenam
     // Check if the file is empty, and insert a header line if it is
     file.seekp(0, ios::end); // Locate end of file
 
-    // write title（if file point in the start position）  
+    // write title（if file point in the start position�?  
     if (file.tellp() == 0) {
         // write title  
         for (auto it = data.begin(); it != data.end(); ++it) {
@@ -258,7 +288,7 @@ void writeToCSV(const unordered_map<string, string>& data, const string& filenam
         }
     }
 
-    // write value（no matter what the pointer position）  
+    // write value（no matter what the pointer position�?  
     for (auto it = data.begin(); it != data.end(); ++it) {
         file << it->second;
         if (std::next(it) != data.end()) {
