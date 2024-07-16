@@ -2,7 +2,7 @@
 
 #include <queue>
 #include <climits>
-#include "../include/ldbc.hpp"
+#include <graph_structure/graph_structure.hpp>
 #include <map>
 #include <algorithm>
 #include <stdexcept>
@@ -21,9 +21,9 @@ std::vector<int> CPU_BFS(std::vector<std::vector<std::pair<int, T>>>& input_grap
 	Q.push(root);
 	while (Q.size() > 0) {
 		int v = Q.front();
-		if (depth[v] >= min_depth && depth[v] <= max_depth) {
+		if (depth[v] >= min_depth && depth[v] <= max_depth)
 			searched_vertices.push_back(v);
-		}
+
 		Q.pop(); //Removing that vertex from queue,whose neighbour will be visited now
 		
 		if (depth[v] + 1 <= max_depth) {
@@ -42,7 +42,7 @@ std::vector<int> CPU_BFS(std::vector<std::vector<std::pair<int, T>>>& input_grap
 }
 
 
-std::map<long long int,  int> BFS_bind_node(LDBC<double> & graph){
+/*std::map<long long int,  int> BFS_bind_node(LDBC<double> & graph){
 	std::vector<int> bfsValue = CPU_BFS(graph.OUTs, graph.bfs_src, 0, INT_MAX);
 	
 	std::map<long long int,   int> strId2value;
@@ -76,4 +76,9 @@ std::vector<std::string> CPU_BFS_v2(LDBC<double> & graph) {
 	}
 
 	return resultVec;
+}*/
+
+std::vector<std::pair<std::string, int>> CPU_Bfs (graph_structure<double>& graph, std::string src_v, int min_depth = 0, int max_depth = INT_MAX) {
+	std::vector<int> depth = CPU_BFS(graph.OUTs, graph.vertex_str_to_id[src_v], min_depth, max_depth);
+	return graph.res_trans_id_val(depth);
 }

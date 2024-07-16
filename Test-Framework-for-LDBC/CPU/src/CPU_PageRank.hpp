@@ -1,9 +1,8 @@
 #pragma once
-#include "../include/graph_structure/graph_structure.hpp"
+#include <graph_structure/graph_structure.hpp>
 #include <vector>
 #include <iostream>
-#include "../include/ThreadPool.h"
-#include "../include/ldbc.hpp"
+#include <ThreadPool.h>
 #include <algorithm>
 
 std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& in_edge,
@@ -77,7 +76,7 @@ std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& i
     return rank;
 }
 
-std::map<long long int, double> PR_Bind_node(LDBC<double> & graph){
+/*std::map<long long int, double> PR_Bind_node(LDBC<double> & graph){
 
     vector<double> prValueVec =  PageRank(graph.INs, graph.OUTs, graph.pr_damping, graph.pr_its);
     std::map<long long int, double> strId2value;
@@ -112,4 +111,9 @@ std::vector<std::string> PageRank_v2(LDBC<double> & graph) {
     }
     
     return PageRankVec;
+}*/
+
+std::vector<std::pair<std::string, double>> CPU_PR(graph_structure<double>& graph, int iterations, double damping) {
+    std::vector<double> prValueVec = PageRank(graph.INs, graph.OUTs, damping, iterations);
+    return graph.res_trans_id_val(prValueVec);
 }

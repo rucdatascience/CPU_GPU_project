@@ -1,12 +1,11 @@
 
 #pragma once
 
-#include "../include/graph_structure/graph_structure.hpp"
+#include <graph_structure/graph_structure.hpp>
 #include <vector>
 #include <numeric>
 #include <iostream>
 #include <queue>
-#include "../include/ldbc.hpp"
 
 using namespace std;
 
@@ -64,7 +63,7 @@ std::vector<double> CPU_shortest_paths(std::vector<std::vector<std::pair<int, do
 	return distances;
 }
 
-std::map<long long int, double> SSSP_bind_node(LDBC<double> & graph){
+/*std::map<long long int, double> SSSP_bind_node(LDBC<double> & graph){
 	vector<double> ssspVec =  CPU_shortest_paths(graph.OUTs, graph.sssp_src);
 
     std::map<long long int,   double> strId2value;
@@ -98,4 +97,9 @@ std::vector<std::string> CPU_shortest_paths_v2(LDBC<double> & graph) {
     }
     
     return ssspVec;
+}*/
+
+std::vector<std::pair<std::string, double>> CPU_SSSP(graph_structure<double>& graph, std::string src_v) {
+	std::vector<double> ssspVec = CPU_shortest_paths(graph.OUTs, graph.vertex_str_to_id[src_v]);
+	return graph.res_trans_id_val(ssspVec);
 }

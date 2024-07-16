@@ -1,12 +1,12 @@
 #pragma once
-#include "../include/ldbc.hpp"
+#include <graph_structure/graph_structure.hpp>
 #include <vector>
 #include <iostream>
 #include <unordered_map>
 #include "../include/ThreadPool.h"
 #include <numeric>
 
-std::vector<std::string> CDLP(LDBC<double>& graph, int iters)
+std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
 /*     call this function like:ans_cpu = CDLP(graph.INs, graph.OUTs,graph.vertex_id_to_str, graph.cdlp_max_its); */
 {
     auto& in_edges = graph.INs;
@@ -76,7 +76,7 @@ std::vector<std::string> CDLP(LDBC<double>& graph, int iters)
     return res;
 }
 
-std::map<long long int, string> CDLP_Bind_node(LDBC<double> & graph){
+/*std::map<long long int, string> CDLP_Bind_node(graph_structure<double> & graph){
     vector<string> cdlpVec = CDLP(graph, graph.cdlp_max_its);
     std::map<long long int, string> strId2value;
 
@@ -98,4 +98,16 @@ std::map<long long int, string> CDLP_Bind_node(LDBC<double> & graph){
     
     return strId2value;
 
+}*/
+
+std::vector<std::pair<std::string, std::string>> CPU_CDLP(graph_structure<double>& graph, int iterations)
+{
+    std::vector<std::string> cdlpVec = CDLP(graph, iterations);
+
+    std::vector<std::pair<std::string, std::string>> res;
+    int size = cdlpVec.size();
+    for (int i = 0; i < size; i++)
+        res.push_back(std::make_pair(graph.vertex_id_to_str[i], cdlpVec[i]));
+
+    return res;
 }
