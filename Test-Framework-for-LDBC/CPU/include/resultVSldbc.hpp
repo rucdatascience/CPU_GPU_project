@@ -1,10 +1,9 @@
 #pragma once
 
-#include "ldbc.hpp"
+#include <graph_structure/graph_structure.hpp>
 #include <algorithm>
 #include <cmath>
 #include <limits.h>
-#include "checkerLDBC.hpp"
 
 #include <iostream>
 #include <fstream>
@@ -12,7 +11,7 @@
 #include <map>
 #include <string>
 /**
-void bfs_result_vs_ldbc(LDBC<double> & graph, std::map<long long int, int> & bfs_result, int & is_pass){
+void bfs_result_vs_ldbc(graph_structure<double> & graph, std::map<long long int, int> & bfs_result, int & is_pass){
     int size = bfs_result.size();
 
     if (size != graph.V) {
@@ -77,7 +76,7 @@ void bfs_result_vs_ldbc(LDBC<double> & graph, std::map<long long int, int> & bfs
 
 }
 
-void wcc_result_vs_ldbc(LDBC<double>& graph, std::vector<std::vector<string>>& wcc_result, int & is_pass){
+void wcc_result_vs_ldbc(graph_structure<double>& graph, std::vector<std::vector<string>>& wcc_result, int & is_pass){
     int size = wcc_result.size();
 
     std::string base_line_file = "../results/" + graph.vertex_file;
@@ -161,7 +160,7 @@ void wcc_result_vs_ldbc(LDBC<double>& graph, std::vector<std::vector<string>>& w
 
 }
 
-void sssp_result_vs_ldbc(LDBC<double> & graph, std::map<long long int, double> & sssp_result, int & is_pass){
+void sssp_result_vs_ldbc(graph_structure<double> & graph, std::map<long long int, double> & sssp_result, int & is_pass){
     int size = sssp_result.size();
 
     if (size != graph.V) {
@@ -225,7 +224,7 @@ void sssp_result_vs_ldbc(LDBC<double> & graph, std::map<long long int, double> &
     base_line.close();
 }
 
-void pr_result_vs_ldbc(LDBC<double> & graph, std::map<long long int, double> & pr_result, int & is_pass){
+void pr_result_vs_ldbc(graph_structure<double> & graph, std::map<long long int, double> & pr_result, int & is_pass){
     int size = pr_result.size();
 
     if (size != graph.V) {
@@ -290,7 +289,7 @@ void pr_result_vs_ldbc(LDBC<double> & graph, std::map<long long int, double> & p
     base_line.close();
 }
 
-void cdlp_result_vs_ldbc(LDBC<double> & graph, std::map<long long int, std::string> & cdlp_result, int & is_pass){
+void cdlp_result_vs_ldbc(graph_structure<double> & graph, std::map<long long int, std::string> & cdlp_result, int & is_pass){
     int size = cdlp_result.size();
 
     if (size != graph.V) {
@@ -354,7 +353,7 @@ void cdlp_result_vs_ldbc(LDBC<double> & graph, std::map<long long int, std::stri
 }
 */
 
-void bfs_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& bfs_res, int & is_pass) {
+void bfs_ldbc_checker_v2(graph_structure<double>& graph, std::vector<std::string>& bfs_res, int & is_pass) {
     
     int size = bfs_res.size();
 
@@ -421,7 +420,7 @@ void bfs_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& bfs_res,
     base_line.close();
 }
 
-void wcc_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::vector<std::string>>& wcc_res, int & is_pass) {
+void wcc_ldbc_checker_v2(graph_structure<double>& graph, std::vector<std::vector<std::string>>& wcc_res, int & is_pass) {
     
     vector<vector<int>> cpu_res;
     
@@ -429,7 +428,7 @@ void wcc_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::vector<std::strin
         vector<int> intInnerVec;
         
         for (const string& str : innerVec) {
-            // 使用 stoi 或者 stoi 进行字符串到整数的转换
+            // 使用 stoi 或�? stoi 进行字符串到整数的转�?
             int num = stoi(str);
             intInnerVec.push_back(num);
         }
@@ -530,7 +529,7 @@ void wcc_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::vector<std::strin
     base_line.close();
 }
 
-void sssp_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& sssp_res, int & is_pass) {
+void sssp_ldbc_checker_v2(graph_structure<double>& graph, std::vector<std::string>& sssp_res, int & is_pass) {
 
     int size = sssp_res.size();
 
@@ -598,7 +597,7 @@ void sssp_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& sssp_re
     base_line.close();
 }
 
-void pr_ldbc_checker_v2(LDBC<double>& graph, std::vector<std::string>& pr_res, int & is_pass) {
+void pr_ldbc_checker_v2(graph_structure<double>& graph, std::vector<std::string>& pr_res, int & is_pass) {
 
     int size = pr_res.size();
     if (size != graph.V) {
