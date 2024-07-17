@@ -11,26 +11,31 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fopenmp")
 include_directories(include)
 
 if(BUILD_CPU)
-    set(EXECUTABLE_NAME "${PROJECT_NAME}_CPU")
-    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin_cpu)
+    set(EXECUTABLE_NAME_CPU "${PROJECT_NAME}_CPU")
+    set(EXECUTABLE_OUTPUT_PATH_CPU ${PROJECT_SOURCE_DIR}/build/bin_cpu)
 
     aux_source_directory(src_cpu SRC_CPU)
-    add_executable(${EXECUTABLE_NAME} ${SRC_CPU})
-    target_include_directories(${EXECUTABLE_NAME} PUBLIC include_cpu)
+    add_executable(${EXECUTABLE_NAME_CPU} ${SRC_CPU})
+    target_include_directories(${EXECUTABLE_NAME_CPU} PUBLIC include_cpu)
+
+    set_target_properties(${EXECUTABLE_NAME_CPU} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${EXECUTABLE_OUTPUT_PATH_CPU})
 endif()
 
 if(BUILD_GPU)
     enable_language(CUDA)
     find_package(CUDA REQUIRED)
 
-    set(EXECUTABLE_NAME "${PROJECT_NAME}_GPU")
-    set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/build/bin_gpu)
+    set(EXECUTABLE_NAME_GPU "${PROJECT_NAME}_GPU")
+    set(EXECUTABLE_OUTPUT_PATH_GPU ${PROJECT_SOURCE_DIR}/build/bin_gpu)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3")
 
     aux_source_directory(src_gpu SRC_GPU)
-    add_executable(${EXECUTABLE_NAME} ${SRC_GPU})
-    target_include_directories(${EXECUTABLE_NAME} PUBLIC include_gpu)
+    add_executable(${EXECUTABLE_NAME_GPU} ${SRC_GPU})
+    target_include_directories(${EXECUTABLE_NAME_GPU} PUBLIC ${CUDA_INCLUDE_DIRS})
+    target_include_directories(${EXECUTABLE_NAME_GPU} PUBLIC include_gpu)
 
-    target_link_libraries(${EXECUTABLE_NAME} ${CUDA_LIBRARIES})
-    set_target_properties(${EXECUTABLE_NAME} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    target_link_libraries(${EXECUTABLE_NAME_GPU} ${CUDA_LIBRARIES})
+
+    set_target_properties(${EXECUTABLE_NAME_GPU} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${EXECUTABLE_OUTPUT_PATH_GPU})
+    set_target_properties(${EXECUTABLE_NAME_GPU} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
 endif()
