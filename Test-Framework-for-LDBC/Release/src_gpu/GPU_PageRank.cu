@@ -17,7 +17,6 @@ void GPU_PR(graph_structure<double> &graph, CSR_graph<double>& csr_graph, vector
     int* in_pointer = csr_graph.in_pointer;
     int* out_pointer = csr_graph.out_pointer;
     int* in_edge = csr_graph.in_edge;
-    int* out_edge = csr_graph.out_edge;
 
     cudaMallocManaged(&outs, N * sizeof(double));
     cudaMallocManaged(&sink_sum, sizeof(double));
