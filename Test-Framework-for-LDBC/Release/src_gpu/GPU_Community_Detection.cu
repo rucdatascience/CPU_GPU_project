@@ -127,7 +127,7 @@ void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, st
     cub::DeviceSegmentedSort::SortKeys(
         d_temp_storage, temp_storage_bytes, prop_labels, new_prop_labels,
         E, N, all_pointer, all_pointer + 1);
-    cout<<temp_storage_bytes<<endl;
+    //cout<<temp_storage_bytes<<endl;
     // Allocate temporary storage
     cudaMalloc(&d_temp_storage, temp_storage_bytes);
 
@@ -151,7 +151,7 @@ void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, st
         it++;
         std::swap(labels, new_labels);
 
-        cout << "round " << it << " finish" << endl;
+        //cout << "round " << it << " finish" << endl;
     }
     cudaFree(prop_labels);
     cudaFree(new_prop_labels);
@@ -165,7 +165,7 @@ void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, st
         res[i] = graph.vertex_id_to_str[labels[i]];
     }
 
-    cout << endl;
+    //cout << endl;
     cudaFree(labels);
 }
 

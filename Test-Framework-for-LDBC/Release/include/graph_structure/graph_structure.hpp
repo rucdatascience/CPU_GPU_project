@@ -470,9 +470,13 @@ template <typename weight_type>
 void graph_structure<weight_type>::load_graph() {
 	this->clear();
 
+	std::string vertex_file_path;
+	std::cout << "Please input the vertex file path: ";
+	std::cin >> vertex_file_path;
+
 	std::cout << "Loading vertices..." << std::endl;
 	std::string line_content;
-	std::ifstream myfile("../data/" + vertex_file);
+	std::ifstream myfile(vertex_file_path);
 
 	if (myfile.is_open()) {
 		while (getline(myfile, line_content))//read data line by line
@@ -510,8 +514,12 @@ void graph_structure<weight_type>::load_graph() {
 	OUTs.resize(V);
 	INs.resize(V);
 
+	std::string edge_file_path;
+	std::cout << "Please input the edge file path: ";
+	std::cin >> edge_file_path;
+
 	std::cout << "Loading edges..." << std::endl;
-	myfile.open("../data/" + edge_file);
+	myfile.open(edge_file_path);
 
 	if (myfile.is_open()) {
 		while (getline(myfile, line_content)) {

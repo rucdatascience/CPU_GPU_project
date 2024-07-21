@@ -18,12 +18,10 @@ void Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         return;
     }
 
-    std::string base_line_file = "../results/" + graph.vertex_file;
-    // remove the last two char
-    base_line_file.pop_back();
-    base_line_file.pop_back();
+    std::string base_line_file;
 
-    base_line_file += "-BFS";
+    std::cout << "Please input the baseline file path: ";
+    std::cin >> base_line_file;
 
     std::ifstream base_line(base_line_file);
 
@@ -101,12 +99,9 @@ void WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
 
     std::sort(components.begin(), components.end(), compare);
 
-    std::string base_line_file = "../results/" + graph.vertex_file;
-
-    base_line_file.pop_back();
-    base_line_file.pop_back();
-
-    base_line_file += "-WCC";
+    std::string base_line_file;
+    std::cout << "Please input the baseline file path: ";
+    std::cin >> base_line_file;
 
     std::ifstream base_line(base_line_file);
 
@@ -187,12 +182,9 @@ void SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         return;
     }
 
-    std::string base_line_file = "../results/" + graph.vertex_file;
-    // remove the last two char
-    base_line_file.pop_back();
-    base_line_file.pop_back();
-
-    base_line_file += "-SSSP";
+    std::string base_line_file;
+    std::cout << "Please input the baseline file path: ";
+    std::cin >> base_line_file;
 
     std::ifstream base_line(base_line_file);
 
@@ -263,13 +255,9 @@ void PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::strin
         return;
     }
 
-    std::string base_line_file = "../results/" + graph.vertex_file;
-    // remove the last two char
-
-    base_line_file.pop_back();
-    base_line_file.pop_back();
-
-    base_line_file += "-PR";
+    std::string base_line_file;
+    std::cout << "Please input the baseline file path: ";
+    std::cin >> base_line_file;
 
     std::ifstream base_line(base_line_file);
 
@@ -334,13 +322,9 @@ void CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         return;
     }
 
-    std::string base_line_file = "../results/" + graph.vertex_file;
-    // remove the last two char
-
-    base_line_file.pop_back();
-    base_line_file.pop_back();
-
-    base_line_file += "-CDLP";
+    std::string base_line_file;
+    std::cout << "Please input the baseline file path: ";
+    std::cin >> base_line_file;
 
     std::ifstream base_line(base_line_file);
 
