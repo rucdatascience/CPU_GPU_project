@@ -116,6 +116,8 @@ public:
 	std::vector<std::pair<std::string, T>> res_trans_id_val(std::vector<T>& res);
 
 	std::vector<std::pair<std::string, std::string>> res_trans_id_id(std::vector<int>& wcc_res);
+
+	void save_to_CSV(std::vector<std::pair<std::string, std::string>>& res, std::string file_path, std::string env_type);
 };
 
 /*class member functions*/
@@ -576,4 +578,18 @@ std::vector<std::pair<std::string, std::string>> graph_structure<weight_type>::r
 	//out.close();
 
 	return res_str;
+}
+
+template <typename weight_type>
+void graph_structure<weight_type>::save_to_CSV(std::vector<std::pair<std::string, std::string>>& res, std::string file_path, std::string env_type) {
+	std::ofstream out(file_path);
+
+	std::string data_name = this->vertex_file;
+
+	out << data_name << "," << env_type << std::endl;
+
+	for (auto i : res)
+		out << i.first << "," << i.second << std::endl;
+
+	out.close();
 }
