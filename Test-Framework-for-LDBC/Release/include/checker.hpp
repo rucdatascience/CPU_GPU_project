@@ -221,7 +221,16 @@ void SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
 
-        if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-4) {
+        if (tokens[1] == "infinity") {
+            if (id_res[v_id] != std::numeric_limits<double>::max()) {
+                std::cout << "Baseline file and SSSP results are not the same!" << std::endl;
+                std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
+                std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
+                base_line.close();
+                return;
+            }
+        }
+        else if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-4) {
             std::cout << "Baseline file and SSSP results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
             std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
