@@ -1,4 +1,19 @@
-#include <GPU_connected_components.cuh>
+#ifndef UF_CUH
+#define UF_CUH
+
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+
+#include <stdio.h>
+
+#include <GPU_csr/GPU_csr.hpp>
+
+std::vector<int> gpu_connected_components(CSR_graph<double>& input_graph, int threads = 1024000);
+
+__device__ int findRoot(int* parent, int i);
+__global__ void Hook(int* parent, int* Start_v, int* End_v, int E);
+
+std::vector<std::pair<std::string, std::string>> Cuda_WCC(graph_structure<double>& graph, CSR_graph<double>& csr_graph);
 
 __device__ int findRoot(int* parent, int i) {
     //Recursively searching for the ancestor of node i
@@ -67,10 +82,16 @@ std::vector<int> gpu_connected_components(CSR_graph<double>& input_graph, int th
     int* Parent;
     // Allocate GPU memory
     cudaMallocManaged((void**)&Start_v, E * sizeof(int));
-    memset(Start_v, 0, E * sizeof(int));
+    //memset(Start_v, 0, E * sizeof(int));
     cudaMallocManaged((void**)&End_v, E * sizeof(int));
-    memset(End_v, 0, E * sizeof(int));
+    //memset(End_v, 0, E * sizeof(int));
     cudaMallocManaged((void**)&Parent, N * sizeof(int));
+    cudaDeviceSynchronize();
+    cudaError_t cuda_status = cudaGetLastError();
+    if (cuda_status != cudaSuccess) {
+        fprintf(stderr, "Malloc failed: %s\n", cudaGetErrorString(cuda_status));
+        return std::vector<int>();
+    }
     //Forming an edge list
     // Copy data to GPU
     for (int i = 0; i < N; i++) {
@@ -96,7 +117,7 @@ std::vector<int> gpu_connected_components(CSR_graph<double>& input_graph, int th
 
     Hook<<<blocksPerGrid, threadsPerBlock>>>(Parent, Start_v, End_v, E, threads, work_size);
     cudaDeviceSynchronize();
-    cudaError_t cuda_status = cudaGetLastError();
+    cuda_status = cudaGetLastError();
     if (cuda_status != cudaSuccess) {
 		fprintf(stderr, "Kernel launch failed: %s\n", cudaGetErrorString(cuda_status));
 		return std::vector<int>();
@@ -130,3 +151,5 @@ std::vector<std::pair<std::string, std::string>> Cuda_WCC(graph_structure<double
     std::vector<int> wccVecGPU = gpu_connected_components(csr_graph);
     return graph.res_trans_id_id(wccVecGPU);
 }
+
+#endif

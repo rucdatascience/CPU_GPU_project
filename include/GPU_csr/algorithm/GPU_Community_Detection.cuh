@@ -1,10 +1,31 @@
-#include <cub/cub.cuh>
-#include <GPU_Community_Detection.cuh>
+#ifndef CDLPGPU
+#define CDLPGPU
 
-int *new_labels, *labels; // two array to prop_labels the labels of nodes
-int *all_pointer, *all_edge, *prop_labels, *new_prop_labels;
-int N;
-long long E;
+#include "cuda_runtime.h"
+#include <cuda_runtime_api.h>
+#include "device_launch_parameters.h"
+
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <cub/cub.cuh>
+#include <vector>
+#include <string.h>
+#include <GPU_csr/GPU_csr.hpp>
+
+
+using namespace std;
+#define CD_THREAD_PER_BLOCK 512
+
+__global__ void Label_init(int *labels, int *all_pointer, int N);
+__global__ void LabelPropagation(int *all_pointer, int *prop_labels, int *labels, int *all_edge, int N);
+__global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels,  int N);
+void checkCudaError(cudaError_t err, const char* msg);
+void checkDeviceProperties();
+
+// int gpu_Community_Detection(graph_structure<double> & graph, float* elapsedTime,vector<int> &ans);
+void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, std::vector<string>& res, int max_iterations);
+
+std::vector<std::pair<std::string, std::string>> Cuda_CDLP(graph_structure<double>& graph, CSR_graph<double>& input_graph, int max_iterations);
 
 __global__ void LabelPropagation(int *all_pointer, int *prop_labels, int *labels, int *all_edge, int N)
 {
@@ -39,48 +60,7 @@ __global__ void Label_init(int *labels, int *all_pointer, int N)
 __global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels,  int N)
 { // Use GPU to propagate all labels at the same time.
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    if (tid >= 0 && tid < N)
-    {
-        /*
-        violence test
-
-        for (int i = all_pointer[tid]; i < all_pointer[tid+1]; i++)
-         {
-             counts[i] = 0;
-
-         }
-
-         for (int i = all_pointer[tid]; i < all_pointer[tid + 1]; i++)
-         {
-             for (int j = i+1; j < all_pointer[tid + 1]; j++)
-             {
-                 if (prop_labels[j]==prop_labels[i])
-                 {
-                     counts[j]++;
-                 }
-
-             }
-
- int maxlabel = all_pointer[tid];
-         for (int i = all_pointer[tid]; i < all_pointer[tid+1]; i++)
-         {
-             if (counts[i]>counts[maxlabel])
-             {
-                 maxlabel = i;
-             }
-             else if (counts[i]==counts[maxlabel])
-             {
-                 if (prop_labels[i]<prop_labels[maxlabel])
-                 {
-                     maxlabel = i;
-                 }
-             }
-
-
-         }
-     new_labels[tid] = prop_labels[maxlabel];
-         }  */
-
+    if (tid >= 0 && tid < N) {
         int maxlabel = prop_labels[all_pointer[tid]], maxcount = 0;
         for (int c = all_pointer[tid], last_label = prop_labels[all_pointer[tid]], last_count = 0; c < all_pointer[tid + 1]; c++)
         {
@@ -105,20 +85,44 @@ __global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_label
 
 void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, std::vector<string>& res, int max_iterations)
 {
-    N = graph.size();
+    int N = graph.size();
     dim3 init_label_block((N + CD_THREAD_PER_BLOCK - 1) / CD_THREAD_PER_BLOCK, 1, 1);
     dim3 init_label_thread(CD_THREAD_PER_BLOCK, 1, 1);
-    all_edge = input_graph.all_edge, all_pointer = input_graph.all_pointer;
+
+    int* all_edge = input_graph.all_edge;
+    int* all_pointer = input_graph.all_pointer;
+
+    int* prop_labels = nullptr;
+    int* new_prop_labels = nullptr;
+    int* new_labels = nullptr;
+    int* labels = nullptr;
+
     int CD_ITERATION = max_iterations;
-    E = input_graph.E_all;
-    cudaMallocManaged(&new_labels, N * sizeof(int));
-    cudaMallocManaged(&labels, N * sizeof(int));
-    cudaMallocManaged(&prop_labels, E * sizeof(int));
-    cudaMallocManaged(&new_prop_labels, E * sizeof(int));
+    long long E = input_graph.E_all;
+    cudaMallocManaged((void**)&new_labels, N * sizeof(int));
+    cudaMallocManaged((void**)&labels, N * sizeof(int));
+    cudaMallocManaged((void**)&prop_labels, E * sizeof(int));
+    cudaMallocManaged((void**)&new_prop_labels, E * sizeof(int));
+
+    cudaDeviceSynchronize();
+    cudaError_t cuda_status = cudaGetLastError();
+    if (cuda_status != cudaSuccess)
+    {
+        fprintf(stderr, "Cuda malloc failed: %s\n", cudaGetErrorString(cuda_status));
+        return;
+    }
 
     // cudaMallocManaged(&flags, E * sizeof(int));
     Label_init<<<init_label_block, init_label_thread>>>(labels, all_pointer, N);
     // thrust::sequence(labels, labels + N, 0, 1);
+
+    cudaDeviceSynchronize();
+    cuda_status = cudaGetLastError();
+    if (cuda_status != cudaSuccess)
+    {
+        fprintf(stderr, "Label init failed: %s\n", cudaGetErrorString(cuda_status));
+        return;
+    }
 
     int it = 0;
         // Determine temporary device storage requirements
@@ -127,9 +131,21 @@ void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, st
     cub::DeviceSegmentedSort::SortKeys(
         d_temp_storage, temp_storage_bytes, prop_labels, new_prop_labels,
         E, N, all_pointer, all_pointer + 1);
-    //cout<<temp_storage_bytes<<endl;
-    // Allocate temporary storage
-    cudaMalloc(&d_temp_storage, temp_storage_bytes);
+
+    cudaDeviceSynchronize();
+    cuda_status = cudaGetLastError();
+    if (cuda_status != cudaSuccess)
+    {
+        fprintf(stderr, "Sort failed: %s\n", cudaGetErrorString(cuda_status));
+        return;
+    }
+
+    cudaError_t err = cudaMalloc(&d_temp_storage, temp_storage_bytes);
+    if (err != cudaSuccess)
+    {
+        cerr << "Error: " << "Malloc failed" << " (" << cudaGetErrorString(err) << ")" << endl;
+        exit(EXIT_FAILURE);
+    }
 
     while (it < CD_ITERATION)
     {
@@ -139,15 +155,33 @@ void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, st
         LabelPropagation<<<init_label_block, init_label_thread>>>(all_pointer, prop_labels, labels, all_edge, N);
         cudaDeviceSynchronize();
 
+        cuda_status = cudaGetLastError();
+        if (cuda_status != cudaSuccess) {
+            fprintf(stderr, "LabelPropagation failed: %s\n", cudaGetErrorString(cuda_status));
+            return;
+        }
 
         // Run sorting operation
         cub::DeviceSegmentedSort::SortKeys(
             d_temp_storage, temp_storage_bytes, prop_labels, new_prop_labels,
             E, N, all_pointer, all_pointer + 1);
         cudaDeviceSynchronize();
+
+        cuda_status = cudaGetLastError();
+        if (cuda_status != cudaSuccess) {
+            fprintf(stderr, "Sort failed: %s\n", cudaGetErrorString(cuda_status));
+            return;
+        }
         
         Get_New_Label<<<init_label_block, init_label_thread>>>(all_pointer, new_prop_labels, new_labels,  N);
         cudaDeviceSynchronize();
+
+        cuda_status = cudaGetLastError();
+        if (cuda_status != cudaSuccess) {
+            fprintf(stderr, "Get_New_Label failed: %s\n", cudaGetErrorString(cuda_status));
+            return;
+        }
+
         it++;
         std::swap(labels, new_labels);
 
@@ -189,3 +223,5 @@ std::vector<std::pair<std::string, std::string>> Cuda_CDLP(graph_structure<doubl
     
     return res;
 }
+
+#endif

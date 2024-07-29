@@ -1,4 +1,22 @@
-#include <GPU_BFS.cuh>
+#ifndef GPU_BFS
+#define GPU_BFS
+
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
+
+#include <stdio.h>
+
+#include <GPU_csr/GPU_csr.hpp>
+
+#include <map>
+
+__global__ void bfs_kernel(int* edges, int* start, int* visited, int* queue, int* next_queue, int* queue_size, int* next_queue_size, int max_depth);
+
+//template<typename T>
+std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source_vertex, int max_depth = INT_MAX);
+
+std::vector<std::pair<std::string, int>> Cuda_Bfs(graph_structure<double>& graph, CSR_graph<double>& csr_graph, std::string src_v, int min_depth = 0, int max_depth = INT_MAX);
+
 
 __global__ void bfs_Relax(int* start, int* edge, int* depth, int* visited, int* queue, int* queue_size) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -71,6 +89,14 @@ std::vector<int> cuda_bfs(CSR_graph<double>& input_graph, int source, int max_de
     cudaMallocManaged((void**)&queue_size, sizeof(int));
     cudaMallocManaged((void**)&next_queue_size, sizeof(int));
 
+    cudaDeviceSynchronize();
+
+    cudaError_t cuda_status = cudaGetLastError();
+    if (cuda_status != cudaSuccess) {
+        fprintf(stderr, "Cuda malloc failed: %s\n", cudaGetErrorString(cuda_status));
+        return std::vector<int>();
+    }
+
     for (int i = 0; i < V; i++) {
 		depth[i] = max_depth;
 		visited[i] = 0;
@@ -132,3 +158,5 @@ std::vector<std::pair<std::string, int>> Cuda_Bfs(graph_structure<double>& graph
 
     return graph.res_trans_id_val(gpuBfsVec);
 }
+
+#endif

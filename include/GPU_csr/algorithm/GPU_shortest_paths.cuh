@@ -1,4 +1,20 @@
-#include <GPU_shortest_paths.cuh>
+#ifndef WS_SSSP_H
+#define WS_SSSP_H
+
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+
+#include <stdio.h>
+
+#include <GPU_csr/GPU_csr.hpp>
+
+__device__ __forceinline__ double atomicMinDouble (double * addr, double value);
+
+__global__ void Relax(int* offsets, int* edges, double* weights, double* dis, int* queue, int* queue_size, int* visited);
+__global__ void CompactQueue(int V, int* next_queue, int* next_queue_size, int* visited);
+void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<double>& distance, double max_dis = 10000000000);
+
+std::vector<std::pair<std::string, double>> Cuda_SSSP(graph_structure<double>& graph, CSR_graph<double>& csr_graph, std::string src_v, double max_dis = 10000000000);
 
 __device__ __forceinline__ double atomicMinDouble (double * addr, double value) {
     double old;
@@ -56,6 +72,13 @@ void gpu_shortest_paths(CSR_graph<double>& input_graph, int source, std::vector<
     cudaMallocManaged((void**)&next_queue, V * sizeof(int));
     cudaMallocManaged((void**)&queue_size, sizeof(int));
     cudaMallocManaged((void**)&next_queue_size, sizeof(int));
+
+    cudaDeviceSynchronize();
+    cudaError_t cuda_status = cudaGetLastError();
+    if (cuda_status != cudaSuccess) {
+        fprintf(stderr, "Cuda malloc failed: %s\n", cudaGetErrorString(cuda_status));
+        return;
+    }
 
     for (int i = 0; i < V; i++) {
 		dis[i] = max_dis;
@@ -117,3 +140,5 @@ std::vector<std::pair<std::string, double>> Cuda_SSSP(graph_structure<double>& g
 
     return graph.res_trans_id_val(gpuSSSPvec);
 }
+
+#endif

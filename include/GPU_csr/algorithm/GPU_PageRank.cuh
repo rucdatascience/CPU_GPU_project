@@ -1,27 +1,67 @@
-#include <GPU_PageRank.cuh>
-static int N;
+// PageRank_update.cuh
+#ifndef PAGERANK_CUH_
+#define PAGERANK_CUH_
 
-static vector<int> sink_vertexs; // sink vertexs
-static int *sink_vertex_gpu;
-static double *pr, *npr, *outs;
-static int out_zero_size;
-static double *sink_sum;
-static double teleport;
-dim3 blockPerGrid,threadPerGrid;
+#include "cuda_runtime.h"
+#include <cuda_runtime_api.h>
+#include "device_launch_parameters.h"
+#include <iostream>
+#include <vector>
+#include <GPU_csr/GPU_csr.hpp>
+
+using namespace std;
+
+// Constants
+#define SMALL_BOUND 6
+#define NORMAL_BOUND 96
+#define THREAD_PER_BLOCK 512
+
+
+// Function prototypes
+
+// CUDA kernels
+__device__ double _atomicAdd(double* address, double val);
+__global__ void importance(double *npr, double *pr,  double damp, int *in_edge, int *in_pointer, int GRAPHSIZE);
+__global__ void calculate_sink(double *pr, int *N_out_zero_gpu, int out_zero_size, double *sink_sum);
+__global__ void initialization(double *pr, double *outs, int *out_pointer, int N);
+__global__ void calculate_acc(double *pr,int *in_edge, int begin,int end,double *acc);
+__global__ void Antecedent_division(double *pr,double *npr, double *outs,double redi_tele, int N);
+
+void GPU_PR(graph_structure<double> &graph, CSR_graph<double>& csr_graph, vector<double> &result, int iterations, double damping);
+
+std::vector<std::pair<std::string, double>> Cuda_PR(graph_structure<double> &graph, CSR_graph<double> &csr_graph, int iterations, double damping);
 
 void GPU_PR(graph_structure<double> &graph, CSR_graph<double>& csr_graph, vector<double>& result, int iterations, double damping)
 {
-    N = graph.V;
-    teleport = (1 - damping) / N;
+    int N = graph.V;
+    double teleport = (1 - damping) / N;
 
     int* in_pointer = csr_graph.in_pointer;
     int* out_pointer = csr_graph.out_pointer;
     int* in_edge = csr_graph.in_edge;
+    int* sink_vertex_gpu = nullptr;
+    double* sink_sum = nullptr;
+    double* pr = nullptr;
+    double* npr = nullptr;
+    double* outs = nullptr;
+
+    dim3 blockPerGrid, threadPerGrid;
+
+    vector<int> sink_vertexs;
 
     cudaMallocManaged(&outs, N * sizeof(double));
     cudaMallocManaged(&sink_sum, sizeof(double));
     cudaMallocManaged(&npr, N * sizeof(double));
     cudaMallocManaged(&pr, N * sizeof(double));
+
+    cudaDeviceSynchronize();
+
+    cudaError_t cuda_status = cudaGetLastError();
+    if (cuda_status != cudaSuccess)
+    {
+        fprintf(stderr, "Cuda malloc failed: %s\n", cudaGetErrorString(cuda_status));
+        return;
+    }
 
     for (int i = 0; i < N; i++)
     {
@@ -31,9 +71,18 @@ void GPU_PR(graph_structure<double> &graph, CSR_graph<double>& csr_graph, vector
             sink_vertexs.push_back(i);
         }
     }
-    out_zero_size = sink_vertexs.size();
+    int out_zero_size = sink_vertexs.size();
     cudaMallocManaged(&sink_vertex_gpu, sink_vertexs.size() * sizeof(int));
+    cudaDeviceSynchronize();
     cudaMemcpy(sink_vertex_gpu, sink_vertexs.data(), sink_vertexs.size() * sizeof(int), cudaMemcpyHostToDevice);
+    
+    cuda_status = cudaGetLastError();
+    if (cuda_status != cudaSuccess)
+    {
+        fprintf(stderr, "Cuda malloc failed: %s\n", cudaGetErrorString(cuda_status));
+        return;
+    }
+    
     blockPerGrid.x = (N + THREAD_PER_BLOCK - 1) / THREAD_PER_BLOCK;
     threadPerGrid.x = THREAD_PER_BLOCK;
 
@@ -80,13 +129,9 @@ __global__ void initialization(double *pr, double *outs, int *out_pointer, int N
     {
         pr[tid] = 1 / N;
         if (out_pointer[tid + 1] - out_pointer[tid])
-        {
             outs[tid] = 1 / (out_pointer[tid + 1] - out_pointer[tid]);
-        }
         else
-        {
             outs[tid] = 0;
-        }
     }
 }
 
@@ -202,3 +247,5 @@ std::vector<std::pair<std::string, double>> Cuda_PR(graph_structure<double> &gra
 
     return graph.res_trans_id_val(result);
 }
+
+#endif // PAGERANK_CUH_
