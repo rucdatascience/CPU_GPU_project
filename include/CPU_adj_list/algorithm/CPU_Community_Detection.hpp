@@ -1,9 +1,9 @@
 #pragma once
-#include <graph_structure/graph_structure.hpp>
+#include <CPU_adj_list/CPU_adj_list.hpp>
 #include <vector>
 #include <iostream>
 #include <unordered_map>
-#include <ThreadPool.h>
+#include <CPU_adj_list/ThreadPool.h>
 #include <numeric>
 
 std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)

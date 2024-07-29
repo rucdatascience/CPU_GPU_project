@@ -2,7 +2,7 @@
 #include "cuda_runtime.h"
 #include <cuda_runtime_api.h>
 #include <vector>
-#include <graph_structure/graph_structure.hpp>
+#include <CPU_adj_list/CPU_adj_list.hpp>
 /*for GPU*/
 template <typename weight_type>
 class CSR_graph
@@ -19,12 +19,12 @@ public:
     std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
     int *in_pointer, *out_pointer, *in_edge, *out_edge, *all_pointer, *all_edge;
     double *in_edge_weight, *out_edge_weight;
-    int E_all;
+    size_t E_all;
 };
 
 template <typename weight_type>
 // CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph)
-CSR_graph<weight_type> toCSR(graph_structure<weight_type> &graph)
+CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph)
 {
 
     CSR_graph<weight_type> ARRAY;
@@ -76,18 +76,24 @@ CSR_graph<weight_type> toCSR(graph_structure<weight_type> &graph)
     }
     ARRAY.ALL_start_pointers[V] = pointer;
 
-    int E_in = ARRAY.INs_Edges.size();
-    int E_out = ARRAY.OUTs_Edges.size();
-    int E_all = E_in+E_out;
+    size_t E_in = ARRAY.INs_Edges.size();
+    size_t E_out = ARRAY.OUTs_Edges.size();
+    size_t E_all = E_in+E_out;
     ARRAY.E_all = E_all;
-    cudaMallocManaged(&ARRAY.in_pointer, (V + 1) * sizeof(int));
-    cudaMallocManaged(&ARRAY.out_pointer, (V + 1) * sizeof(int));
-    cudaMallocManaged(&ARRAY.all_pointer, (V + 1) * sizeof(int));
-    cudaMallocManaged(&ARRAY.in_edge, E_in * sizeof(int));
-    cudaMallocManaged(&ARRAY.out_edge, E_out * sizeof(int));
-    cudaMallocManaged(&ARRAY.all_edge, E_all * sizeof(int));
-    cudaMallocManaged(&ARRAY.in_edge_weight, E_in * sizeof(double));
-    cudaMallocManaged(&ARRAY.out_edge_weight, E_out * sizeof(double));
+    cudaMallocManaged((void**)&ARRAY.in_pointer, (V + 1) * sizeof(int));
+    cudaMallocManaged((void**)&ARRAY.out_pointer, (V + 1) * sizeof(int));
+    cudaMallocManaged((void**)&ARRAY.all_pointer, (V + 1) * sizeof(int));
+    cudaMallocManaged((void**)&ARRAY.in_edge, E_in * sizeof(int));
+    cudaMallocManaged((void**)&ARRAY.out_edge, E_out * sizeof(int));
+    cudaMallocManaged((void**)&ARRAY.all_edge, E_all * sizeof(int));
+    cudaMallocManaged((void**)&ARRAY.in_edge_weight, E_in * sizeof(double));
+    cudaMallocManaged((void**)&ARRAY.out_edge_weight, E_out * sizeof(double));
+
+    cudaDeviceSynchronize();
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        printf("CUDA error: %s\n", cudaGetErrorString(error));
+    }
     
     cudaMemcpy(ARRAY.in_pointer, ARRAY.INs_Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(ARRAY.out_pointer, ARRAY.OUTs_Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);

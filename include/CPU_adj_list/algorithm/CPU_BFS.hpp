@@ -2,7 +2,7 @@
 
 #include <queue>
 #include <climits>
-#include <graph_structure/graph_structure.hpp>
+#include <CPU_adj_list/CPU_adj_list.hpp>
 #include <algorithm>
 #include <stdexcept>
 

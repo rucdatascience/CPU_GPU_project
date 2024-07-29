@@ -1,8 +1,8 @@
 #pragma once
-#include <graph_structure/graph_structure.hpp>
+#include <CPU_adj_list/CPU_adj_list.hpp>
 #include <vector>
 #include <iostream>
-#include <ThreadPool.h>
+#include <CPU_adj_list/ThreadPool.h>
 #include <algorithm>
 
 std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& in_edge,
