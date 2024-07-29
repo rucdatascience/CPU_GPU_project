@@ -1,10 +1,11 @@
 #include <chrono>
-#include "CPU_BFS.hpp"
-#include "CPU_connected_components.hpp"
-#include "CPU_shortest_paths.hpp"
-#include "CPU_PageRank.hpp"
-#include "CPU_Community_Detection.hpp"
-#include <checker.hpp>
+#include <CPU_adj_list/algorithm/CPU_BFS.hpp>
+#include <CPU_adj_list/algorithm/CPU_connected_components.hpp>
+#include <CPU_adj_list/algorithm/CPU_shortest_paths.hpp>
+#include <CPU_adj_list/algorithm/CPU_PageRank.hpp>
+#include <CPU_adj_list/algorithm/CPU_Community_Detection.hpp>
+#include <LDBC/checker.hpp>
+#include <LDBC/ldbc.hpp>
 #include <time.h>
 
 int main()
@@ -15,17 +16,15 @@ int main()
     
     vector<string> datas = {"datagen-7_5-fb.properties"};
 
-    freopen("../data/input.txt", "r", stdin);
+    freopen("../input.txt", "r", stdin);
 
     for (string config_file : datas) {
 
-        //config_file = "../data/" + config_file;
-        //std::cout << "config_file is:" << config_file << endl;
         std::string config_file_path;
         std::cout << "Please input the config file path: ";
         std::cin >> config_file_path;
         
-        graph_structure<double> graph;
+        LDBC<double> graph;
         graph.read_config(config_file_path); //Read the ldbc configuration file to obtain key parameter information in the file
 
         auto begin = std::chrono::high_resolution_clock::now();

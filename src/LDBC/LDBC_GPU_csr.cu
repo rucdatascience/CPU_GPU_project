@@ -1,32 +1,33 @@
-#include <GPU_BFS.cuh>
-#include <GPU_connected_components.cuh>
-#include <GPU_shortest_paths.cuh>
-#include <GPU_PageRank.cuh>
-#include "GPU_Community_Detection.cuh"
+#include <GPU_csr/algorithm/GPU_BFS.cuh>
+#include <GPU_csr/algorithm/GPU_connected_components.cuh>
+#include <GPU_csr/algorithm/GPU_shortest_paths.cuh>
+#include <GPU_csr/algorithm/GPU_PageRank.cuh>
+#include <GPU_csr/algorithm/GPU_Community_Detection.cuh>
+
 #include <chrono>
-#include <checker.hpp>
+#include <LDBC/checker.hpp>
+#include <LDBC/ldbc.hpp>
 #include <time.h>
 
 
 int main()
 {
-    ios::sync_with_stdio(false);
+    std::ios::sync_with_stdio(false);
     std::cin.tie(0);
     std::cout.tie(0);    
 
-    vector<string> datas = {"datagen-7_5-fb.properties"};
+    std::vector<std::string> datas = {"datagen-7_5-fb.properties"};
 
-    freopen("../data/input.txt", "r", stdin);
+    freopen("../input.txt", "r", stdin);
     
-    for (string config_file : datas) {
+    for (std::string config_file : datas) {
         std::vector<std::pair<std::string, std::string>> result_all;
 
         std::string config_file_path;
         std::cout << "Please input the config file path: ";
         std::cin >> config_file_path;
 
-        // graph_structure<double> graph;
-        graph_structure<double> graph;
+        LDBC<double> graph;
         graph.read_config(config_file_path); //Read the ldbc configuration file to obtain key parameter information in the file
 
         auto begin = std::chrono::high_resolution_clock::now();
@@ -42,14 +43,6 @@ int main()
         std::cout << "Number of vertices: " << csr_graph.OUTs_Neighbor_start_pointers.size()-1 << std::endl;
         std::cout << "Number of edges: " << csr_graph.OUTs_Edges.size() << std::endl;
         printf("graph_to_csr_time cost time: %f s\n", graph_to_csr_time);
-
-       
-        float elapsedTime = 0;
-        unordered_map<string, string> umap_all_res;
-        size_t lastSlashPos = config_file.find_last_of("/\\");
-        size_t lastDotPos = config_file.find_last_of(".");
-        string test_file_name = config_file.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1);
-        umap_all_res.emplace("test_file_name", test_file_name);
 
         if (graph.sup_bfs) {
             bool bfs_pass = 0;
