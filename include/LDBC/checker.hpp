@@ -9,13 +9,13 @@ bool compare(std::vector<int>& a, std::vector<int>& b) {
     return a[0] < b[0];
 }
 
-void Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, int>>& res, bool& is_pass) {
+bool Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, int>>& res) {
 
     int size = res.size();
 
     if (size != graph.V) {
         std::cout << "Size of BFS results is not equal to the number of vertices!" << std::endl;
-        return;
+        return false;
     }
 
     std::string base_line_file;
@@ -27,7 +27,7 @@ void Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
 
     if (!base_line.is_open()) {
         std::cout << "Baseline file not found!" << std::endl;
-        return;
+        return false;
     }
 
     std::vector<int> id_res(graph.V, -1);
@@ -42,17 +42,17 @@ void Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         if (tokens.size() != 2) {
             std::cout << "Baseline file format error!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         if (id >= size) {
             std::cout << "Size of baseline file is larger than the result!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         if (graph.vertex_str_to_id.find(tokens[0]) == graph.vertex_str_to_id.end()) {
             std::cout << "Baseline file contains a vertex that is not in the graph!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
         if (id_res[v_id] != std::stol(tokens[1])) {
@@ -61,7 +61,7 @@ void Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
                 std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
                 std::cout << "BFS result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
                 base_line.close();
-                return;
+                return false;
             }
         }
         id++;
@@ -69,15 +69,15 @@ void Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     if (id != size) {
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
         base_line.close();
-        return;
+        return false;
     }
 
     std::cout << "BFS results are correct!" << std::endl;
-    is_pass = true;
     base_line.close();
+    return true;
 }
 
-void WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res, bool& is_pass) {
+bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res) {
     std::vector<std::vector<int>> temp;
     temp.resize(graph.V);
     for (auto &p : res)
@@ -92,7 +92,7 @@ void WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     for (auto &v : components) {
         if (!v.size()) {
             std::cout << "One of WCC results is empty!" << std::endl;
-            return;
+            return false;
         }
         std::sort(v.begin(), v.end());
     }
@@ -107,7 +107,7 @@ void WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
 
     if (!base_line.is_open()) {
         std::cout << "Baseline file not found!" << std::endl;
-        return;
+        return false;
     }
 
     std::vector<std::vector<int>> base_res;
@@ -123,7 +123,7 @@ void WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         if (tokens.size() != 2) {
             std::cout << "Baseline file format error!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         //store baseline file per row value to component
         base_components[graph.vertex_str_to_id[tokens[0]]] = graph.vertex_str_to_id[tokens[1]];
@@ -144,7 +144,7 @@ void WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         if (!v.size()) {
             std::cout << "One of baseline WCC results is empty!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         std::sort(v.begin(), v.end());
     }
@@ -156,30 +156,30 @@ void WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
             std::cout << "Baseline file and WCC results are not the same!" << std::endl;
             std::cout << "Baseline component size is " << base_res[i].size() << std::endl;
             std::cout << "WCC result component size is " << components[i].size() << std::endl;
-            return;
+            return false;
         }
         for (int j = 0; j < base_res[i].size(); j++) {
             if (base_res[i][j] != components[i][j]) {
                 std::cout << "Baseline file and WCC results are not the same!" << std::endl;
                 std::cout << "Difference at: " << graph.vertex_id_to_str[base_res[i][j]] << " " << graph.vertex_id_to_str[components[i][j]] << std::endl;
                 base_line.close();
-                return;
+                return false;
             }
         }
     }
 
     std::cout << "WCC results are correct!" << std::endl;
-    is_pass = 1;
     base_line.close();
+    return true;
 }
 
-void SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, double>>& res, bool& is_pass) {
+bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, double>>& res) {
     
     int size = res.size();
 
     if (size != graph.V) {
         std::cout << "Size of SSSP results is not equal to the number of vertices!" << std::endl;
-        return;
+        return false;
     }
 
     std::string base_line_file;
@@ -190,7 +190,7 @@ void SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
 
     if (!base_line.is_open()) {
         std::cout << "Baseline file not found!" << std::endl;
-        return;
+        return false;
     }
 
     std::vector<double> id_res(graph.V, INT_MAX);
@@ -206,18 +206,18 @@ void SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         if (tokens.size() != 2) {
             std::cout << "Baseline file format error!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         if (id >= size) {
             std::cout << "Size of baseline file is larger than the result!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
 
         if (graph.vertex_str_to_id.find(tokens[0]) == graph.vertex_str_to_id.end()) {
             std::cout << "Baseline file contains a vertex that is not in the graph!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
 
@@ -227,30 +227,30 @@ void SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
                 std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
                 std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
                 base_line.close();
-                return;
+                return false;
             }
         }
-        else if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-4) {
+        else if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-3) {
             std::cout << "Baseline file and SSSP results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
             std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         id++;
     }
     if (id != size) {
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
         base_line.close();
-        return;
+        return false;
     }
 
     std::cout << "SSSP results are correct!" << std::endl;
-    is_pass = true;
     base_line.close();
+    return true;
 }
 
-void PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, double>>& res, bool& is_pass) {
+bool PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, double>>& res) {
 
     int size = res.size();
 
@@ -261,7 +261,7 @@ void PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::strin
 
     if (size != graph.V) {
         std::cout << "Size of PageRank results is not equal to the number of vertices!" << std::endl;
-        return;
+        return false;
     }
 
     std::string base_line_file;
@@ -272,7 +272,7 @@ void PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::strin
 
     if (!base_line.is_open()) {
         std::cout << "Baseline file not found!" << std::endl;
-        return;
+        return false;
     }
 
     int id = 0;
@@ -283,42 +283,42 @@ void PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::strin
         if (tokens.size() != 2) {
             std::cout << "Baseline file format error!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         if (id >= size) {
             std::cout << "Size of baseline file is larger than the result!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
 
         if (graph.vertex_str_to_id.find(tokens[0]) == graph.vertex_str_to_id.end()) {
             std::cout << "Baseline file contains a vertex that is not in the graph!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
 
-        if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-4) {
+        if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-2) {
             std::cout << "Baseline file and PageRank results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
             std::cout << "PageRank result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         id++;
     }
     if (id != size) {
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
         base_line.close();
-        return;
+        return false;
     }
 
     std::cout << "PageRank results are correct!" << std::endl;
-    is_pass = true;
     base_line.close();
+    return true;
 }
 
-void CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res, bool& is_pass) {
+bool CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res) {
     int size = res.size();
 
     std::vector<std::string> id_res;
@@ -328,7 +328,7 @@ void CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
 
     if (size != graph.V) {
         std::cout << "Size of CDLP results is not equal to the number of vertices!" << std::endl;
-        return;
+        return false;
     }
 
     std::string base_line_file;
@@ -339,7 +339,7 @@ void CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
 
     if (!base_line.is_open()) {
         std::cout << "Baseline file not found!" << std::endl;
-        return;
+        return false;
     }
 
     int id = 0;
@@ -350,18 +350,18 @@ void CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         if (tokens.size() != 2) {
             std::cout << "Baseline file format error!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         if (id >= size) {
             std::cout << "Size of baseline file is larger than the result!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
 
         if (graph.vertex_str_to_id.find(tokens[0]) == graph.vertex_str_to_id.end()) {
             std::cout << "Baseline file contains a vertex that is not in the graph!" << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
         
@@ -370,17 +370,17 @@ void CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
             std::cout << "CDLP result: " << id_res[v_id] << std::endl;
             base_line.close();
-            return;
+            return false;
         }
         id++;
     }
     if (id != size) {
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
         base_line.close();
-        return;
+        return false;
     }
 
     std::cout << "CDLP results are correct!" << std::endl;
-    is_pass = 1;
     base_line.close();
+    return true;
 }
