@@ -72,8 +72,7 @@ template <typename weight_type>
 int graph_structure<weight_type>::add_vertice(std::string vertex) {
 	if (vertex_str_to_id.find(vertex) == vertex_str_to_id.end()) {
 		vertex_id_to_str.push_back(vertex);
-		vertex_str_to_id[vertex] = V;
-		V++;
+		vertex_str_to_id[vertex] = V++;
 		std::vector<std::pair<int, weight_type>> x;
 		OUTs.push_back(x);
 		INs.push_back(x);
@@ -84,7 +83,6 @@ int graph_structure<weight_type>::add_vertice(std::string vertex) {
 
 template <typename weight_type>
 void graph_structure<weight_type>::add_edge(int e1, int e2, weight_type ec) {
-
 	sorted_vector_binary_operations_insert(OUTs[e1], e2, ec);
 	sorted_vector_binary_operations_insert(INs[e2], e1, ec);
 }
