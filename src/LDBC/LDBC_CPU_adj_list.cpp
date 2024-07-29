@@ -33,15 +33,44 @@ int main()
         double load_ldbc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
         printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
 
-        float elapsedTime = 0;
-        unordered_map<string, string> umap_all_res;
-        size_t lastSlashPos = config_file.find_last_of("/\\");
-        size_t lastDotPos = config_file.find_last_of(".");
-        string test_file_name = config_file.substr(lastSlashPos + 1, lastDotPos - lastSlashPos - 1);
-        umap_all_res.emplace("test_file_name", test_file_name);
-
         std::vector<std::pair<std::string, std::string>> result_all;
 
+
+
+if(1){
+    if (graph.sup_bfs) {
+            bool bfs_pass = false;
+
+            try{
+std::vector<std::pair<std::string, int>> cpu_bfs_result;
+            begin = std::chrono::high_resolution_clock::now();
+            cpu_bfs_result = CPU_Bfs(graph, graph.bfs_src_name);
+            end = std::chrono::high_resolution_clock::now();
+            double cpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
+            printf("CPU BFS cost time: %f s\n", cpu_bfs_time);
+            }
+            catch(...){
+result_all.push_back(std::make_pair("BFS", "failed!"));
+            }
+            Bfs_checker(graph, cpu_bfs_result, bfs_pass);  // checker need to return a bool value: correct
+
+if(correct){
+result_all.push_back(std::make_pair("BFS", std::to_string(cpu_bfs_time)));
+}
+else{
+    result_all.push_back(std::make_pair("BFS", "wrong"));
+}          
+        }
+        else{
+result_all.push_back(std::make_pair("BFS", "N/A"));
+        }
+            
+}
+
+
+
+
+        
         if (graph.sup_bfs) {
             bool bfs_pass = false;
 

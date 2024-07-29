@@ -8,6 +8,10 @@ class LDBC : public graph_structure<weight_type> {
     LDBC() : graph_structure<weight_type>() {}
     LDBC(int n) : graph_structure<weight_type>(n) {}
 
+	bool is_directed = true;//direct graph or undirect graph
+	bool is_weight = false;// weight graph or no weight graph
+	bool is_sssp_weight = true;//the weight of sssp
+
 	bool sup_bfs = false;
 	bool sup_cdlp = false;
 	bool sup_pr = false;
@@ -65,12 +69,10 @@ void LDBC<weight_type>::read_config(std::string config_path) {
 				std::cout << "edge_file: " << edge_file << std::endl;
 			}
 			else if (parts.back() == "vertices") {
-				this->V = stoi(value);
-				std::cout << "V: " << this->V << std::endl;
+				std::cout << "V: " << stoi(value) << std::endl;
 			}
 			else if (parts.back() == "edges") {
-				this->E = stoi(value);
-				std::cout << "E: " << this->E << std::endl;
+				std::cout << "E: " << stoi(value) << std::endl;
 			}
 			else if (parts.back() == "directed") {
 				if (value == "false")
@@ -162,7 +164,6 @@ void LDBC<weight_type>::read_config(std::string config_path) {
 
 template <typename weight_type>
 void LDBC<weight_type>::load_graph() {
-	this->clear();
 
 	std::string vertex_file_path;
 	std::cout << "Please input the vertex file path: ";
@@ -205,9 +206,6 @@ void LDBC<weight_type>::load_graph() {
 			sssp_src = this->vertex_str_to_id[sssp_src_name];
 	}
 
-	this->OUTs.resize(this->V);
-	this->INs.resize(this->V);
-
 	std::string edge_file_path;
 	std::cout << "Please input the edge file path: ";
 	std::cin >> edge_file_path;
@@ -222,7 +220,10 @@ void LDBC<weight_type>::load_graph() {
 			int v2 = this->add_vertice(Parsed_content[1]);//get 2nd vertex
 			weight_type ec = Parsed_content.size() > 2 ? std::stod(Parsed_content[2]) : 1;//get weight
 			//graph_structure<weight_type>::add_edge(v1, v2, ec);
-			this->fast_add_edge(v1, v2, ec);
+			this->add_edge(v1, v2, ec);
+			if (!is_directed) {
+		       this->add_edge(v2, v1, ec);
+        	}
 		}
 		myfile.close();
 	}
