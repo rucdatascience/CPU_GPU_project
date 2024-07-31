@@ -7,6 +7,9 @@ class LDBC : public graph_structure<weight_type> {
 
     LDBC() : graph_structure<weight_type>() {}
     LDBC(int n) : graph_structure<weight_type>(n) {}
+	LDBC(std::string directory, std::string name) : graph_structure<weight_type>() {
+		this->base_path = directory + name;
+	}
 
 	bool is_directed = true;//direct graph or undirect graph
 	bool is_weight = false;// weight graph or no weight graph
@@ -19,7 +22,7 @@ class LDBC : public graph_structure<weight_type> {
 	bool sup_sssp = false;
 	std::string bfs_src_name;//get bfs vertex source
 	std::string sssp_src_name;//get sssp vertex source
-	std::string vertex_file, edge_file;
+	std::string base_path;
 	int bfs_src = 0;//define bfs vertex source is 0
 	int cdlp_max_its = 10;//cdlp algo max iterator num
 	int pr_its = 10;//pr algo iterator num
@@ -29,7 +32,7 @@ class LDBC : public graph_structure<weight_type> {
 	void load_graph();
 	void read_config(std::string config_path);
 
-	void save_to_CSV(std::vector<std::pair<std::string, std::string>>& res, std::string file_path, std::string env_type);
+	void save_to_CSV(std::vector<std::pair<std::string, std::string>>& res, std::string file_path);
 };
 
 template <typename weight_type>
@@ -60,14 +63,10 @@ void LDBC<weight_type>::read_config(std::string config_path) {
 
         auto parts = parse_string(key, ".");
         if (parts.size() >= 2) {
-			if (parts.back() == "vertex-file") {//Reading *.properties file to get vertex file. eg. datagen-7_5-fb.v
-				vertex_file = value;
-				std::cout << "vertex_file: " << vertex_file << std::endl;
-			}
-			else if (parts.back() == "edge-file") {
-				edge_file = value;
-				std::cout << "edge_file: " << edge_file << std::endl;
-			}
+			if (parts.back() == "vertex-file") //Reading *.properties file to get vertex file. eg. datagen-7_5-fb.v
+				std::cout << "vertex_file: " << value << std::endl;
+			else if (parts.back() == "edge-file")
+				std::cout << "edge_file: " << value << std::endl;
 			else if (parts.back() == "vertices") {
 				std::cout << "V: " << stoi(value) << std::endl;
 			}
@@ -166,8 +165,7 @@ template <typename weight_type>
 void LDBC<weight_type>::load_graph() {
 
 	std::string vertex_file_path;
-	std::cout << "Please input the vertex file path: ";
-	std::cin >> vertex_file_path;
+	vertex_file_path = this->base_path + ".v";
 
 	std::cout << "Loading vertices..." << std::endl;
 	std::string line_content;
@@ -179,7 +177,7 @@ void LDBC<weight_type>::load_graph() {
 		myfile.close();
 	}
 	else {
-		std::cout << "Unable to open file " << vertex_file << std::endl
+		std::cout << "Unable to open file " << vertex_file_path << std::endl
 			<< "Please check the file location or file name." << std::endl;
 		getchar();
 		exit(1);
@@ -207,8 +205,7 @@ void LDBC<weight_type>::load_graph() {
 	}
 
 	std::string edge_file_path;
-	std::cout << "Please input the edge file path: ";
-	std::cin >> edge_file_path;
+	edge_file_path = this->base_path + ".e";
 
 	std::cout << "Loading edges..." << std::endl;
 	myfile.open(edge_file_path);
@@ -228,7 +225,7 @@ void LDBC<weight_type>::load_graph() {
 		myfile.close();
 	}
 	else {
-		std::cout << "Unable to open file " << edge_file << std::endl
+		std::cout << "Unable to open file " << edge_file_path << std::endl
 			<< "Please check the file location or file name." << std::endl;
 		getchar();
 		exit(1);
@@ -237,15 +234,16 @@ void LDBC<weight_type>::load_graph() {
 }
 
 template <typename weight_type>
-void LDBC<weight_type>::save_to_CSV(std::vector<std::pair<std::string, std::string>>& res, std::string file_path, std::string env_type) {
-	std::ofstream out(file_path);
+void LDBC<weight_type>::save_to_CSV(std::vector<std::pair<std::string, std::string>>& res, std::string file_path) {
+	std::ofstream out(file_path, std::ios::app);
 
-	std::string data_name = this->vertex_file;
-
-	out << data_name << "," << env_type << std::endl;
-
-	for (auto i : res)
-		out << i.first << "," << i.second << std::endl;
+	int res_size = res.size();
+	for (int i = 0; i < res_size; i++) {
+        out << res[i].second;
+        if (i != res_size - 1)
+            out << ",";
+    }
+    out << std::endl;
 
 	out.close();
 }

@@ -9,7 +9,7 @@ bool compare(std::vector<int>& a, std::vector<int>& b) {
     return a[0] < b[0];
 }
 
-bool Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, int>>& res) {
+bool Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, int>>& res, std::string base_line_file) {
 
     int size = res.size();
 
@@ -17,11 +17,6 @@ bool Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         std::cout << "Size of BFS results is not equal to the number of vertices!" << std::endl;
         return false;
     }
-
-    std::string base_line_file;
-
-    std::cout << "Please input the baseline file path: ";
-    std::cin >> base_line_file;
 
     std::ifstream base_line(base_line_file);
 
@@ -77,7 +72,7 @@ bool Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     return true;
 }
 
-bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res) {
+bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res, std::string base_line_file) {
     std::vector<std::vector<int>> temp;
     temp.resize(graph.V);
     for (auto &p : res)
@@ -98,10 +93,6 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     }
 
     std::sort(components.begin(), components.end(), compare);
-
-    std::string base_line_file;
-    std::cout << "Please input the baseline file path: ";
-    std::cin >> base_line_file;
 
     std::ifstream base_line(base_line_file);
 
@@ -173,7 +164,7 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     return true;
 }
 
-bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, double>>& res) {
+bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, double>>& res, std::string base_line_file) {
     
     int size = res.size();
 
@@ -181,10 +172,6 @@ bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         std::cout << "Size of SSSP results is not equal to the number of vertices!" << std::endl;
         return false;
     }
-
-    std::string base_line_file;
-    std::cout << "Please input the baseline file path: ";
-    std::cin >> base_line_file;
 
     std::ifstream base_line(base_line_file);
 
@@ -230,7 +217,7 @@ bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
                 return false;
             }
         }
-        else if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-3) {
+        else if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-4) {
             std::cout << "Baseline file and SSSP results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
             std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
@@ -250,7 +237,7 @@ bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
     return true;
 }
 
-bool PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, double>>& res) {
+bool PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, double>>& res, std::string base_line_file) {
 
     int size = res.size();
 
@@ -263,10 +250,6 @@ bool PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::strin
         std::cout << "Size of PageRank results is not equal to the number of vertices!" << std::endl;
         return false;
     }
-
-    std::string base_line_file;
-    std::cout << "Please input the baseline file path: ";
-    std::cin >> base_line_file;
 
     std::ifstream base_line(base_line_file);
 
@@ -318,7 +301,7 @@ bool PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::strin
     return true;
 }
 
-bool CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res) {
+bool CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res, std::string base_line_file) {
     int size = res.size();
 
     std::vector<std::string> id_res;
@@ -330,10 +313,6 @@ bool CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         std::cout << "Size of CDLP results is not equal to the number of vertices!" << std::endl;
         return false;
     }
-
-    std::string base_line_file;
-    std::cout << "Please input the baseline file path: ";
-    std::cin >> base_line_file;
 
     std::ifstream base_line(base_line_file);
 
