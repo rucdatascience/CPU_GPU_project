@@ -20,11 +20,20 @@ int main()
 
     std::vector<std::pair<std::string, std::string>> result_all;
 
-    std::string config_file_path;
-    std::cout << "Please input the config file path: ";
-    std::cin >> config_file_path;
+    std::string directory;
+    std::cout << "Please input the data directory: ";
+    std::cin >> directory;
 
-    LDBC<double> graph;
+    if (directory.back() != '/')
+        directory += "/";
+
+    std::string graph_name;
+    std::cout << "Please input the graph name: ";
+    std::cin >> graph_name;
+
+    std::string config_file_path = directory + graph_name + ".properties";
+
+    LDBC<double> graph(directory, graph_name);
     graph.read_config(config_file_path); //Read the ldbc configuration file to obtain key parameter information in the file
 
     auto begin = std::chrono::high_resolution_clock::now();
@@ -53,7 +62,7 @@ int main()
                 gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("GPU BFS cost time: %f s\n", gpu_bfs_time);
                 
-                if (Bfs_checker(graph, bfs_result))
+                if (Bfs_checker(graph, bfs_result, graph.base_path + "-BFS"))
                     result_all.push_back(std::make_pair("BFS", std::to_string(gpu_bfs_time)));
                 else
                     result_all.push_back(std::make_pair("BFS", "wrong"));
@@ -78,7 +87,7 @@ int main()
                 end = std::chrono::high_resolution_clock::now();
                 gpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("GPU SSSP cost time: %f s\n", gpu_sssp_time);
-                if (SSSP_checker(graph, sssp_result))
+                if (SSSP_checker(graph, sssp_result, graph.base_path + "-SSSP"))
                     result_all.push_back(std::make_pair("SSSP", std::to_string(gpu_sssp_time)));
                 else
                     result_all.push_back(std::make_pair("SSSP", "wrong"));
@@ -102,7 +111,7 @@ int main()
                 end = std::chrono::high_resolution_clock::now();
                 gpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("GPU WCC cost time: %f s\n", gpu_wcc_time);
-                if (WCC_checker(graph, wcc_result))
+                if (WCC_checker(graph, wcc_result, graph.base_path + "-WCC"))
                     result_all.push_back(std::make_pair("WCC", std::to_string(gpu_wcc_time)));
                 else
                     result_all.push_back(std::make_pair("WCC", "wrong"));
@@ -126,7 +135,7 @@ int main()
                 end = std::chrono::high_resolution_clock::now();
                 gpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("GPU PageRank cost time: %f s\n", gpu_pr_time);
-                if (PR_checker(graph, pr_result))
+                if (PR_checker(graph, pr_result, graph.base_path + "-PR"))
                     result_all.push_back(std::make_pair("PR", std::to_string(gpu_pr_time)));
                 else
                     result_all.push_back(std::make_pair("PR", "wrong"));
@@ -150,7 +159,7 @@ int main()
                 end = std::chrono::high_resolution_clock::now();
                 gpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("GPU Community Detection cost time: %f s\n", gpu_cdlp_time);
-                if (CDLP_checker(graph, cdlp_result))
+                if (CDLP_checker(graph, cdlp_result, graph.base_path + "-CDLP"))
                     result_all.push_back(std::make_pair("CDLP", std::to_string(gpu_cdlp_time)));
                 else
                     result_all.push_back(std::make_pair("CDLP", "wrong"));
@@ -171,6 +180,8 @@ int main()
             std::cout << ",";
     }
     std::cout << std::endl;
+
+    graph.save_to_CSV(result_all, "./result-gpu.csv");
 
     freopen("/dev/tty", "r", stdin);
 
