@@ -9,21 +9,12 @@ Based on graph algorithm library of RUC
 
 ## File Structure
 
-- `src_cpu/`: CPU source files
-- `src_gpu/`: GPU source files
-- `include/`: global header files
-- `include_cpu/`: CPU header files
-- `include_gpu/`: GPU header files
-- `data/`: put the LDBC dataset here (.properties, .v, .e)
-- `results/`: put the baseline results here, the program will check the algorithm results automatically
+- `include/`: header files
+- `src/CPU_adj_list`: example of CPU version
+- `src/GPU_csr`: example of GPU version
+- `src/LDBC`: test framework for LDBC dataset
 
 ## Build & Run
-
-Fistly, you need to put the LDBC dataset in the `data/` directory.
-
-For example, if you want to load the `cit-Patents` dataset, you should put the `cit-Patents.properties`, `cit-Patents.v`, `cit-Patents.e` in the `data/` directory.
-
-Then, you can build and run the test program.
 
 By specifying compilation options, you can choose to compile the CPU version or the GPU version, or both.
 
@@ -56,9 +47,13 @@ make
 ./bin_gpu/Test_GPU
 ```
 
-Then the program will ask you to input the dataset configuration file name, you can input `cit-Patents.properties` to test the program.
+Then the program will ask you to input the directory and the graph name,
+
+Note that the directory should contain the configuration file, the graph data, and the necessary baseline results.
 
 ```shell
-Enter the name of the configuration file: # The program asking
-cit-Patents.properties # Input the configuration file name
+Please input the data directory: # The program asking
+/somewhere/ # Input the configuration file name
+Please input the graph name: # The program asking
+datagen-7_5-fb # Input the graph name which you want to test
 ```
