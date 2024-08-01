@@ -12,4 +12,6 @@
 
 /build/
 /input.txt
-/results/
+/logs/
+/result-cpu.csv
+/result-gpu.csv
