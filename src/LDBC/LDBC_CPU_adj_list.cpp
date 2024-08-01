@@ -14,7 +14,7 @@ int main()
     std::cin.tie(0);
     std::cout.tie(0);
 
-    freopen("../input.txt", "r", stdin);
+    //freopen("../input.txt", "r", stdin);
 
     std::string directory;
     std::cout << "Please input the data directory: ";
@@ -172,7 +172,7 @@ int main()
 
     graph.save_to_CSV(result_all, "./result-cpu.csv");
 
-    freopen("/dev/tty", "r", stdin);
+    //freopen("/dev/tty", "r", stdin);
 
     return 0;
 }

@@ -16,7 +16,7 @@ int main()
     std::cin.tie(0);
     std::cout.tie(0);    
 
-    freopen("../input.txt", "r", stdin);
+    //freopen("../input.txt", "r", stdin);
 
     std::vector<std::pair<std::string, std::string>> result_all;
 
@@ -183,7 +183,7 @@ int main()
 
     graph.save_to_CSV(result_all, "./result-gpu.csv");
 
-    freopen("/dev/tty", "r", stdin);
+    //freopen("/dev/tty", "r", stdin);
 
     return 0;
 }
