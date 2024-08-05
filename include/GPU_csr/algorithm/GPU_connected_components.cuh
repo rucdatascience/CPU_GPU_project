@@ -17,9 +17,6 @@ std::vector<std::pair<std::string, std::string>> Cuda_WCC(graph_structure<double
 
 __device__ int findRoot(int* parent, int i) {
     //Recursively searching for the ancestor of node i
-    /*while (i != parent[i])
-        i = parent[i];
-    return i;*/
     int par = parent[i];
     if (par != i) {
         int next, prev = i;
@@ -41,9 +38,10 @@ __global__ void Hook(int* parent, int* Start_v, int* End_v, int E, int threads, 
         int end = min(start + work_size, E);
 
         for (int i = start; i < end; i++) {
+            //A thread may handle multiple edges
             int u = Start_v[i];
             int v = End_v[i];
-            //u,v are the starting and ending points of the edge
+            //u,v are the starting and ending vertex of the edge
             int rootU = findRoot(parent, u);
             int rootV = findRoot(parent, v);
             //Obtain Root Node
@@ -73,6 +71,7 @@ __global__ void Hook(int* parent, int* Start_v, int* End_v, int E, int threads, 
 
 //template <typename T>
 std::vector<int> gpu_connected_components(CSR_graph<double>& input_graph, int threads) {
+    //Using BFS method to find connectivity vectors starting from each node
     int N = input_graph.OUTs_Neighbor_start_pointers.size() - 1;
     int E = input_graph.OUTs_Edges.size();
     //Number of nodes and edges
@@ -82,9 +81,7 @@ std::vector<int> gpu_connected_components(CSR_graph<double>& input_graph, int th
     int* Parent;
     // Allocate GPU memory
     cudaMallocManaged((void**)&Start_v, E * sizeof(int));
-    //memset(Start_v, 0, E * sizeof(int));
     cudaMallocManaged((void**)&End_v, E * sizeof(int));
-    //memset(End_v, 0, E * sizeof(int));
     cudaMallocManaged((void**)&Parent, N * sizeof(int));
     cudaDeviceSynchronize();
     cudaError_t cuda_status = cudaGetLastError();
@@ -105,15 +102,11 @@ std::vector<int> gpu_connected_components(CSR_graph<double>& input_graph, int th
     int threadsPerBlock = 1024;
     int blocksPerGrid = 0;
     //Disperse E operations on threads
-    //blocksPerGrid = (E + threadsPerBlock - 1) / threadsPerBlock;
-
     if (E < threads)
         threads = E;
 
     blocksPerGrid = (threads + threadsPerBlock - 1) / threadsPerBlock;
-
     int work_size = (E + threads - 1) / threads;
-    //printf("threads: %d, blocks: %d, work_size: %d\n", threads, blocksPerGrid, work_size);
 
     Hook<<<blocksPerGrid, threadsPerBlock>>>(Parent, Start_v, End_v, E, threads, work_size);
     cudaDeviceSynchronize();
