@@ -72,6 +72,13 @@ bool Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     return true;
 }
 
+void set_root(std::vector<int>& parent, int v) {
+    if (parent[v] == v)
+        return;
+    set_root(parent, parent[v]);
+    parent[v] = parent[parent[v]];
+}
+
 bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res, std::string base_line_file) {
     std::vector<std::vector<int>> temp;
     temp.resize(graph.V);
@@ -120,6 +127,9 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         base_components[graph.vertex_str_to_id[tokens[0]]] = graph.vertex_str_to_id[tokens[1]];
     }
 
+    for (int i = 0; i < graph.V; i++)
+        set_root(base_components, i);
+
     std::vector<std::vector<int>> componentLists(graph.V);
 
     for (int i = 0; i < graph.V; i++) {
@@ -141,6 +151,13 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     }
 
     std::sort(base_res.begin(), base_res.end(), compare);
+
+    if (size != base_res.size()) {
+        std::cout << "Baseline file and WCC results are not the same!" << std::endl;
+        std::cout << "Baseline total component is " << base_res.size() << std::endl;
+        std::cout << "WCC result total component is " << components.size() << std::endl;
+        return false;
+    }
 
     for (int i = 0; i < size; i++) {
         if (base_res[i].size() != components[i].size()) {
@@ -208,7 +225,7 @@ bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
 
-        if (tokens[1] == "infinity") {
+        if (tokens[1] == "infinity" || tokens[1] == "inf") {
             if (id_res[v_id] != std::numeric_limits<double>::max()) {
                 std::cout << "Baseline file and SSSP results are not the same!" << std::endl;
                 std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
