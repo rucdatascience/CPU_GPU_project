@@ -26,7 +26,7 @@ std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
         {
             results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &in_edges, &out_edges, &label, &new_label]
                 {
-                    int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
+                    int start = (long long)q * N / 100, end = std::min((long long)N - 1, (long long)(q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
 
                         std::unordered_map<int, int> count;

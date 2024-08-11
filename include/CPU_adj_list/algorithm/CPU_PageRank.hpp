@@ -38,7 +38,7 @@ std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& i
         {
             results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &rank, &out_edge, &new_rank, &x]
                 {
-                    int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
+                    int start = (long long)q * N / 100, end = std::min((long long)N - 1, (long long)(q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
                         rank[i] /= out_edge[i].size();
                         new_rank[i] = x;
@@ -56,7 +56,7 @@ std::vector<double> PageRank(std::vector<std::vector<std::pair<int, double>>>& i
         {
             results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &in_edge, &rank, &new_rank, &d]
                 {
-                    int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
+                    int start = (long long)q * N / 100, end = std::min((long long)N - 1, (long long)(q + 1) * N / 100);
                     for (int v = start; v <= end; v++) {
                         for (auto& y : in_edge[v]) {
                             new_rank[v] += d * rank[y.first];
