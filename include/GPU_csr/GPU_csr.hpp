@@ -7,6 +7,7 @@
 template <typename weight_type>
 class CSR_graph
 {
+    //CSR has space efficiency and is easy to use by GPUs.
 public:
     CSR_graph() {}
     ~CSR_graph();
@@ -15,9 +16,9 @@ public:
         Now, Neighbor_sizes[i] = Neighbor_start_pointers[i + 1] - Neighbor_start_pointers[i].
         And Neighbor_start_pointers[V] = Edges.size() = Edge_weights.size() = the total number of edges.
     */
-    std::vector<int> INs_Edges, OUTs_Edges,all_Edges;                       // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
+    std::vector<int> INs_Edges, OUTs_Edges,all_Edges; // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
     std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
-    int *in_pointer, *out_pointer, *in_edge, *out_edge, *all_pointer, *all_edge;
+    int *in_pointer, *out_pointer, *in_edge, *out_edge, *all_pointer, *all_edge;//All_edge has merged in_edge and out_edge, mainly used on CDLP
     double *in_edge_weight, *out_edge_weight;
     size_t E_all;
 };
