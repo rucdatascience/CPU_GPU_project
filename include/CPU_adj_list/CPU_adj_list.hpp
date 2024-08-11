@@ -38,7 +38,7 @@ public:
 
 	/*class member functions*/
 	inline void add_edge(int, int, weight_type); // this function can change edge weights
-	inline void fast_add_edge(int, int, weight_type);
+
 	inline void remove_edge(int, int);//Remove any edge that connects two vertices
 	inline void remove_all_adjacent_edges(int);//Remove all edges, the input params is vertex numbers
 	inline bool contain_edge(int, int); // whether there is an edge
