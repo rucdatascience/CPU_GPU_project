@@ -21,14 +21,14 @@ int main()
     std::vector<std::pair<std::string, std::string>> result_all;
 
     std::string directory;
-    std::cout << "Please input the data directory: ";
+    std::cout << "Please input the data directory: " << std::endl;
     std::cin >> directory;
 
     if (directory.back() != '/')
         directory += "/";
 
     std::string graph_name;
-    std::cout << "Please input the graph name: ";
+    std::cout << "Please input the graph name: " << std::endl;
     std::cin >> graph_name;
 
     std::string config_file_path = directory + graph_name + ".properties";
@@ -82,8 +82,10 @@ int main()
 
             try {
                 std::vector<std::pair<std::string, double>> sssp_result;
+                //std::vector<int> pre_v;
                 begin = std::chrono::high_resolution_clock::now();
                 sssp_result = Cuda_SSSP(graph, csr_graph, graph.sssp_src_name, std::numeric_limits<double>::max());
+                //sssp_result = Cuda_SSSP_pre(graph, csr_graph, graph.sssp_src_name, pre_v, std::numeric_limits<double>::max());
                 end = std::chrono::high_resolution_clock::now();
                 gpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("GPU SSSP cost time: %f s\n", gpu_sssp_time);
@@ -91,6 +93,12 @@ int main()
                     result_all.push_back(std::make_pair("SSSP", std::to_string(gpu_sssp_time)));
                 else
                     result_all.push_back(std::make_pair("SSSP", "wrong"));
+                
+                /*std::ofstream pre_file;
+                pre_file.open(graph.base_path + "-GPU-pre.txt");
+                for (auto v : pre_v)
+                    pre_file << v << std::endl;
+                pre_file.close();*/
             }
             catch (...) {
                 result_all.push_back(std::make_pair("SSSP", "failed!"));
