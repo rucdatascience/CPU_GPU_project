@@ -68,10 +68,10 @@ void LDBC<weight_type>::read_config(std::string config_path) {
 			else if (parts.back() == "edge-file")
 				std::cout << "edge_file: " << value << std::endl;
 			else if (parts.back() == "vertices") {
-				std::cout << "V: " << stoi(value) << std::endl;
+				std::cout << "V: " << value << std::endl;
 			}
 			else if (parts.back() == "edges") {
-				std::cout << "E: " << stoi(value) << std::endl;
+				std::cout << "E: " << value << std::endl;
 			}
 			else if (parts.back() == "directed") {
 				if (value == "false")
