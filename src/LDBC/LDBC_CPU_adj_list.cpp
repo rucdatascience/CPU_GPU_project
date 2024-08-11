@@ -17,14 +17,14 @@ int main()
     //freopen("../input.txt", "r", stdin);
 
     std::string directory;
-    std::cout << "Please input the data directory: ";
+    std::cout << "Please input the data directory: " << std::endl;
     std::cin >> directory;
 
     if (directory.back() != '/')
         directory += "/";
 
     std::string graph_name;
-    std::cout << "Please input the graph name: ";
+    std::cout << "Please input the graph name: " << std::endl;
     std::cin >> graph_name;
 
     std::string config_file_path = directory + graph_name + ".properties";
@@ -70,8 +70,10 @@ int main()
             double cpu_sssp_time = 0;
 
             try {
+                //std::vector<int> pre_v;
                 begin = std::chrono::high_resolution_clock::now();
                 std::vector<std::pair<std::string, double>> cpu_sssp_result = CPU_SSSP(graph, graph.sssp_src_name);
+                //std::vector<std::pair<std::string, double>> cpu_sssp_result = CPU_SSSP_pre(graph, graph.sssp_src_name, pre_v);
                 end = std::chrono::high_resolution_clock::now();
                 cpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("CPU SSSP cost time: %f s\n", cpu_sssp_time);
@@ -80,6 +82,12 @@ int main()
                     result_all.push_back(std::make_pair("SSSP", std::to_string(cpu_sssp_time)));
                 else
                     result_all.push_back(std::make_pair("SSSP", "wrong"));
+                
+                /*std::ofstream pre_file;
+                pre_file.open(graph.base_path + "-CPU-pre.txt");
+                for (auto v : pre_v)
+                    pre_file << v << std::endl;
+                pre_file.close();*/
             }
             catch(...) {
                 result_all.push_back(std::make_pair("SSSP", "failed!"));
