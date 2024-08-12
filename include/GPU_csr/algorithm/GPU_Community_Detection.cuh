@@ -192,7 +192,7 @@ void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, st
 
     for (int i = 0; i < N; i++)
     {
-        res[i] = graph.vertex_id_to_str[labels[i]]; // convert the label to string and store it in res
+        res[i] = graph.vertex_id_to_str[labels[i]].first; // convert the label to string and store it in res
     }
 
     cudaFree(labels);
@@ -218,7 +218,7 @@ std::vector<std::pair<std::string, std::string>> Cuda_CDLP(graph_structure<doubl
     std::vector<std::pair<std::string, std::string>> res;
     int size = result.size();
     for (int i = 0; i < size; i++)
-        res.push_back(std::make_pair(graph.vertex_id_to_str[i], result[i])); // for each vertex, get its string number and store it in res
+        res.push_back(std::make_pair(graph.vertex_id_to_str[i].first, result[i])); // for each vertex, get its string number and store it in res
     
     return res; // return the results
 }

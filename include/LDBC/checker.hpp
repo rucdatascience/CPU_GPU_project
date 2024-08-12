@@ -57,7 +57,7 @@ bool Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
             if (!(id_res[v_id] == INT_MAX && std::stol(tokens[1]) == LLONG_MAX)) { // make sure it's not different because of the maximum value
                 std::cout << "Baseline file and GPU BFS results are not the same!" << std::endl;
                 std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
-                std::cout << "BFS result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
+                std::cout << "BFS result: " << graph.vertex_id_to_str[v_id].first << " " << id_res[v_id] << std::endl;
                 base_line.close();
                 return false;
             }
@@ -174,7 +174,7 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         for (int j = 0; j < base_res[i].size(); j++) {
             if (base_res[i][j] != components[i][j]) { // since both baseline and results are ordered, simply compare the elements in order
                 std::cout << "Baseline file and WCC results are not the same!" << std::endl;
-                std::cout << "Difference at: " << graph.vertex_id_to_str[base_res[i][j]] << " " << graph.vertex_id_to_str[components[i][j]] << std::endl;
+                std::cout << "Difference at: " << graph.vertex_id_to_str[base_res[i][j]].first << " " << graph.vertex_id_to_str[components[i][j]].first << std::endl;
                 base_line.close();
                 return false;
             }
@@ -236,7 +236,7 @@ bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
             if (id_res[v_id] != std::numeric_limits<double>::max()) {
                 std::cout << "Baseline file and SSSP results are not the same!" << std::endl;
                 std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
-                std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
+                std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id].first << " " << id_res[v_id] << std::endl;
                 base_line.close();
                 return false;
             }
@@ -244,7 +244,7 @@ bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         else if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-4) { // set the error range to 1e-4, and answers within the range are considered to be correct
             std::cout << "Baseline file and SSSP results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
-            std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
+            std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id].first << " " << id_res[v_id] << std::endl;
             base_line.close();
             return false;
         }
@@ -310,7 +310,7 @@ bool PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::strin
         if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-2) { // set the error range to 1e-2, and answers within the range are considered to be correct
             std::cout << "Baseline file and PageRank results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
-            std::cout << "PageRank result: " << graph.vertex_id_to_str[v_id] << " " << id_res[v_id] << std::endl;
+            std::cout << "PageRank result: " << graph.vertex_id_to_str[v_id].first << " " << id_res[v_id] << std::endl;
             base_line.close();
             return false;
         }

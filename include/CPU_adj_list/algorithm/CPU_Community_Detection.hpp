@@ -72,7 +72,7 @@ std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
     std::vector<std::string>res(N);
     for (int i = 0; i < N; i++)
     {
-        res[i] = graph.vertex_id_to_str[label[i]]; // convert the label to string and store it in res
+        res[i] = graph.vertex_id_to_str[label[i]].first; // convert the label to string and store it in res
     }
 
     return res;
@@ -87,8 +87,8 @@ std::vector<std::pair<std::string, std::string>> CPU_CDLP(graph_structure<double
 
     std::vector<std::pair<std::string, std::string>> res; // store results, the first value in pair records the vertex id, and the second value records the label
     int size = cdlpVec.size();
-    for (int i = 0; i < size; i++) 
-        res.push_back(std::make_pair(graph.vertex_id_to_str[i], cdlpVec[i])); // for each vertex, get its string number and store it in res
+    for (int i = 0; i < size; i++)
+        res.push_back(std::make_pair(graph.vertex_id_to_str[i].first, cdlpVec[i])); // for each vertex, get its string number and store it in res
 
     return res; // return the results
 }
