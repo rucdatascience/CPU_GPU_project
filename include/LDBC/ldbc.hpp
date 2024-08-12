@@ -71,12 +71,10 @@ void LDBC<weight_type>::read_config(std::string config_path) {
 				std::cout << "vertex_file: " << value << std::endl;
 			else if (parts.back() == "edge-file") // Reading *.properties file to get edge file
 				std::cout << "edge_file: " << value << std::endl;
-			else if (parts.back() == "vertices") { // Reading *.properties file to get the number of vertices
-				std::cout << "V: " << stoi(value) << std::endl;
-			}
-			else if (parts.back() == "edges") { // Reading *.properties file to get the number of edges
-				std::cout << "E: " << stoi(value) << std::endl;
-			}
+			else if (parts.back() == "vertices") // Reading *.properties file to get the number of vertices
+				std::cout << "V: " << value << std::endl;
+			else if (parts.back() == "edges") // Reading *.properties file to get the number of edges
+				std::cout << "E: " << value << std::endl;
 			else if (parts.back() == "directed") { // Reading *.properties file to knows whether the graph is directed or undirected
 				if (value == "false")
 					this->is_directed = false;

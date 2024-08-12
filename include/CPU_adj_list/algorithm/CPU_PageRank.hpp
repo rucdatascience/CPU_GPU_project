@@ -42,7 +42,7 @@ std::vector<double> PageRank (std::vector<std::vector<std::pair<int, double>>>& 
         {
             results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &rank, &out_edge, &new_rank, &x]
                 {
-                    int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
+                    int start = (long long)q * N / 100, end = std::min((long long)N - 1, (long long)(q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
                         rank[i] /= out_edge[i].size();
                         new_rank[i] = x; // record redistributed from sinks and teleport value
@@ -60,7 +60,7 @@ std::vector<double> PageRank (std::vector<std::vector<std::pair<int, double>>>& 
         {
             results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &in_edge, &rank, &new_rank, &d]
                 {
-                    int start = q * N / 100, end = std::min(N - 1, (q + 1) * N / 100);
+                    int start = (long long)q * N / 100, end = std::min((long long)N - 1, (long long)(q + 1) * N / 100);
                     for (int v = start; v <= end; v++) {
                         double tmp = 0; // sum the rank and then multiply damping to improve running efficiency
                         for (auto& y : in_edge[v]) {

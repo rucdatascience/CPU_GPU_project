@@ -144,7 +144,7 @@ void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, st
     if (err != cudaSuccess)
     {
         cerr << "Error: " << "Malloc failed" << " (" << cudaGetErrorString(err) << ")" << endl;
-        exit(EXIT_FAILURE);
+        return;
     }
 
     while (it < CD_ITERATION) // continue for a fixed number of iterations

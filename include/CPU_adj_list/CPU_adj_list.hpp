@@ -44,16 +44,16 @@ public:
 
 	/*class member functions*/
 	inline void add_edge(int, int, weight_type); // this function can change edge weights
-	inline void fast_add_edge(int, int, weight_type);
-	inline void remove_edge(int, int);			// Remove any edge that connects two vertices
-	inline void remove_all_adjacent_edges(int); // Remove all edges, the input params is vertex numbers
-	inline bool contain_edge(int, int);			// whether there is an edge
-	inline weight_type edge_weight(int, int);	// get edge weight
-	inline long long int edge_number();			// the total number of edges
-	inline void print();						// print graph
-	inline void clear();						// clear graph
-	inline int out_degree(int);					// get graph out degree
-	inline int in_degree(int);					// get graph in degree
+
+	inline void remove_edge(int, int);//Remove any edge that connects two vertices
+	inline void remove_all_adjacent_edges(int);//Remove all edges, the input params is vertex numbers
+	inline bool contain_edge(int, int); // whether there is an edge
+	inline weight_type edge_weight(int, int); //get edge weight
+	inline long long int edge_number(); // the total number of edges
+	inline void print();//print graph
+	inline void clear();// clear graph
+	inline int out_degree(int);//get graph out degree
+	inline int in_degree(int);//get graph in degree
 
 	std::unordered_map<std::string, int> vertex_str_to_id; // vertex_str_to_id[vertex_name] = vertex_id
 	std::vector<std::string> vertex_id_to_str;			   // vertex_id_to_str[vertex_id] = vertex_name

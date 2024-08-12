@@ -75,6 +75,13 @@ bool Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     return true; // BFS results are correct, return true
 }
 
+void set_root(std::vector<int>& parent, int v) {
+    if (parent[v] == v)
+        return;
+    set_root(parent, parent[v]);
+    parent[v] = parent[parent[v]];
+}
+
 // checker for the WCC graph operator
 // return check results(true or false) that based on graphs, results, and baseline.
 bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res, std::string base_line_file) {
@@ -124,6 +131,9 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         base_components[graph.vertex_str_to_id[tokens[0]]] = graph.vertex_str_to_id[tokens[1]]; // store baseline file per row value to component
     }
 
+    for (int i = 0; i < graph.V; i++)
+        set_root(base_components, i);
+
     std::vector<std::vector<int>> componentLists(graph.V);
 
     // the following operations are the same as the results operations, but work with baseline data
@@ -146,6 +156,13 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     }
 
     std::sort(base_res.begin(), base_res.end(), compare);
+
+    if (size != base_res.size()) {
+        std::cout << "Baseline file and WCC results are not the same!" << std::endl;
+        std::cout << "Baseline total component is " << base_res.size() << std::endl;
+        std::cout << "WCC result total component is " << components.size() << std::endl;
+        return false;
+    }
 
     for (int i = 0; i < size; i++) { // compare each Weakly Connected Component
         if (base_res[i].size() != components[i].size()) { // different sizes mean different results and baseline
@@ -215,7 +232,7 @@ bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
 
-        if (tokens[1] == "infinity") { // "infinity" in baseline, so check wether the results is max
+        if (tokens[1] == "infinity" || tokens[1] == "inf") { // "infinity" in baseline, so check wether the results is max
             if (id_res[v_id] != std::numeric_limits<double>::max()) {
                 std::cout << "Baseline file and SSSP results are not the same!" << std::endl;
                 std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
