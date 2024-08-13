@@ -3,7 +3,7 @@
 #include <vector>
 #include <iostream>
 #include <string>
-#include <vector>
+#include <queue>
 #include <cstring>
 #include <fstream>
 #include <unordered_map>
@@ -48,9 +48,11 @@ public:
 	inline void remove_edge(int, int);//Remove any edge that connects two vertices
 	inline void remove_edge(std::string, std::string);//Remove any edge that connects two vertices
 	inline void remove_all_adjacent_edges(int);//Remove all edges, the input params is vertex numbers
+
 	inline bool contain_edge(int, int); // whether there is an edge
 	inline weight_type edge_weight(int, int); //get edge weight
 	inline long long int edge_number(); // the total number of edges
+
 	inline void print();//print graph
 	inline void clear();// clear graph
 	inline int out_degree(int);//get graph out degree
@@ -59,7 +61,10 @@ public:
 	std::unordered_map<std::string, int> vertex_str_to_id; // vertex_str_to_id[vertex_name] = vertex_id
 	std::vector<std::pair<std::string, bool>> vertex_id_to_str;	// vertex_id_to_str[vertex_id].first = vertex_name, vertex_id_to_str[vertex_id].second = whether the vertex is valid
 
-	int add_vertice(std::string); // Read the vertex information in the ldbc file as a string
+	std::queue<int> invalid_vertex_id; // store the invalid vertex id
+
+	int add_vertice(std::string); // Read the vertex information as a string
+	void remove_vertice(std::string); // Remove the vertex information as a string
 	void add_edge(std::string, std::string, weight_type);
 
 	template <typename T>
@@ -74,13 +79,38 @@ int graph_structure<weight_type>::add_vertice(std::string vertex)
 {
 	if (vertex_str_to_id.find(vertex) == vertex_str_to_id.end())
 	{
-		vertex_id_to_str.push_back(std::make_pair(vertex, true));
-		vertex_str_to_id[vertex] = V++;
-		std::vector<std::pair<int, weight_type>> x;
-		OUTs.push_back(x);
-		INs.push_back(x);
+		if (invalid_vertex_id.empty()) {
+			vertex_id_to_str.push_back(std::make_pair(vertex, true));
+			vertex_str_to_id[vertex] = V++;
+			std::vector<std::pair<int, weight_type>> x;
+			OUTs.push_back(x);
+			INs.push_back(x);
+		}
+		else {
+			int v = invalid_vertex_id.front();
+			invalid_vertex_id.pop();
+			vertex_id_to_str[v].first = vertex;
+			vertex_id_to_str[v].second = true;
+			vertex_str_to_id[vertex] = v;
+
+			std::cout << "Recover vertex id " << v << std::endl;
+		}
 	}
 	return vertex_str_to_id[vertex];
+}
+
+template <typename weight_type>
+void graph_structure<weight_type>::remove_vertice(std::string vertex) {
+	// if the vertex is not exist, return
+	if (vertex_str_to_id.find(vertex) == vertex_str_to_id.end()) {
+		std::cerr << "vertex " << vertex << " not exist!" << std::endl;
+		return;
+	}
+	int v = vertex_str_to_id[vertex];
+	remove_all_adjacent_edges(v);
+	vertex_str_to_id.erase(vertex);
+	vertex_id_to_str[v].second = false;
+	invalid_vertex_id.push(v);
 }
 
 template <typename weight_type>
@@ -134,6 +164,7 @@ void graph_structure<weight_type>::remove_all_adjacent_edges(int v)
 	std::vector<std::pair<int, weight_type>>().swap(OUTs[v]);
 	std::vector<std::pair<int, weight_type>>().swap(INs[v]);
 }
+
 template <typename weight_type>
 bool graph_structure<weight_type>::contain_edge(int e1, int e2)
 {
