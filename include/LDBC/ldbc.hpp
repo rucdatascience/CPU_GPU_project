@@ -216,13 +216,15 @@ void LDBC<weight_type>::load_graph() {
 	if (myfile.is_open()) {
 		while (getline(myfile, line_content)) { // read data line by line
 			std::vector<std::string> Parsed_content = parse_string(line_content, " ");
-			int v1 = this->add_vertice(Parsed_content[0]); // get 1st vertex
-			int v2 = this->add_vertice(Parsed_content[1]); // get 2nd vertex
+			if (Parsed_content.size() < 2) {
+				std::cerr << "Invalid edge input!" << std::endl;
+				continue;
+			}
 			weight_type ec = Parsed_content.size() > 2 ? std::stod(Parsed_content[2]) : 1; // get weight
-			this->add_edge(v1, v2, ec);
+			this->add_edge(Parsed_content[0], Parsed_content[1], ec); // add edge
 			if (!is_directed) { // undirected graphs require additional opposite edges
-		       this->add_edge(v2, v1, ec);
-        	}
+				this->add_edge(Parsed_content[1], Parsed_content[0], ec);
+			}
 		}
 		myfile.close();
 	}
