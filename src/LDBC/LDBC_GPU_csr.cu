@@ -1,14 +1,16 @@
+#include <time.h>
+#include <chrono>
+
 #include <GPU_csr/algorithm/GPU_BFS.cuh>
 #include <GPU_csr/algorithm/GPU_connected_components.cuh>
+#include <CPU_adj_list/algorithm/CPU_sssp_pre.hpp>
 #include <GPU_csr/algorithm/GPU_shortest_paths.cuh>
+#include <GPU_csr/algorithm/GPU_sssp_pre.cuh>
 #include <GPU_csr/algorithm/GPU_PageRank.cuh>
 #include <GPU_csr/algorithm/GPU_Community_Detection.cuh>
 
-#include <chrono>
 #include <LDBC/checker.hpp>
 #include <LDBC/ldbc.hpp>
-#include <time.h>
-
 
 int main()
 {
@@ -94,11 +96,10 @@ int main()
                 else
                     result_all.push_back(std::make_pair("SSSP", "wrong"));
                 
-                /*std::ofstream pre_file;
-                pre_file.open(graph.base_path + "-GPU-pre.txt");
-                for (auto v : pre_v)
-                    pre_file << v << std::endl;
-                pre_file.close();*/
+                /*std::vector<std::pair<std::string, std::string>> path = path_query(graph, graph.sssp_src_name, "338", pre_v);
+                for (auto p : path) {
+                    std::cout << p.first << "->" << p.second << std::endl;
+                }*/
             }
             catch (...) {
                 result_all.push_back(std::make_pair("SSSP", "failed!"));
