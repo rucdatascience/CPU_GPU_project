@@ -42,10 +42,6 @@ __global__ void get_freq(int *parent, int *freq, int N)
     }
 }
 
-__device__ void link(int *parent,int u,int v)
-{
-
-}
 
 __global__ void sampling(int *all_pointer, int *all_edge, int *parent, int N, int neighbor_round)
 {
@@ -130,6 +126,7 @@ std::vector<int> WCC_GPU(graph_structure<double> &graph, CSR_graph<double> &inpu
         cudaDeviceSynchronize();
         it++;
     }
+    get_freq<<<init_label_block, init_label_thread>>>(parent, freq,N);
     int *c = thrust::max_element(freq, freq + N);
     int most_f_element = *c;
     full_link<<<init_label_block, init_label_thread>>>(all_pointer, all_edge, parent, most_f_element, N, ITERATION);
