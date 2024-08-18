@@ -1,12 +1,14 @@
 #include <chrono>
+#include <time.h>
+
 #include <CPU_adj_list/algorithm/CPU_BFS.hpp>
 #include <CPU_adj_list/algorithm/CPU_connected_components.hpp>
 #include <CPU_adj_list/algorithm/CPU_shortest_paths.hpp>
+#include <CPU_adj_list/algorithm/CPU_sssp_pre.hpp>
 #include <CPU_adj_list/algorithm/CPU_PageRank.hpp>
 #include <CPU_adj_list/algorithm/CPU_Community_Detection.hpp>
 #include <LDBC/checker.hpp>
 #include <LDBC/ldbc.hpp>
-#include <time.h>
 
 int main()
 {
@@ -75,6 +77,9 @@ int main()
                 std::vector<std::pair<std::string, double>> cpu_sssp_result = CPU_SSSP(graph, graph.sssp_src_name);
                 //std::vector<std::pair<std::string, double>> cpu_sssp_result = CPU_SSSP_pre(graph, graph.sssp_src_name, pre_v);
                 end = std::chrono::high_resolution_clock::now();
+                /*std::vector<std::pair<std::string, std::string>> path = path_query(graph, graph.sssp_src_name, "338", pre_v);
+                for (auto p : path)
+                    std::cout << p.first << " -> " << p.second << std::endl;*/
                 cpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("CPU SSSP cost time: %f s\n", cpu_sssp_time);
 
@@ -82,12 +87,6 @@ int main()
                     result_all.push_back(std::make_pair("SSSP", std::to_string(cpu_sssp_time)));
                 else
                     result_all.push_back(std::make_pair("SSSP", "wrong"));
-                
-                /*std::ofstream pre_file;
-                pre_file.open(graph.base_path + "-CPU-pre.txt");
-                for (auto v : pre_v)
-                    pre_file << v << std::endl;
-                pre_file.close();*/
             }
             catch(...) {
                 result_all.push_back(std::make_pair("SSSP", "failed!"));
