@@ -115,6 +115,7 @@ std::vector<int> WCC_GPU(graph_structure<double> &graph, CSR_graph<double> &inpu
     int *freq = nullptr;
     cudaMallocManaged((void **)&parent, N * sizeof(int));
     cudaMallocManaged((void **)&freq, N * sizeof(int));
+    cudaMemset(freq,0,N * sizeof(int));
     parent_init<<<init_label_block, init_label_thread>>>(parent, N);
     cudaDeviceSynchronize();
     int it = 0, ITERATION = 2; // number of iterations
