@@ -1,9 +1,11 @@
 #pragma once
 
-#include <CPU_adj_list/CPU_adj_list.hpp>
-#include <algorithm>
 #include <cmath>
 #include <limits.h>
+#include <algorithm>
+#include <unordered_map>
+
+#include <CPU_adj_list/CPU_adj_list.hpp>
 
 
 bool compare(std::vector<int>& a, std::vector<int>& b) {
@@ -75,13 +77,6 @@ bool Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     return true; // BFS results are correct, return true
 }
 
-void set_root(std::vector<int>& parent, int v) {
-    if (parent[v] == v)
-        return;
-    set_root(parent, parent[v]);
-    parent[v] = parent[parent[v]];
-}
-
 // checker for the WCC graph operator
 // return check results(true or false) that based on graphs, results, and baseline.
 bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::string, std::string>>& res, std::string base_line_file) {
@@ -113,43 +108,33 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         return false;
     }
 
-    std::vector<std::vector<int>> base_res; // vector base_res[i] indicate that vertices in the i-th connection components in baseline
-    std::vector<int> base_components; // record the connection components for each vertex in the baseline
+    std::unordered_map<string, int> component_map;
+    int component_cnt = 0;
 
-    base_components.resize(graph.V, 0);
+    std::vector<std::vector<int>> base_res; // vector base_res[i] indicate that vertices in the i-th connection components in baseline
 
     std::string line;
 
     while (std::getline(base_line, line)) { // read the baseline line by line
-        std::vector<std::string> tokens;
+        vector<string> tokens;
         tokens = parse_string(line, " ");
         if (tokens.size() != 2) { // Baseline file format error
             std::cout << "Baseline file format error!" << std::endl;
             base_line.close();
             return false;
         }
-        base_components[graph.vertex_str_to_id[tokens[0]]] = graph.vertex_str_to_id[tokens[1]]; // store baseline file per row value to component
+        if (component_map.find(tokens[1]) == component_map.end()) {
+            component_map[tokens[1]] = component_cnt++;
+            base_res.push_back(vector<int>());
+        }
+        base_res[component_map[tokens[1]]].push_back(graph.vertex_str_to_id[tokens[0]]); // store baseline file per row value to component
     }
 
-    for (int i = 0; i < graph.V; i++)
-        set_root(base_components, i);
-
-    std::vector<std::vector<int>> componentLists(graph.V);
-
-    // the following operations are the same as the results operations, but work with baseline data
-    for (int i = 0; i < graph.V; i++) {
-        componentLists[base_components[i]].push_back(i);
-    }
-
-    for (int i = 0; i < graph.V; i++) {
-		if (componentLists[i].size() > 0)
-			base_res.push_back(componentLists[i]);
-	}
+    base_line.close();
 
     for (auto &v : base_res) {
         if (!v.size()) {
             std::cout << "One of baseline WCC results is empty!" << std::endl;
-            base_line.close();
             return false;
         }
         std::sort(v.begin(), v.end());
@@ -175,14 +160,12 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
             if (base_res[i][j] != components[i][j]) { // since both baseline and results are ordered, simply compare the elements in order
                 std::cout << "Baseline file and WCC results are not the same!" << std::endl;
                 std::cout << "Difference at: " << graph.vertex_id_to_str[base_res[i][j]].first << " " << graph.vertex_id_to_str[components[i][j]].first << std::endl;
-                base_line.close();
                 return false;
             }
         }
     }
 
     std::cout << "WCC results are correct!" << std::endl;
-    base_line.close();
     return true; // WCC results are correct, return true
 }
 
