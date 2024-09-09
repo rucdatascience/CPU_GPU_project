@@ -6,7 +6,7 @@
 #include <algorithm>
 
 // PageRank Algorithm
-// call this function like: ans_cpu = CDLP(graph.INs, graph.OUTs, damp, graph.cdlp_max_its);
+// call this function like: ans_cpu = CPU_PR(graph, damp, graph.cdlp_max_its);
 // used to show the relevance and importance of vertices in the graph
 // return the pagerank of each vertex based on the graph, damping factor and number of iterations.
 std::vector<double> PageRank (std::vector<std::vector<std::pair<int, double>>>& in_edge,
