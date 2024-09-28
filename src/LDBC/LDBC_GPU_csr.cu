@@ -2,6 +2,7 @@
 #include <chrono>
 
 #include <GPU_csr/algorithm/GPU_BFS.cuh>
+#include <GPU_csr/algorithm/GPU_BFS_pre.cuh>
 #include <GPU_csr/algorithm/GPU_connected_components.cuh>
 #include <CPU_adj_list/algorithm/CPU_sssp_pre.hpp>
 #include <GPU_csr/algorithm/GPU_shortest_paths.cuh>
