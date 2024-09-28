@@ -29,7 +29,7 @@ __global__ void Relax_pre(int* out_pointer, int* out_edge, double* out_edge_weig
                 dis[new_v] = new_w;
                 // update the previous vertex
                 pre[new_v] = v;
-                atomicExch(&visited[new_v], 1);
+                visited[new_v] = 1;
                 // share the updated distance with other threads in different blocks
                 __threadfence();
             }
