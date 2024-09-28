@@ -2,6 +2,7 @@
 #include <time.h>
 
 #include <CPU_adj_list/algorithm/CPU_BFS.hpp>
+#include <CPU_adj_list/algorithm/CPU_BFS_pre.hpp>
 #include <CPU_adj_list/algorithm/CPU_connected_components.hpp>
 #include <CPU_adj_list/algorithm/CPU_shortest_paths.hpp>
 #include <CPU_adj_list/algorithm/CPU_sssp_pre.hpp>
@@ -50,6 +51,12 @@ int main()
                 std::vector<std::pair<std::string, int>> cpu_bfs_result;
                 begin = std::chrono::high_resolution_clock::now();
                 cpu_bfs_result = CPU_Bfs(graph, graph.bfs_src_name);
+
+                /*std::vector<std::tuple<std::string, int, std::string>> cpu_bfs_res;
+                cpu_bfs_res = CPU_Bfs_pre(graph, graph.bfs_src_name);
+                for (auto &p : cpu_bfs_res)
+                    cpu_bfs_result.push_back(std::make_pair(std::get<0>(p), std::get<1>(p)));*/
+
                 end = std::chrono::high_resolution_clock::now();
                 cpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("CPU BFS cost time: %f s\n", cpu_bfs_time);
