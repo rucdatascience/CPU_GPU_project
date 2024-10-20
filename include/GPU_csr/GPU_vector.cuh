@@ -5,6 +5,7 @@
 
 #include <cstdio>
 #include <cassert>
+#include <utility>
 
 #define DEFAULT_CAPACITY 50
 
@@ -20,7 +21,7 @@ protected:
     __host__ void shrink();
 
 public:
-    __host__ cuda_vector(Rank c = DEFAULT_CAPACITY, Rank s = 0, T v = 0);
+    __host__ cuda_vector(Rank c = DEFAULT_CAPACITY, Rank s = 0);
     __host__ cuda_vector(const T* A, Rank n);
     __host__ cuda_vector(const T* A, Rank lo, Rank hi);
     __host__ cuda_vector(const cuda_vector<T>& V);
@@ -35,7 +36,7 @@ public:
     // read-write
     __host__ __device__ T& operator[](Rank r) const;
     __host__ cuda_vector<T>& operator=(const cuda_vector<T>& V);
-    __host__ T remove(Rank lo, Rank hi);
+    __host__ Rank remove(Rank lo, Rank hi);
     __host__ T remove(Rank r);
     __host__ Rank insert(Rank r, T const& e);
     __host__ Rank insert(T const& e) { return insert(_size, e); }
@@ -44,7 +45,7 @@ public:
 };
 
 template <typename T>
-__host__ cuda_vector<T>::cuda_vector(Rank c, Rank s, T v) {
+__host__ cuda_vector<T>::cuda_vector(Rank c, Rank s) {
     assert(s <= c);
     _capacity = c;
     _size = s;
@@ -52,9 +53,6 @@ __host__ cuda_vector<T>::cuda_vector(Rank c, Rank s, T v) {
     cudaError_t cudaStatus = cudaMallocManaged((void**)&_elem, c * sizeof(T));
     if (cudaStatus != cudaSuccess)
         fprintf(stderr, "cudaMallocManaged failed!");
-
-    for (Rank i = 0; i < s; i++)
-        _elem[i] = v;
 }
 
 template <typename T>
@@ -122,7 +120,6 @@ __host__ void cuda_vector<T>::expand() {
 
     T* oldElem = _elem;
     _capacity <<= 1;
-    fprintf(stderr, "Expanding to %d\n", _capacity);
     cudaError_t cudaStatus = cudaMallocManaged((void**)&_elem, _capacity * sizeof(T));
     if (cudaStatus != cudaSuccess)
         fprintf(stderr, "cudaMallocManaged failed!");
@@ -130,7 +127,6 @@ __host__ void cuda_vector<T>::expand() {
     cudaMemcpy(_elem, oldElem, _size * sizeof(T), cudaMemcpyDeviceToDevice);
 
     cudaFree(oldElem);
-    fprintf(stderr, "Expand done\n");
 }
 
 template <typename T>
@@ -143,7 +139,6 @@ __host__ void cuda_vector<T>::shrink() {
 
     T* oldElem = _elem;
     _capacity >>= 1;
-    fprintf(stderr, "Shrinking to %d\n", _capacity);
     cudaError_t cudaStatus = cudaMallocManaged((void**)&_elem, _capacity * sizeof(T));
     if (cudaStatus != cudaSuccess)
         fprintf(stderr, "cudaMallocManaged failed!");
@@ -151,7 +146,6 @@ __host__ void cuda_vector<T>::shrink() {
     cudaMemcpy(_elem, oldElem, _size * sizeof(T), cudaMemcpyDeviceToDevice);
 
     cudaFree(oldElem);
-    fprintf(stderr, "Shrink done\n");
 }
 
 template <typename T>
@@ -170,7 +164,7 @@ __host__ Rank cuda_vector<T>::insert(Rank r, T const& e) {
 }
 
 template <typename T>
-__host__ T cuda_vector<T>::remove(Rank lo, Rank hi) {
+__host__ Rank cuda_vector<T>::remove(Rank lo, Rank hi) {
     if (lo == hi)
         return 0;
 
