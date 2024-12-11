@@ -224,12 +224,15 @@ bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
                 return false;
             }
         }
-        else if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-4) { // set the error range to 1e-4, and answers within the range are considered to be correct
-            std::cout << "Baseline file and SSSP results are not the same!" << std::endl;
-            std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
-            std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id].first << " " << id_res[v_id] << std::endl;
-            base_line.close();
-            return false;
+        else { // set the error range to 1e-4, and answers within the range are considered to be correct
+            double base_val = std::stod(tokens[1]);
+            if (fabs(id_res[v_id] - base_val) > 0.0001 * base_val) { // set the error rate to 0.0001, and answers within the range are considered to be correct
+                std::cout << "Baseline file and SSSP results are not the same!" << std::endl;
+                std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
+                std::cout << "SSSP result: " << graph.vertex_id_to_str[v_id].first << " " << id_res[v_id] << std::endl;
+                base_line.close();
+                return false;
+            }
         }
         id++;
     }
@@ -290,7 +293,8 @@ bool PR_checker(graph_structure<double>& graph, std::vector<std::pair<std::strin
         }
         int v_id = graph.vertex_str_to_id[tokens[0]];
 
-        if (fabs(id_res[v_id] - std::stod(tokens[1])) > 1e-2) { // set the error range to 1e-2, and answers within the range are considered to be correct
+        double base_val = std::stod(tokens[1]);
+        if (fabs(id_res[v_id] - base_val) > 0.0001 * base_val) { // set the error rate to 0.0001, and answers within the range are considered to be correct
             std::cout << "Baseline file and PageRank results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
             std::cout << "PageRank result: " << graph.vertex_id_to_str[v_id].first << " " << id_res[v_id] << std::endl;
