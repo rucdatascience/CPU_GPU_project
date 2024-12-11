@@ -14,10 +14,9 @@ std::vector<double> PageRank (std::vector<std::vector<std::pair<int, double>>>& 
 
     int N = in_edge.size(); // number of vertices in the graph
 
-    std::vector<double> rank(N, 1 / N); // The initial pagerank of each vertex is 1/|V|
+    std::vector<double> rank(N, 1 / (double)N); // The initial pagerank of each vertex is 1/|V|
     std::vector<double> new_rank(N); // temporarily stores the updated pagerank
 
-    double d = damp; // damping factor
     double teleport = (1 - damp) / N; // teleport mechanism
 
     std::vector<int> sink; // the set of sink vertices
@@ -27,58 +26,33 @@ std::vector<double> PageRank (std::vector<std::vector<std::pair<int, double>>>& 
             sink.push_back(i); // record the sink vertices
     }
 
-    for (int i = 0; i < iters; i++) { // continue for a fixed number of iterations
+    for (int i = 0; i < iters; i++) {
         double sink_sum = 0;
-        for (int i = 0; i < sink.size(); i++) // If the out-degree of the vertex is zero, it is a sink node
-        {
-            sink_sum += rank[sink[i]]; // calculate the sinksum, which is the sum of the pagerank value of all sink vertices
-        }
+        for (int idx : sink)
+            sink_sum += rank[idx];
 
-        double x = sink_sum * d / N + teleport; // sum of sinksum and teleport
-
+        double common_add = (sink_sum * damp / N) + teleport;
         ThreadPool pool_dynamic(100);
-        std::vector<std::future<int>> results_dynamic;
-        for (int q = 0; q < 100; q++)
-        {
-            results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &rank, &out_edge, &new_rank, &x]
-                {
-                    int start = (long long)q * N / 100, end = std::min((long long)N - 1, (long long)(q + 1) * N / 100);
-                    for (int i = start; i <= end; i++) {
-                        rank[i] /= out_edge[i].size();
-                        new_rank[i] = x; // record redistributed from sinks and teleport value
-                    }
 
-                    return 1; }));
+        std::vector<std::future<void>> futures;
+        for (int q = 0; q < 100; q++) {
+            futures.emplace_back(pool_dynamic.enqueue([q, N, &rank, &out_edge, &new_rank, &common_add, &damp, &in_edge] {
+                int start = (long long)q * N / 100,
+                    end = std::min((long long)N - 1, (long long)(q + 1) * N / 100);
+                for (int v = start; v <= end; v++) {
+                    double sum_contrib = 0;
+                    for (const auto& in : in_edge[v])
+                        sum_contrib += rank[in.first] / out_edge[in.first].size();
+                    new_rank[v] = common_add + damp * sum_contrib;
+                }
+            }));
         }
-        for (auto&& result : results_dynamic)
-        {
-            result.get();
-        }
-        std::vector<std::future<int>>().swap(results_dynamic);
+        for (auto& f : futures)
+            f.get();
 
-        for (int q = 0; q < 100; q++)
-        {
-            results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &in_edge, &rank, &new_rank, &d]
-                {
-                    int start = (long long)q * N / 100, end = std::min((long long)N - 1, (long long)(q + 1) * N / 100);
-                    for (int v = start; v <= end; v++) {
-                        double tmp = 0; // sum the rank and then multiply damping to improve running efficiency
-                        for (auto& y : in_edge[v]) {
-                            tmp = tmp + rank[y.first]; // calculate the importance value for each vertex
-                        }
-                        new_rank[v] += d * tmp;
-                    }
-                    return 1; }));
-        }
-        for (auto&& result : results_dynamic)
-        {
-            result.get();
-        }
-        std::vector<std::future<int>>().swap(results_dynamic);
-
-
-        rank.swap(new_rank); // store the updated pagerank in the rank
+        rank.swap(new_rank);
     }
+
     return rank; // return the pagerank of each vertex
 }
 
