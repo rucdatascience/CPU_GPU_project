@@ -23,7 +23,6 @@ __device__ double _atomicAdd(double* address, double val);
 __global__ void importance(double *npr, double *pr,  double damp, int *in_edge, int *in_pointer, int GRAPHSIZE);
 __global__ void calculate_sink(double *pr, int *N_out_zero_gpu, int out_zero_size, double *sink_sum);
 __global__ void initialization(double *pr, double *outs, int *out_pointer, int N);
-__global__ void calculate_acc(double *pr,int *in_edge, int begin,int end,double *acc);
 __global__ void Antecedent_division(double *pr,double *npr, double *outs,double redi_tele, int N);
 
 void GPU_PR(graph_structure<double> &graph, CSR_graph<double>& csr_graph, vector<double> &result, int iterations, double damping);
@@ -59,27 +58,22 @@ void GPU_PR (graph_structure<double> &graph, CSR_graph<double>& csr_graph, vecto
     cudaDeviceSynchronize(); // synchronize, ensure the cudaMalloc is complete
 
     cudaError_t cuda_status = cudaGetLastError();
-    if (cuda_status != cudaSuccess) // use the cudaGetLastError to check for possible cudaMalloc errors
-    {
+    if (cuda_status != cudaSuccess) { // use the cudaGetLastError to check for possible cudaMalloc errors
         fprintf(stderr, "Cuda malloc failed: %s\n", cudaGetErrorString(cuda_status));
         return;
     }
 
-    for (int i = 0; i < N; i++) // traverse all vertices
-    {
+    for (int i = 0; i < N; i++) { // traverse all vertices
         if (graph.OUTs[i].size()==0) // this means that the vertex has no edges
-        {
             sink_vertexs.push_back(i); // record the sink vertices
-        }
     }
     int out_zero_size = sink_vertexs.size(); // the number of sink vertices
     cudaMallocManaged(&sink_vertex_gpu, sink_vertexs.size() * sizeof(int));
     cudaDeviceSynchronize();
     cudaMemcpy(sink_vertex_gpu, sink_vertexs.data(), sink_vertexs.size() * sizeof(int), cudaMemcpyHostToDevice);
-    
+
     cuda_status = cudaGetLastError();
-    if (cuda_status != cudaSuccess)
-    {
+    if (cuda_status != cudaSuccess) {
         fprintf(stderr, "Cuda malloc failed: %s\n", cudaGetErrorString(cuda_status));
         return;
     }
@@ -91,8 +85,7 @@ void GPU_PR (graph_structure<double> &graph, CSR_graph<double>& csr_graph, vecto
 
     initialization<<<blockPerGrid, threadPerGrid>>>(pr, outs, out_pointer, N); // initializes the pagerank and calculates the reciprocal of the out-degree
     cudaDeviceSynchronize();
-    while (iteration < iterations) // continue for a fixed number of iterations
-    {
+    while (iteration < iterations) { // continue for a fixed number of iterations
         *sink_sum = 0;
         calculate_sink<<<blockPerGrid, threadPerGrid, THREAD_PER_BLOCK * sizeof(double)>>>(pr, sink_vertex_gpu, out_zero_size, sink_sum); // calculate the sinksum
         cudaDeviceSynchronize();
@@ -117,115 +110,66 @@ void GPU_PR (graph_structure<double> &graph, CSR_graph<double>& csr_graph, vecto
 }
 
 // initialization of the pagerank state
-__global__ void initialization(double *pr, double *outs, int *out_pointer, int N)
-{
+__global__ void initialization(double *pr, double *outs, int *out_pointer, int N) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
-    if (tid >= 0 && tid < N)
-    {
-        pr[tid] = 1 / N; // the initial pagerank is 1/N
+    if (tid >= 0 && tid < N) {
+        pr[tid] = 1 / (double)N; // the initial pagerank is 1/N
         if (out_pointer[tid + 1] - out_pointer[tid]) // determine whether the vertex has out-edge
-            outs[tid] = 1 / (out_pointer[tid + 1] - out_pointer[tid]); // calculate the reciprocal of the out-degree of each vertex to facilitate subsequent calculations
+            outs[tid] = 1 / ((double)out_pointer[tid + 1] - out_pointer[tid]); // calculate the reciprocal of the out-degree of each vertex to facilitate subsequent calculations
         else
             outs[tid] = 0; // consider importance value to be 0 for sink vertices
     }
 }
 
-// compute division in advance, pr(u)/Nout(u), which is used to calculate the importance value
-__global__ void Antecedent_division(double *pr,double *npr, double *outs,double redi_tele, int N)
-{
+// compute division in advance, pr(u) / Nout(u), which is used to calculate the importance value
+__global__ void Antecedent_division(double *pr, double *npr, double *outs, double redi_tele, int N) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
-    if (tid >= 0 && tid < N)
-    {
+    if (tid >= 0 && tid < N) {
         pr[tid] *= outs[tid];
         npr[tid] = redi_tele; // the sum of redistributed value and teleport value
     }
 }
 
 // calculate importance
-__global__ void importance(double *npr, double *pr,  double damp, int *in_edge, int *in_pointer, int GRAPHSIZE)
-{
+__global__ void importance(double *npr, double *pr,  double damp, int *in_edge, int *in_pointer, int GRAPHSIZE) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
     
-    if (tid >= 0 && tid < GRAPHSIZE)
-    {
+    if (tid >= 0 && tid < GRAPHSIZE) {
         // begin and end of in edges
         double acc = 0; // sum of u belongs to Nin(v)
         for (int c = in_pointer[tid]; c < in_pointer[tid + 1]; c++)
-        { // val_col[c] is neighbor,rank get PR(u) row_value is denominator i.e. Nout
-            acc += pr[in_edge[c]];
-        } 
-        npr[tid] = acc * damp; // scaling is damping factor
+            acc += pr[in_edge[c]]; // val_col[c] is neighbor,rank get PR(u) row_value is denominator i.e. Nout
+        npr[tid] += acc * damp; // scaling is damping factor
     }
     return;
 }
 
-// A reduction pattern was used to sum up
-// the sum of the pagerank values of the incoming edges is calculated
-__global__ void calculate_acc(double *pr,int *in_edge, int begin,int end,double *acc){
-    extern __shared__ double temp[]; // Declare shared memory
-    int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
-    int stid = threadIdx.x;
-
-    if (tid < end)
-    {
-        temp[stid] = pr[in_edge[tid+begin]]; // the pagerank value of the incoming edge
-    }
-    else
-    {
-        temp[stid] = 0;
-    }
-    __syncthreads(); // wait unitl finish Loading data into shared memory
-
-    for (int i = blockDim.x / 2; i > 0; i >>= 1) // get the sum of sink by reducing kernel function
-    {
-        if (stid < i)
-        {
-            temp[stid] += temp[stid + i];
-        }
-        __syncthreads(); // Synchronize again to ensure that each step of the reduction operation is completed
-    }
-    if (stid == 0)
-    {
-        _atomicAdd(acc, temp[0]); // Write the result of each thread block into the output array
-    }
-}
-
 // A reduction pattern was used to sum up the sink value
-__global__ void calculate_sink(double *pr, int *N_out_zero_gpu, int out_zero_size, double *sink_sum)
-{
+__global__ void calculate_sink(double *pr, int *N_out_zero_gpu, int out_zero_size, double *sink_sum) {
     extern __shared__ double sink[]; // Declare shared memory
     int tid = blockIdx.x * blockDim.x + threadIdx.x;
     int stid = threadIdx.x;
 
     if (tid < out_zero_size)
-    {
         sink[stid] = pr[N_out_zero_gpu[tid]]; // get PR(w)
-    }
     else
-    {
         sink[stid] = 0; // not the out-degree zero vertex
-    }
     __syncthreads(); // wait unitl finish Loading data into shared memory
 
     for (int i = blockDim.x / 2; i > 0; i >>= 1) // get the sum of sink by reducing kernel function
     {
         if (stid < i)
-        {
             sink[stid] += sink[stid + i];
-        }
         __syncthreads(); // Synchronize again to ensure that each step of the reduction operation is completed
     }
     if (stid == 0)
-    {
         _atomicAdd(sink_sum, sink[0]); // Write the result of each thread block into the output array
-    }
 }
 
 // Implementing atomic operations,
 // that is, ensuring that adding operations to a specific
 // memory location in a multi-threaded environment are thread safe.
-__device__ double _atomicAdd(double *address, double val)
-{
+__device__ double _atomicAdd(double *address, double val) {
     unsigned long long int *address_as_ull = (unsigned long long int *)address;
     unsigned long long int old = *address_as_ull, assumed;
     do
