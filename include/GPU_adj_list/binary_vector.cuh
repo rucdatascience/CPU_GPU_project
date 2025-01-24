@@ -1,6 +1,6 @@
 #pragma once
 
-#include <GPU_csr/GPU_vector.cuh>
+#include <GPU_adj_list/GPU_vector.cuh>
 
 #include <utility>
 

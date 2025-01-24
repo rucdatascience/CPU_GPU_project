@@ -18,6 +18,7 @@ protected:
     T* _elem;
     __host__ void copyFrom(const T* A, Rank lo, Rank hi);
     __host__ void expand();
+    __host__ void expand(Rank n);
     __host__ void shrink();
 
 public:
@@ -36,6 +37,9 @@ public:
     // read-write
     __host__ __device__ T& operator[](Rank r) const;
     __host__ cuda_vector<T>& operator=(const cuda_vector<T>& V);
+    __host__ __device__ T* data() const { return _elem; }
+    __host__ void resize(Rank n) { expand(n); _size = n; }
+    __host__ void clear() { resize(0); }
     __host__ Rank remove(Rank lo, Rank hi);
     __host__ T remove(Rank r);
     __host__ Rank insert(Rank r, T const& e);
@@ -97,7 +101,7 @@ __host__ void cuda_vector<T>::copyFrom(const T* A, Rank lo, Rank hi) {
 
 template <typename T>
 __host__ __device__ T& cuda_vector<T>::operator[](Rank r) const {
-    assert(r >= 0 && r < _size);
+    assert(r < _size);
 
     return _elem[r];
 }
@@ -127,6 +131,32 @@ __host__ void cuda_vector<T>::expand() {
     cudaMemcpy(_elem, oldElem, _size * sizeof(T), cudaMemcpyDeviceToDevice);
 
     cudaFree(oldElem);
+
+    cudaDeviceSynchronize();
+    cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaStatus));
+}
+
+template <typename T>
+__host__ void cuda_vector<T>::expand(Rank n) {
+    if (n <= _capacity)
+        return;
+
+    T* oldElem = _elem;
+    _capacity = n;
+    cudaError_t cudaStatus = cudaMallocManaged((void**)&_elem, _capacity * sizeof(T));
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr, "cudaMallocManaged failed!");
+
+    cudaMemcpy(_elem, oldElem, _size * sizeof(T), cudaMemcpyDeviceToDevice);
+
+    cudaFree(oldElem);
+
+    cudaDeviceSynchronize();
+    cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaStatus));
 }
 
 template <typename T>
@@ -146,11 +176,16 @@ __host__ void cuda_vector<T>::shrink() {
     cudaMemcpy(_elem, oldElem, _size * sizeof(T), cudaMemcpyDeviceToDevice);
 
     cudaFree(oldElem);
+
+    cudaDeviceSynchronize();
+    cudaStatus = cudaGetLastError();
+    if (cudaStatus != cudaSuccess)
+        fprintf(stderr, "CUDA error: %s\n", cudaGetErrorString(cudaStatus));
 }
 
 template <typename T>
 __host__ Rank cuda_vector<T>::insert(Rank r, T const& e) {
-    assert(r >= 0 && r <= _size);
+    assert(r <= _size);
 
     expand();
 
