@@ -108,7 +108,7 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         return false;
     }
 
-    std::unordered_map<string, int> component_map;
+    std::unordered_map<std::string, int> component_map;
     int component_cnt = 0;
 
     std::vector<std::vector<int>> base_res; // vector base_res[i] indicate that vertices in the i-th connection components in baseline
@@ -116,7 +116,7 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
     std::string line;
 
     while (std::getline(base_line, line)) { // read the baseline line by line
-        vector<string> tokens;
+        std::vector<std::string> tokens;
         tokens = parse_string(line, " ");
         if (tokens.size() != 2) { // Baseline file format error
             std::cout << "Baseline file format error!" << std::endl;
@@ -125,7 +125,7 @@ bool WCC_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
         }
         if (component_map.find(tokens[1]) == component_map.end()) {
             component_map[tokens[1]] = component_cnt++;
-            base_res.push_back(vector<int>());
+            base_res.push_back(std::vector<int>());
         }
         base_res[component_map[tokens[1]]].push_back(graph.vertex_str_to_id[tokens[0]]); // store baseline file per row value to component
     }

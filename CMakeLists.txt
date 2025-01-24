@@ -29,23 +29,38 @@ if(BUILD_GPU)
 
     set(EXECUTABLE_NAME_GPU "${PROJECT_NAME}_GPU")
     set(GPU_example "GPU_example")
+    set(GPU_adj_example "GPU_adj_example")
+    set(EXECUTABLE_NAME_GPU_ADJ "${PROJECT_NAME}_GPU_adj")
     set(EXECUTABLE_OUTPUT_PATH_GPU ${PROJECT_SOURCE_DIR}/build/bin_gpu)
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -O3")
 
     add_executable(${EXECUTABLE_NAME_GPU} src/LDBC/LDBC_GPU_csr.cu)
     add_executable(${GPU_example} src/GPU_csr/GPU_example.cu)
+    add_executable(${GPU_adj_example} src/GPU_adj_list/GPU_adj_example.cu)
+    add_executable(${EXECUTABLE_NAME_GPU_ADJ} src/LDBC/LDBC_GPU_adj.cu)
 
     target_include_directories(${EXECUTABLE_NAME_GPU} PUBLIC ${CUDA_INCLUDE_DIRS})
     target_include_directories(${GPU_example} PUBLIC ${CUDA_INCLUDE_DIRS})
+    target_include_directories(${GPU_adj_example} PUBLIC ${CUDA_INCLUDE_DIRS})
+    target_include_directories(${EXECUTABLE_NAME_GPU_ADJ} PUBLIC ${CUDA_INCLUDE_DIRS})
 
     target_link_libraries(${EXECUTABLE_NAME_GPU} ${CUDA_LIBRARIES})
     target_link_libraries(${GPU_example} ${CUDA_LIBRARIES})
+    target_link_libraries(${GPU_adj_example} ${CUDA_LIBRARIES})
+    target_link_libraries(${EXECUTABLE_NAME_GPU_ADJ} ${CUDA_LIBRARIES})
 
     target_include_directories(${EXECUTABLE_NAME_GPU} PUBLIC include)
     target_include_directories(${GPU_example} PUBLIC include)
+    target_include_directories(${GPU_adj_example} PUBLIC include)
+    target_include_directories(${EXECUTABLE_NAME_GPU_ADJ} PUBLIC include)
 
     set_target_properties(${EXECUTABLE_NAME_GPU} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${EXECUTABLE_OUTPUT_PATH_GPU})
     set_target_properties(${EXECUTABLE_NAME_GPU} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
     set_target_properties(${GPU_example} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${EXECUTABLE_OUTPUT_PATH_GPU})
     set_target_properties(${GPU_example} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    set_target_properties(${GPU_adj_example} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${EXECUTABLE_OUTPUT_PATH_GPU})
+    set_target_properties(${GPU_adj_example} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+    set_target_properties(${EXECUTABLE_NAME_GPU_ADJ} PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${EXECUTABLE_OUTPUT_PATH_GPU})
+    set_target_properties(${EXECUTABLE_NAME_GPU_ADJ} PROPERTIES CUDA_SEPARABLE_COMPILATION ON)
+
 endif()
