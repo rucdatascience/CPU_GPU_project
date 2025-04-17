@@ -193,11 +193,11 @@ GPU_adj<weight_type> to_GPU_adj(graph_structure<weight_type>& graph, bool is_dir
 
         for (int i = 0; i < gpu_adj.V; i++) {
             for (auto& xx : graph.INs[i])
-                binary_insert((*gpu_adj.all_Edges)[i], xx.first, xx.second);
+                (*gpu_adj.all_Edges)[i]->push_back(std::make_pair(xx.first, xx.second));
         }
         for (int i = 0; i < gpu_adj.V; i++) {
             for (auto& xx : graph.OUTs[i])
-                binary_insert((*gpu_adj.all_Edges)[i], xx.first, xx.second);
+                (*gpu_adj.all_Edges)[i]->push_back(std::make_pair(xx.first, xx.second));
         }
     }
 
