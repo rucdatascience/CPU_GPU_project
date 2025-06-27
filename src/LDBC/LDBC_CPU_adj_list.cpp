@@ -1,5 +1,9 @@
 #include <chrono>
 #include <time.h>
+#include <random>
+#include <sstream>
+#include <fstream>
+#include <utility>
 
 #include <CPU_adj_list/algorithm/CPU_BFS.hpp>
 #include <CPU_adj_list/algorithm/CPU_BFS_pre.hpp>
@@ -11,8 +15,47 @@
 #include <LDBC/checker.hpp>
 #include <LDBC/ldbc.hpp>
 
-int main()
-{
+std::vector<std::pair<std::string, std::string> > vec_add;
+std::vector<std::pair<std::string, std::string> > vec_delete;
+
+inline void read_edge_file (std::string graph_file_path) {
+    std::ifstream infile_add(graph_file_path + "-add-edge.txt");
+    std::ifstream infile_delete(graph_file_path + "-delete-edge.txt");
+
+    // read the file
+    std::string line;
+    while (std::getline(infile_add, line)) {
+        std::istringstream iss(line);
+        std::string c, a, b;
+        iss >> c >> a >> b;
+        vec_add.push_back(std::make_pair(a, b));
+    }
+    infile_add.close();
+    
+    while (std::getline(infile_delete, line)) {
+        std::istringstream iss(line);
+        std::string c, a, b;
+        iss >> c >> a >> b;
+        vec_delete.push_back(std::make_pair(a, b));
+    }
+    infile_delete.close();
+
+    return;
+}
+
+inline void add_edge (graph_structure<double>& graph) {
+    for (int i = 0; i < vec_add.size(); i ++) {
+        graph.add_edge(vec_add[i].first, vec_add[i].second, 1);
+    }
+}
+
+inline void delete_edge (graph_structure<double>& graph) {
+    for (int i = 0; i < vec_delete.size(); i ++) {
+        graph.remove_edge(vec_delete[i].first, vec_delete[i].second);
+    }
+}
+
+int main() {
     ios::sync_with_stdio(false);
     std::cin.tie(0);
     std::cout.tie(0);
@@ -40,6 +83,28 @@ int main()
     auto end = std::chrono::high_resolution_clock::now();
     double load_ldbc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
     printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
+
+    // read .e and make data for add edges and delete edges
+    read_edge_file("/home/mdnd/CPU_GPU_project-main/data/" + graph_name);
+
+    std::vector<std::pair<std::string, std::string>> vector_edge;
+    begin = std::chrono::high_resolution_clock::now();
+    add_edge(graph);
+    end =std::chrono::high_resolution_clock::now();
+    double add_edge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+    vector_edge.push_back(std::make_pair("add-edge", std::to_string(add_edge_time)));
+    printf("add_edge_time cost time: %f s\n", add_edge_time);
+    
+    std::vector<std::pair<std::string, std::string>> vector_delete_edge;
+    begin = std::chrono::high_resolution_clock::now();
+    delete_edge(graph);
+    end =std::chrono::high_resolution_clock::now();
+    double delete_edge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+    vector_edge.push_back(std::make_pair("delete-edge", std::to_string(delete_edge_time)));
+    printf("delete_edge_time cost time: %f s\n", delete_edge_time);
+    
+    graph.save_to_CSV(vector_edge, "./result-cpu-edge.csv");
+    return 0;
 
     std::vector<std::pair<std::string, std::string>> result_all;
 

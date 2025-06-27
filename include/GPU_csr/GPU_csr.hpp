@@ -2,6 +2,12 @@
 #include "cuda_runtime.h"
 #include <cuda_runtime_api.h>
 #include <vector>
+
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <thrust/remove.h>
+#include <thrust/sort.h>
+
 #include <CPU_adj_list/CPU_adj_list.hpp>
 /*for GPU*/
 template <typename weight_type>
@@ -19,7 +25,7 @@ public:
         Now, Neighbor_sizes[i] = Neighbor_start_pointers[i + 1] - Neighbor_start_pointers[i].
         And Neighbor_start_pointers[V] = Edges.size() = Edge_weights.size() = the total number of edges.
     */
-    std::vector<int> INs_Edges, OUTs_Edges,all_Edges; // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
+    std::vector<int> INs_Edges, OUTs_Edges, all_Edges; // Edges[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] neighbor IDs
     std::vector<weight_type> INs_Edge_weights, OUTs_Edge_weights; // Edge_weights[Neighbor_start_pointers[i]] is the start of Neighbor_sizes[i] edge weights
     int *in_pointer, *out_pointer, *in_edge, *out_edge, *all_pointer, *all_edge;//All_edge has merged in_edge and out_edge, mainly used on CDLP
     double *in_edge_weight, *out_edge_weight;
@@ -30,7 +36,6 @@ template <typename weight_type>
 // CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph)
 CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_directed = true)
 {
-
     CSR_graph<weight_type> ARRAY;
 
     ARRAY.is_directed = is_directed;
@@ -93,20 +98,20 @@ CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_direct
     
     ARRAY.E_all = E_all;
 
-    cudaMallocManaged((void**)&ARRAY.out_pointer, (V + 1) * sizeof(int));
-    cudaMallocManaged((void**)&ARRAY.out_edge, E_out * sizeof(int));
-    cudaMallocManaged((void**)&ARRAY.out_edge_weight, E_out * sizeof(double));
+    cudaMalloc((void**)&ARRAY.out_pointer, (V + 1) * sizeof(int));
+    cudaMalloc((void**)&ARRAY.out_edge, E_out * sizeof(int));
+    cudaMalloc((void**)&ARRAY.out_edge_weight, E_out * sizeof(double));
 
     if (is_directed) {
         E_in = ARRAY.INs_Edges.size();
         E_all = E_in + E_out;
         ARRAY.E_all = E_all;
 
-        cudaMallocManaged((void**)&ARRAY.in_pointer, (V + 1) * sizeof(int));
-        cudaMallocManaged((void**)&ARRAY.all_pointer, (V + 1) * sizeof(int));
-        cudaMallocManaged((void**)&ARRAY.in_edge, E_in * sizeof(int));
-        cudaMallocManaged((void**)&ARRAY.all_edge, E_all * sizeof(int));
-        cudaMallocManaged((void**)&ARRAY.in_edge_weight, E_in * sizeof(double));
+        cudaMalloc((void**)&ARRAY.in_pointer, (V + 1) * sizeof(int));
+        cudaMalloc((void**)&ARRAY.all_pointer, (V + 1) * sizeof(int));
+        cudaMalloc((void**)&ARRAY.in_edge, E_in * sizeof(int));
+        cudaMalloc((void**)&ARRAY.all_edge, E_all * sizeof(int));
+        cudaMalloc((void**)&ARRAY.in_edge_weight, E_in * sizeof(double));
     }
     else {
         ARRAY.in_pointer = ARRAY.out_pointer;
@@ -125,13 +130,15 @@ CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_direct
     cudaMemcpy(ARRAY.out_pointer, ARRAY.OUTs_Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(ARRAY.out_edge, ARRAY.OUTs_Edges.data(), E_out * sizeof(int), cudaMemcpyHostToDevice);
     cudaMemcpy(ARRAY.out_edge_weight, ARRAY.OUTs_Edge_weights.data(), E_out * sizeof(double), cudaMemcpyHostToDevice);
-
+    cudaDeviceSynchronize();
+    
     if (is_directed) {
         cudaMemcpy(ARRAY.in_pointer, ARRAY.INs_Neighbor_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
         cudaMemcpy(ARRAY.all_pointer, ARRAY.ALL_start_pointers.data(), (V + 1) * sizeof(int), cudaMemcpyHostToDevice);
         cudaMemcpy(ARRAY.in_edge, ARRAY.INs_Edges.data(), E_in * sizeof(int), cudaMemcpyHostToDevice);
         cudaMemcpy(ARRAY.all_edge, ARRAY.all_Edges.data(), E_all * sizeof(int), cudaMemcpyHostToDevice);
         cudaMemcpy(ARRAY.in_edge_weight, ARRAY.INs_Edge_weights.data(), E_in * sizeof(double), cudaMemcpyHostToDevice);
+        cudaDeviceSynchronize();
     }
 
     return ARRAY;

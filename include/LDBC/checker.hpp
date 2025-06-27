@@ -7,7 +7,6 @@
 
 #include <CPU_adj_list/CPU_adj_list.hpp>
 
-
 bool compare(std::vector<int>& a, std::vector<int>& b) {
     return a[0] < b[0];
 }

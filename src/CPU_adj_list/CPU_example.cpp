@@ -7,43 +7,58 @@
 #include <CPU_adj_list/algorithm/CPU_PageRank.hpp>
 #include <CPU_adj_list/algorithm/CPU_Community_Detection.hpp>
 
-int main()
-{
+int main() {
     ios::sync_with_stdio(false);
     std::cin.tie(0), std::cout.tie(0);
 
     graph_structure<double> graph; // directed graph
 
     // Add vertices and edges
-    graph.add_vertice("one");
-    graph.add_vertice("two");
-    graph.add_vertice("three");
-    graph.add_vertice("four");
-    graph.add_vertice("five");
-    graph.add_vertice("R");
+    // graph.add_vertice("one");
+    // graph.add_vertice("two");
+    // graph.add_vertice("three");
+    // graph.add_vertice("four");
+    // graph.add_vertice("five");
+    // graph.add_vertice("R");
 
-    graph.add_edge("one", "two", 0.8);
-    graph.add_edge("two", "three", 1);
-    graph.add_edge("two", "R", 1);
-    graph.add_edge("two", "four", 0.1);
-    graph.add_edge("R", "three", 1);
-    graph.add_edge("one", "three", 1);
-    graph.add_edge("one", "four", 1);
-    graph.add_edge("four", "three", 1);
-    graph.add_edge("four", "five", 1);
+    // graph.add_edge("one", "two", 0.8);
+    // graph.add_edge("two", "three", 1);
+    // graph.add_edge("two", "R", 1);
+    // graph.add_edge("two", "four", 0.1);
+    // graph.add_edge("R", "three", 1);
+    // graph.add_edge("one", "three", 1);
+    // graph.add_edge("one", "four", 1);
+    // graph.add_edge("four", "three", 1);
+    // graph.add_edge("four", "five", 1);
 
-    // Remove a vertex
-    graph.remove_vertice("R");
+    // // Remove a vertex
+    // graph.remove_vertice("R");
 
-    // Add a vertex
-    graph.add_vertice("six");
+    // // Add a vertex
+    // graph.add_vertice("six");
 
-    // Remove an edge
-    graph.remove_edge("two", "four");
+    // // Remove an edge
+    // graph.remove_edge("two", "four");
 
-    // Add an edge
-    graph.add_edge("one", "six", 1);
+    // // Add an edge
+    // graph.add_edge("one", "six", 1);
 
+    graph.add_vertice("Andy");
+    graph.add_vertice("Bob");
+    graph.add_vertice("Tom");
+    graph.add_vertice("Sam");
+    graph.add_vertice("Kevin");
+    graph.add_vertice("Leo");
+
+    graph.add_edge("Andy", "Bob", 1);
+    graph.add_edge("Bob", "Tom", 1);
+    graph.add_edge("Bob", "Sam", 1);
+    graph.add_edge("Andy", "Sam", 1);
+    graph.add_edge("Bob", "Bob", 1);
+    graph.add_edge("Andy", "Leo", 1);
+    graph.add_edge("Leo", "Sam", 1);
+    graph.add_edge("Sam", "Leo", 1);
+    
     // BFS
     std::cout << "Running BFS..." << std::endl;
     std::vector<std::pair<std::string, int>> cpu_bfs_result = CPU_Bfs(graph, "one");

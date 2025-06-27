@@ -1,5 +1,6 @@
 #pragma once
 #include <CPU_adj_list/CPU_adj_list.hpp>
+#include <map>
 
 // the LDBC class records the graph operation parameters and graph structure
 // defines functions for reading configuration files and graph structure files
@@ -212,6 +213,8 @@ void LDBC<weight_type>::load_graph() {
 
 	std::cout << "Loading edges..." << std::endl;
 	myfile.open(edge_file_path); // open the edge data file
+	
+	std::map<std::pair<int,int>, int > has;
 
 	if (myfile.is_open()) {
 		while (getline(myfile, line_content)) { // read data line by line
@@ -222,6 +225,15 @@ void LDBC<weight_type>::load_graph() {
 			}
 			weight_type ec = Parsed_content.size() > 2 ? std::stod(Parsed_content[2]) : 1; // get weight
 			this->add_edge(Parsed_content[0], Parsed_content[1], ec); // add edge
+			
+			// if (Parsed_content[0] == Parsed_content[1]) {
+			// 	std::cout << "self loop!!!!!!!!!!!!!!!!!!!!" << endl;
+			// }
+			// if (has.find(make_pair(std::stod(Parsed_content[0]), std::stod(Parsed_content[1]))) != has.end()){
+			// 	std::cout << "overlap edge!!!!!!!!!!!!!!!!!!!!" << endl;
+			// }
+			// has[make_pair(std::stod(Parsed_content[0]), std::stod(Parsed_content[1]))] = 1;
+			
 			if (!is_directed) { // undirected graphs require additional opposite edges
 				this->add_edge(Parsed_content[1], Parsed_content[0], ec);
 			}

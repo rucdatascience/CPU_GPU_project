@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <vector>
 #include <numeric>
 #include <iostream>
@@ -10,7 +11,7 @@
 #include <CPU_adj_list/algorithm/CPU_shortest_paths.hpp>
 
 std::vector<double> CPU_shortest_paths_pre(std::vector<std::vector<std::pair<int, double>>>& input_graph, int source, std::vector<int>& pre_v) {
-	//dijkstras-shortest-path-algorithm
+	// dijkstras-shortest-path-algorithm
 	
 	double inf = std::numeric_limits<double>::max();
 

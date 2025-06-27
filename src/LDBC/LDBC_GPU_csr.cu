@@ -1,23 +1,26 @@
 #include <time.h>
 #include <chrono>
 
-#include <GPU_csr/algorithm/GPU_BFS.cuh>
-#include <GPU_csr/algorithm/GPU_BFS_pre.cuh>
-#include <GPU_csr/algorithm/GPU_connected_components.cuh>
-#include <CPU_adj_list/algorithm/CPU_sssp_pre.hpp>
-#include <GPU_csr/algorithm/GPU_shortest_paths.cuh>
-#include <GPU_csr/algorithm/GPU_sssp_pre.cuh>
-#include <GPU_csr/algorithm/GPU_PageRank.cuh>
-#include <GPU_csr/algorithm/GPU_Community_Detection.cuh>
+#include <GPU_csr/algorithm/GPU_BFS_csr.cuh>
+#include <GPU_csr/algorithm/GPU_BFS_pre_csr.cuh>
+#include <GPU_csr/algorithm/GPU_WCC_csr.cuh>
+#include <GPU_csr/algorithm/GPU_SSSP_csr.cuh>
+#include <GPU_csr/algorithm/GPU_SSSP_pre_csr.cuh>
+#include <GPU_csr/algorithm/GPU_PR_csr.cuh>
+#include <GPU_csr/algorithm/GPU_CDLP_csr.cuh>
 
 #include <LDBC/checker.hpp>
 #include <LDBC/ldbc.hpp>
 
-int main()
-{
+__global__ void EmptyKernel() {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    return;
+}
+
+int main() {
     std::ios::sync_with_stdio(false);
     std::cin.tie(0);
-    std::cout.tie(0);    
+    std::cout.tie(0);
 
     //freopen("../input.txt", "r", stdin);
 
@@ -52,21 +55,24 @@ int main()
     std::cout << "Number of vertices: " << csr_graph.OUTs_Neighbor_start_pointers.size()-1 << std::endl;
     std::cout << "Number of edges: " << csr_graph.OUTs_Edges.size() << std::endl;
     printf("graph_to_csr_time cost time: %f s\n", graph_to_csr_time);
+    
+    EmptyKernel<<<1, 1024>>>();
+    cudaDeviceSynchronize();
 
+    int iter = 1;
     if (1) {
         if (graph.sup_bfs) {
             double gpu_bfs_time = 0;
-
             try {
                 std::vector<std::pair<std::string, int>> bfs_result;
                 begin = std::chrono::high_resolution_clock::now();
-                bfs_result = Cuda_Bfs(graph, csr_graph, graph.bfs_src_name);
+                for (int i = 0; i < iter; i ++) bfs_result = Cuda_BFS(graph, csr_graph, graph.bfs_src_name);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("GPU BFS cost time: %f s\n", gpu_bfs_time);
+                printf("GPU BFS_v2 cost time: %f s\n", gpu_bfs_time / (double)iter);
                 
                 if (Bfs_checker(graph, bfs_result, graph.base_path + "-BFS"))
-                    result_all.push_back(std::make_pair("BFS", std::to_string(gpu_bfs_time)));
+                    result_all.push_back(std::make_pair("BFS", std::to_string(gpu_bfs_time / (double)iter)));
                 else
                     result_all.push_back(std::make_pair("BFS", "wrong"));
             }
@@ -76,26 +82,25 @@ int main()
         }
         else
             result_all.push_back(std::make_pair("BFS", "N/A"));
-
     }
 
     if (1) {
         if (graph.sup_sssp) {
             double gpu_sssp_time = 0;
-
             try {
                 std::vector<std::pair<std::string, double>> sssp_result;
-                //std::vector<int> pre_v;
                 begin = std::chrono::high_resolution_clock::now();
-                sssp_result = Cuda_SSSP(graph, csr_graph, graph.sssp_src_name, std::numeric_limits<double>::max());
-                //sssp_result = Cuda_SSSP_pre(graph, csr_graph, graph.sssp_src_name, pre_v, std::numeric_limits<double>::max());
+                for (int i = 0; i < iter; i ++) sssp_result = Cuda_SSSP(graph, csr_graph, graph.sssp_src_name, std::numeric_limits<double>::max());
                 end = std::chrono::high_resolution_clock::now();
                 gpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("GPU SSSP cost time: %f s\n", gpu_sssp_time);
+                printf("GPU SSSP cost time: %f s\n", gpu_sssp_time / (double)iter);
                 if (SSSP_checker(graph, sssp_result, graph.base_path + "-SSSP"))
-                    result_all.push_back(std::make_pair("SSSP", std::to_string(gpu_sssp_time)));
+                    result_all.push_back(std::make_pair("SSSP", std::to_string(gpu_sssp_time / (double)iter)));
                 else
                     result_all.push_back(std::make_pair("SSSP", "wrong"));
+                
+                std::vector<int> pre_v;
+                sssp_result = Cuda_SSSP_pre(graph, csr_graph, graph.sssp_src_name, pre_v, std::numeric_limits<double>::max());
                 
                 /*std::vector<std::pair<std::string, std::string>> path = path_query(graph, graph.sssp_src_name, "338", pre_v);
                 for (auto p : path) {
@@ -109,20 +114,19 @@ int main()
         else
             result_all.push_back(std::make_pair("SSSP", "N/A"));
     }
-
+    
     if (1) {
         if (graph.sup_wcc) {
             double gpu_wcc_time = 0;
-
             try {
                 std::vector<std::pair<std::string, std::string>> wcc_result;
                 begin = std::chrono::high_resolution_clock::now();
-                wcc_result = Cuda_WCC(graph, csr_graph);
+                for (int i = 0; i < iter; i ++) wcc_result = Cuda_WCC(graph, csr_graph);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("GPU WCC cost time: %f s\n", gpu_wcc_time);
+                printf("GPU WCC cost time: %f s\n", gpu_wcc_time / (double)iter);
                 if (WCC_checker(graph, wcc_result, graph.base_path + "-WCC"))
-                    result_all.push_back(std::make_pair("WCC", std::to_string(gpu_wcc_time)));
+                    result_all.push_back(std::make_pair("WCC", std::to_string(gpu_wcc_time / (double)iter)));
                 else
                     result_all.push_back(std::make_pair("WCC", "wrong"));
             }
@@ -133,20 +137,19 @@ int main()
         else
             result_all.push_back(std::make_pair("WCC", "N/A"));
     }
-
+    
     if (1) {
         if (graph.sup_pr) {
             double gpu_pr_time = 0;
-
             try {
                 std::vector<std::pair<std::string, double>> pr_result;
                 begin = std::chrono::high_resolution_clock::now();
-                pr_result = Cuda_PR(graph, csr_graph, graph.pr_its, graph.pr_damping);
+                for (int i = 0; i < iter; i ++) pr_result = Cuda_PR(graph, csr_graph, graph.pr_its, graph.pr_damping);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("GPU PageRank cost time: %f s\n", gpu_pr_time);
+                printf("GPU PageRank cost time: %f s\n", gpu_pr_time / (double)iter);
                 if (PR_checker(graph, pr_result, graph.base_path + "-PR"))
-                    result_all.push_back(std::make_pair("PR", std::to_string(gpu_pr_time)));
+                    result_all.push_back(std::make_pair("PR", std::to_string(gpu_pr_time / (double)iter)));
                 else
                     result_all.push_back(std::make_pair("PR", "wrong"));
             }
@@ -157,20 +160,19 @@ int main()
         else
             result_all.push_back(std::make_pair("PR", "N/A"));
     }
-
+    
     if (1) {
         if (graph.sup_cdlp) {
             double gpu_cdlp_time = 0;
-
             try {
                 std::vector<std::pair<std::string, std::string>> cdlp_result;
                 begin = std::chrono::high_resolution_clock::now();
-                cdlp_result = Cuda_CDLP(graph, csr_graph, graph.cdlp_max_its);
+                for (int i = 0; i < iter; i ++) cdlp_result = Cuda_CDLP(graph, csr_graph, graph.cdlp_max_its);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("GPU Community Detection cost time: %f s\n", gpu_cdlp_time);
+                printf("GPU Community Detection cost time: %f s\n", gpu_cdlp_time / (double)iter);
                 if (CDLP_checker(graph, cdlp_result, graph.base_path + "-CDLP"))
-                    result_all.push_back(std::make_pair("CDLP", std::to_string(gpu_cdlp_time)));
+                    result_all.push_back(std::make_pair("CDLP", std::to_string(gpu_cdlp_time / (double)iter)));
                 else
                     result_all.push_back(std::make_pair("CDLP", "wrong"));
             }
@@ -191,9 +193,6 @@ int main()
     }
     std::cout << std::endl;
 
-    graph.save_to_CSV(result_all, "./result-gpu.csv");
-
-    //freopen("/dev/tty", "r", stdin);
-
+    graph.save_to_CSV(result_all, "./result-gpu-csr.csv");
     return 0;
 }

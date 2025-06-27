@@ -1,5 +1,5 @@
-#ifndef CDLP_GPU_ADJ
-#define CDLP_GPU_ADJ
+#ifndef CDLPGPU
+#define CDLPGPU
 
 #include "cuda_runtime.h"
 #include <cuda_runtime_api.h>
@@ -10,38 +10,37 @@
 #include <cub/cub.cuh>
 #include <vector>
 #include <string.h>
-#include <GPU_adj_list/GPU_adj.hpp>
+#include <GPU_csr/GPU_csr.hpp>
 
 using namespace std;
 #define CD_THREAD_PER_BLOCK 512
 
-__global__ void Label_init(int *labels, int N);
-__global__ void LabelPropagation(int *all_pointer, int *prop_labels, int *labels, cuda_vector<std::pair<int, double>> **all_edge, int N);
+__global__ void Label_init(int *labels, int *all_pointer, int N);
+__global__ void LabelPropagation(int *all_pointer, int *prop_labels, int *labels, int *all_edge, int N);
 __global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels,  int N);
 void checkCudaError(cudaError_t err, const char* msg);
 void checkDeviceProperties();
 
-void CDLP_GPU(graph_structure<double>& graph, GPU_adj<double>& input_graph, std::vector<string>& res, int max_iterations);
+void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, std::vector<string>& res, int max_iterations);
 
-std::vector<std::pair<std::string, std::string>> Cuda_CDLP_adj(graph_structure<double>& graph, GPU_adj<double>& input_graph, int max_iterations);
+std::vector<std::pair<std::string, std::string>> Cuda_CDLP(graph_structure<double>& graph, CSR_graph<double>& input_graph, int max_iterations);
 
 // propagate the label, the label of the neighbor vertex is propagated in parallel
-__global__ void LabelPropagation(int *all_pointer, int *prop_labels, int *labels, cuda_vector<int> **all_edge, int N) {
+__global__ void LabelPropagation(int *all_pointer, int *prop_labels, int *labels, int *all_edge, int N) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
 
     if (tid >= 0 && tid < N) {
-        int all_edge_offset = all_pointer[tid];
-        cuda_vector<int>& ed = *all_edge[tid];
-        for (int c = all_edge_offset; c < all_pointer[tid + 1]; c++) { // traverse the neighbor of the tid vertex
-            prop_labels[c] = labels[ed[c - all_edge_offset]]; // record the label of the neighbor vertex
+        for (int c = all_pointer[tid]; c < all_pointer[tid + 1]; c++) { // traverse the neighbor of the tid vertex
+            prop_labels[c] = labels[all_edge[c]]; // record the label of the neighbor vertex
         }
     }
 }
 
 // Initialize all labels at once with GPU.Initially
 // each vertex v is assigned a unique label which matches its identifier.
-__global__ void Label_init(int *labels, int N) {
+__global__ void Label_init(int *labels, int *all_pointer, int N) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
+
     if (tid >= 0 && tid < N) { // tid decides process which vertex
         labels[tid] = tid; // each vertex is initially labeled by itself
     }
@@ -51,7 +50,7 @@ __global__ void Label_init(int *labels, int N) {
 // every segmentation are sorted
 // count Frequency from the start in the global_space_for_label to the end in the global_space_for_label
 // the new labels are stroed in the new_labels
-__global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels, int N) {
+__global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_labels,  int N) {
     // Use GPU to propagate all labels at the same time.
     int tid = blockDim.x * blockIdx.x + threadIdx.x; // tid decides process which vertex
     if (tid >= 0 && tid < N) {
@@ -74,24 +73,25 @@ __global__ void Get_New_Label(int *all_pointer, int *prop_labels, int *new_label
 
 // Community Detection Using Label Propagation on GPU
 // Returns label of the graph based on the graph and number of iterations.
-void CDLP_GPU(graph_structure<double>& graph, GPU_adj<double>& input_graph, std::vector<string>& res, int max_iterations) {
+void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, std::vector<string>& res, int max_iterations) {
     int N = graph.size(); // number of vertices in the graph
     dim3 init_label_block((N + CD_THREAD_PER_BLOCK - 1) / CD_THREAD_PER_BLOCK, 1, 1); // the number of blocks used in the gpu
     dim3 init_label_thread(CD_THREAD_PER_BLOCK, 1, 1); // the number of threads used in the gpu
 
-    auto all_edge = input_graph.all_edge(); // graph stored in csr format
+    int* all_edge = input_graph.all_edge; // graph stored in csr format
+    int* all_pointer = input_graph.all_pointer;
 
-    int* all_pointer = nullptr;
     int* prop_labels = nullptr;
     int* new_prop_labels = nullptr;
     int* new_labels = nullptr;
     int* labels = nullptr;
 
     int CD_ITERATION = max_iterations; // fixed number of iterations
-    long long E = 0; // number of edges in the graph
-    cudaMallocManaged((void**)&all_pointer, (N + 1) * sizeof(int));
+    long long E = input_graph.E_all; // number of edges in the graph
     cudaMallocManaged((void**)&new_labels, N * sizeof(int));
     cudaMallocManaged((void**)&labels, N * sizeof(int));
+    cudaMallocManaged((void**)&prop_labels, E * sizeof(int));
+    cudaMallocManaged((void**)&new_prop_labels, E * sizeof(int));
 
     cudaDeviceSynchronize(); // synchronize, ensure the cudaMalloc is complete
     cudaError_t cuda_status = cudaGetLastError();
@@ -100,23 +100,7 @@ void CDLP_GPU(graph_structure<double>& graph, GPU_adj<double>& input_graph, std:
         return;
     }
 
-    for (int i = 0; i < N; i++) {
-        all_pointer[i] = E;
-        E += all_edge[i]->size();
-    }
-    all_pointer[N] = E;
-    
-    cudaMallocManaged((void**)&prop_labels, E * sizeof(int));
-    cudaMallocManaged((void**)&new_prop_labels, E * sizeof(int));
-
-    cudaDeviceSynchronize(); // synchronize, ensure the cudaMalloc is complete
-    cuda_status = cudaGetLastError();
-    if (cuda_status != cudaSuccess) { // use the cudaGetLastError to check for possible cudaMalloc errors
-        fprintf(stderr, "Cuda malloc failed: %s\n", cudaGetErrorString(cuda_status));
-        return;
-    }
-
-    Label_init<<<init_label_block, init_label_thread>>>(labels, N); // initialize all labels at once with GPU
+    Label_init<<<init_label_block, init_label_thread>>>(labels, all_pointer, N); // initialize all labels at once with GPU
 
     cudaDeviceSynchronize(); // synchronize, ensure the label initialization is complete
     cuda_status = cudaGetLastError();
@@ -139,15 +123,13 @@ void CDLP_GPU(graph_structure<double>& graph, GPU_adj<double>& input_graph, std:
         fprintf(stderr, "Sort failed: %s\n", cudaGetErrorString(cuda_status));
         return;
     }
-
     cudaError_t err = cudaMalloc(&d_temp_storage, temp_storage_bytes);
     if (err != cudaSuccess) {
         cerr << "Error: " << "Malloc failed" << " (" << cudaGetErrorString(err) << ")" << endl;
         return;
     }
 
-    while (it < CD_ITERATION) // continue for a fixed number of iterations
-    {
+    while (it < CD_ITERATION) { // continue for a fixed number of iterations
         LabelPropagation<<<init_label_block, init_label_thread>>>(all_pointer, prop_labels, labels, all_edge, N); // calculate the neighbor label array for each vertex
         cudaDeviceSynchronize();  // synchronize, ensure the label propagation is complete
 
@@ -192,7 +174,6 @@ void CDLP_GPU(graph_structure<double>& graph, GPU_adj<double>& input_graph, std:
     cudaFree(new_prop_labels);
     cudaFree(new_labels);
     cudaFree(d_temp_storage);
-    cudaFree(all_pointer);
 }
 
 // check whether cuda errors occur and output error information
@@ -206,7 +187,7 @@ void checkCudaError(cudaError_t err, const char *msg) {
 // Community Detection Using Label Propagation on GPU
 // Returns label of the graph based on the graph and number of iterations.
 // the type of the vertex and label are string
-std::vector<std::pair<std::string, std::string>> Cuda_CDLP_adj(graph_structure<double>& graph, GPU_adj<double>& input_graph, int max_iterations) {
+std::vector<std::pair<std::string, std::string>> Cuda_CDLP(graph_structure<double>& graph, CSR_graph<double>& input_graph, int max_iterations) {
     std::vector<std::string> result;
     CDLP_GPU(graph, input_graph, result, max_iterations); // get the labels of each vertex. vector index is the id of vertex
 

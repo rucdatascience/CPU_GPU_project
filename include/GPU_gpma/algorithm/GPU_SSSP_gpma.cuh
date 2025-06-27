@@ -1,20 +1,22 @@
-#ifndef WS_SSSP_H_ADJ
-#define WS_SSSP_H_ADJ
+#ifndef WS_SSSP_H
+#define WS_SSSP_H
 
 #include <stdio.h>
 
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-#include <GPU_adj_list/GPU_adj.hpp>
+#include <GPU_gpma/GPU_gpma.hpp>
 
 __device__ __forceinline__ double atomicMinDouble (double * addr, double value);
 
 __global__ void Relax(int* offsets, int* edges, double* weights, double* dis, int* queue, int* queue_size, int* visited);
 __global__ void CompactQueue(int V, int* next_queue, int* next_queue_size, int* visited);
-void gpu_shortest_paths(GPU_adj<double>& input_graph, int source, std::vector<double>& distance, double max_dis = 10000000000);
+void gpu_shortest_paths(GPMA &gpma_graph, int source, std::vector<double>& distance, double max_dis = 10000000000);
+void gpu_sssp_pre(GPMA &gpma_graph, int source, std::vector<double>& distance, std::vector<int>& pre_v, double max_dis = 10000000000);
 
-std::vector<std::pair<std::string, double>> Cuda_SSSP_adj(graph_structure<double>& graph, GPU_adj<double>& gpu_adj, std::string src_v, double max_dis = 10000000000);
+std::vector<std::pair<std::string, double>> Cuda_SSSP(graph_structure<double>& graph, GPMA &gpma_graph, std::string src_v, double max_dis = 10000000000);
+std::vector<std::pair<std::string, double>> Cuda_SSSP_pre(graph_structure<double>& graph, GPMA &gpma_graph, std::string src_v, std::vector<int>& pre_v, double max_dis = 10000000000);
 
 // this function is used to get the minimum value of double type atomically
 __device__ __forceinline__ double atomicMinDouble (double * addr, double value) {
@@ -23,30 +25,31 @@ __device__ __forceinline__ double atomicMinDouble (double * addr, double value) 
     return old;
 }
 
-__global__ void Relax(cuda_vector<int>** out_edge, cuda_vector<double>** out_edge_weight, double* dis, int* queue, int* queue_size, int* visited) {
+__global__ void Relax (const KEY_TYPE *keys, const VALUE_TYPE *values, const SIZE_TYPE *row_offset, double* dis, int* queue, int* queue_size, int* visited) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
     if (idx < *queue_size) {
         int v = queue[idx];
 
+        SIZE_TYPE start = row_offset[v];
+        SIZE_TYPE end = row_offset[v + 1];
+
         // for all adjacent vertices
-        int out_edge_size = out_edge[v]->size();
-        cuda_vector<int>& ed = *out_edge[v];
-        cuda_vector<double>& ed_weight = *out_edge_weight[v];
-        for (int i = 0; i < out_edge_size; i++) {
-            int new_v = ed[i];
-            double weight = ed_weight[i];
+        for (int i = start; i < end; i++) {
+            KEY_TYPE new_v = keys[i] & 0xFFFFFFFF;
+            VALUE_TYPE weight = values[i];
+            if (new_v != COL_IDX_NONE && weight != VALUE_NONE) {
+                double new_w = dis[v] + weight;
 
-            double new_w = dis[v] + weight;
+                // try doing relaxation
+                double old = atomicMinDouble(&dis[new_v], new_w);
 
-            // try doing relaxation
-            double old = atomicMinDouble(&dis[new_v], new_w);
+                if (old <= new_w)
+                    continue;
 
-            if (old <= new_w)
-				continue;
-
-            // if the distance is updated, set the vertex as visited
-            atomicExch(&visited[new_v], 1);
+                // if the distance is updated, set the vertex as visited
+                atomicExch(&visited[new_v], 1);
+            }
         }
     }
 }
@@ -62,14 +65,12 @@ __global__ void CompactQueue(int V, int* next_queue, int* next_queue_size, int* 
     }
 }
 
-void gpu_shortest_paths(GPU_adj<double>& input_graph, int source, std::vector<double>& distance, double max_dis) {
-    int V = input_graph.V;
+void gpu_shortest_paths(GPMA &gpma_graph, int source, std::vector<double>& distance, double max_dis) {
+    int V = gpma_graph.get_V() - 1;
 
     double* dis;
-    auto out_edge = input_graph.out_edge();
-    auto out_edge_weight = input_graph.out_edge_weight();
     int* visited;
-
+    
     int* queue, * next_queue;
     int* queue_size, * next_queue_size;
 
@@ -107,7 +108,9 @@ void gpu_shortest_paths(GPU_adj<double>& input_graph, int source, std::vector<do
     while (*queue_size > 0) {
 		numBlocks = (*queue_size + threadsPerBlock - 1) / threadsPerBlock;
         // launch the kernel function to relax the edges
-		Relax <<< numBlocks, threadsPerBlock >>> (out_edge, out_edge_weight, dis, queue, queue_size, visited);
+		Relax <<< numBlocks, threadsPerBlock >>> (RAW_PTR(gpma_graph.keys), 
+                                                  RAW_PTR(gpma_graph.values),
+                                                  RAW_PTR(gpma_graph.row_offset), dis, queue, queue_size, visited);
 		cudaDeviceSynchronize();
 
         cudaError_t cuda_status = cudaGetLastError();
@@ -146,10 +149,10 @@ void gpu_shortest_paths(GPU_adj<double>& input_graph, int source, std::vector<do
     return;
 }
 
-std::vector<std::pair<std::string, double>> Cuda_SSSP_adj(graph_structure<double>& graph, GPU_adj<double>& gpu_adj, std::string src_v, double max_dis) {
+std::vector<std::pair<std::string, double>> Cuda_SSSP(graph_structure<double>& graph, GPMA &gpma_graph, std::string src_v, double max_dis) {
     int src_v_id = graph.vertex_str_to_id[src_v];
     std::vector<double> gpuSSSPvec(graph.V, 0);
-    gpu_shortest_paths(gpu_adj, src_v_id, gpuSSSPvec, max_dis);
+    gpu_shortest_paths(gpma_graph, src_v_id, gpuSSSPvec, max_dis);
 
     // transfer the vertex id to vertex name
     return graph.res_trans_id_val(gpuSSSPvec);

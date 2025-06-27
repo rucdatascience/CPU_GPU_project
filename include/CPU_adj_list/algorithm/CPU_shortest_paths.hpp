@@ -1,5 +1,6 @@
 #pragma once
 
+#include <limits>
 #include <vector>
 #include <numeric>
 #include <iostream>
@@ -10,10 +11,10 @@
 using namespace std;
 
 struct node {
-  double dis;//distance from source vertex
-  int u;//indicates vertex 
+	double dis;//distance from source vertex
+	int u;//indicates vertex 
 
-  bool operator>(const node& a) const { return dis > a.dis; }//operator overload
+	bool operator>(const node& a) const { return dis > a.dis; }//operator overload
 };
 
 std::vector<double> CPU_shortest_paths(std::vector<std::vector<std::pair<int, double>>>& input_graph, int source) {

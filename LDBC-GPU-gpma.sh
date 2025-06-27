@@ -1,10 +1,18 @@
-# run chmod +x ./LDBC-CPU.sh to make this file executable
+# run chmod +x ./LDBC-GPU.sh to make this file executable
 
 data_dir="/home/mabojing/data"
 
-executable="/home/mdnd/CPU_GPU_project-main/build/bin_cpu/Test_CPU"
+executable="/home/mdnd/CPU_GPU_project-main/build/bin_gpu/Test_GPU_GPMA"
 
 filenames=(
+    "graph500-24"
+    "datagen-8_4-fb"
+    "datagen-8_5-fb"
+    "datagen-8_7-zf"
+    "datagen-8_6-fb"
+    "datagen-8_8-zf"
+    "graph500-25"
+    "datagen-8_9-fb"
     "wiki-Talk"
     "cit-Patents"
     "kgs"
@@ -20,26 +28,22 @@ filenames=(
     "graph500-23"
     "datagen-8_3-zf"
     "datagen-8_1-fb"
-    "graph500-24"
-    "datagen-8_4-fb"
-    "datagen-8_5-fb"
-    "datagen-8_7-zf"
-    "datagen-8_6-fb"
-    "datagen-8_8-zf"
-    "graph500-25"
-    "datagen-8_9-fb"
 )
+
+# 指定使用的GPU ID（例如：0, 1, 2）
+gpu_id=1
 
 for filename in "${filenames[@]}"
 do
-    echo "$filename" >> result-cpu-edge.csv
     for i in {1..1}
     do
         echo "testing file $filename ..."
         echo "$data_dir/" > input.txt
         echo "$filename" >> input.txt
 
-        $executable < input.txt > "/home/mdnd/CPU_GPU_project-main/logs/$filename-CPU.output"
+        echo "$filename" >> result-gpu-gpma.csv
+
+        CUDA_VISIBLE_DEVICES=$gpu_id $executable < input.txt > "/home/mdnd/CPU_GPU_project-main/logs/$filename-GPU-gpma.output"
         echo "test file $filename done."
     done
 done
