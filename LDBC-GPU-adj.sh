@@ -30,7 +30,7 @@ filenames=(
     "datagen-8_9-fb"
 )
 
-# 指定使用的GPU ID（例如：0, 1, 2）
+# Specify the GPU ID to be used (for example: 0, 1, 2)
 gpu_id=1
 
 for filename in "${filenames[@]}"
