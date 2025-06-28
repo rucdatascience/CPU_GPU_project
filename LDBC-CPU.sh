@@ -32,13 +32,14 @@ filenames=(
 
 for filename in "${filenames[@]}"
 do
-    echo "$filename" >> result-cpu-edge.csv
     for i in {1..1}
     do
         echo "testing file $filename ..."
         echo "$data_dir/" > input.txt
         echo "$filename" >> input.txt
-
+        
+        echo "$filename" >> result-cpu.csv
+    
         $executable < input.txt > "/home/mdnd/CPU_GPU_project-main/logs/$filename-CPU.output"
         echo "test file $filename done."
     done

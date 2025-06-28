@@ -34,8 +34,7 @@ public:
 
 template <typename weight_type>
 // CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph)
-CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_directed = true)
-{
+CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_directed = true) {
     CSR_graph<weight_type> ARRAY;
 
     ARRAY.is_directed = is_directed;
@@ -47,11 +46,9 @@ CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_direct
 
     if (is_directed) {
         ARRAY.INs_Neighbor_start_pointers.resize(V + 1); // Neighbor_start_pointers[V] = Edges.size() = Edge_weights.size() = the total number of edges.
-        for (int i = 0; i < V; i++)
-        {
+        for (int i = 0; i < V; i++) {
             ARRAY.INs_Neighbor_start_pointers[i] = pointer;
-            for (auto &xx : graph.INs[i])
-            {
+            for (auto &xx : graph.INs[i]) {
                 ARRAY.INs_Edges.push_back(xx.first);
                 ARRAY.INs_Edge_weights.push_back(xx.second);
             }
@@ -61,11 +58,9 @@ CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_direct
     }
 
     pointer = 0;
-    for (int i = 0; i < V; i++)
-    {
+    for (int i = 0; i < V; i++) {
         ARRAY.OUTs_Neighbor_start_pointers[i] = pointer;
-        for (auto &xx : graph.OUTs[i])
-        {
+        for (auto &xx : graph.OUTs[i]) {
             ARRAY.OUTs_Edges.push_back(xx.first);
             ARRAY.OUTs_Edge_weights.push_back(xx.second);
         }
@@ -76,15 +71,12 @@ CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_direct
     if (is_directed) {
         ARRAY.ALL_start_pointers.resize(V + 1);
         pointer = 0;
-        for (int i = 0; i < V; i++)
-        {
+        for (int i = 0; i < V; i++) {
             ARRAY.ALL_start_pointers[i] = pointer;
-            for (auto &xx : graph.INs[i])
-            {
+            for (auto &xx : graph.INs[i]) {
                 ARRAY.all_Edges.push_back(xx.first);
             }
-            for (auto &xx : graph.OUTs[i])
-            {
+            for (auto &xx : graph.OUTs[i]) {
                 ARRAY.all_Edges.push_back(xx.first);
             }
             pointer += graph.INs[i].size() + graph.OUTs[i].size();
@@ -112,8 +104,7 @@ CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_direct
         cudaMalloc((void**)&ARRAY.in_edge, E_in * sizeof(int));
         cudaMalloc((void**)&ARRAY.all_edge, E_all * sizeof(int));
         cudaMalloc((void**)&ARRAY.in_edge_weight, E_in * sizeof(double));
-    }
-    else {
+    } else {
         ARRAY.in_pointer = ARRAY.out_pointer;
         ARRAY.all_pointer = ARRAY.out_pointer;
         ARRAY.in_edge = ARRAY.out_edge;
@@ -145,8 +136,7 @@ CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_direct
 }
 
 template <typename weight_type>
-CSR_graph<weight_type>::~CSR_graph()
-{
+CSR_graph<weight_type>::~CSR_graph() {
     cudaFree(out_pointer);
     cudaFree(out_edge);
     cudaFree(out_edge_weight);

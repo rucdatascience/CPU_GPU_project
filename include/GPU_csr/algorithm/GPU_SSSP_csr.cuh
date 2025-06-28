@@ -305,7 +305,6 @@ __host__ std::vector<double> csr_sssp(int *keys, double *values, int *row_offset
 
         if (zero == 0) break;
     }
-
     std::vector<double> result(node_size);
     cudaMemcpy(result.data(), distances, node_size * sizeof(double), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();

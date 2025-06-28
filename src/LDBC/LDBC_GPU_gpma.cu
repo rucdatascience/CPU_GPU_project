@@ -273,7 +273,7 @@ int main() {
             try {
                 std::vector<std::pair<std::string, int>> bfs_result;
                 begin = std::chrono::high_resolution_clock::now();
-                for (int i = 0; i < iter; i ++) bfs_result = Cuda_BFS_optimized(graph, gpma_graph_out, graph.bfs_src_name);
+                for (int i = 0; i < iter; i ++) bfs_result = Cuda_BFS(graph, gpma_graph_out, graph.bfs_src_name);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("GPU BFS cost time: %f s\n", gpu_bfs_time / (double)iter);
@@ -298,7 +298,7 @@ int main() {
                 std::vector<std::pair<std::string, double>> sssp_result;
                 //std::vector<int> pre_v;
                 begin = std::chrono::high_resolution_clock::now();
-                for (int i = 0; i < iter; i ++) sssp_result = Cuda_SSSP_optimized(graph, gpma_graph_out, graph.sssp_src_name, std::numeric_limits<double>::max());
+                for (int i = 0; i < iter; i ++) sssp_result = Cuda_SSSP(graph, gpma_graph_out, graph.sssp_src_name, std::numeric_limits<double>::max());
                 //sssp_result = Cuda_SSSP_pre(graph, csr_graph, graph.sssp_src_name, pre_v, std::numeric_limits<double>::max());
                 end = std::chrono::high_resolution_clock::now();
                 gpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
@@ -327,7 +327,7 @@ int main() {
             try {
                 std::vector<std::pair<std::string, std::string>> wcc_result;
                 begin = std::chrono::high_resolution_clock::now();
-                for (int i = 0; i < iter; i ++) wcc_result = Cuda_WCC_optimized(graph, gpma_graph_out);
+                for (int i = 0; i < iter; i ++) wcc_result = Cuda_WCC(graph, gpma_graph_out);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("GPU WCC cost time: %f s\n", gpu_wcc_time / (double)iter);
@@ -350,7 +350,7 @@ int main() {
             try {
                 std::vector<std::pair<std::string, double>> pr_result;
                 begin = std::chrono::high_resolution_clock::now();
-                for (int i = 0; i < iter; i ++) pr_result = Cuda_PR_optimized(graph, gpma_graph_in, gpma_graph_out, graph.pr_its, graph.pr_damping);
+                for (int i = 0; i < iter; i ++) pr_result = Cuda_PR(graph, gpma_graph_in, gpma_graph_out, graph.pr_its, graph.pr_damping);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("GPU PageRank cost time: %f s\n", gpu_pr_time / (double)iter);
@@ -373,7 +373,7 @@ int main() {
             try {
                 std::vector<std::pair<std::string, std::string>> cdlp_result;
                 begin = std::chrono::high_resolution_clock::now();
-                for (int i = 0; i < iter; i ++) cdlp_result = Cuda_CDLP_optimized(graph, gpma_graph_in, gpma_graph_out, graph.cdlp_max_its);
+                for (int i = 0; i < iter; i ++) cdlp_result = Cuda_CDLP(graph, gpma_graph_in, gpma_graph_out, graph.cdlp_max_its);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
                 printf("GPU Community Detection cost time: %f s\n", gpu_cdlp_time / (double)iter);

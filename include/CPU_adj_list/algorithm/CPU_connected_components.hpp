@@ -26,8 +26,7 @@ std::vector<int> CPU_connected_components(std::vector<std::vector<std::pair<int,
 	while (change) {
 		change = false; // if there is no change in an iteration, change will be set to false
 		for (long long q = 0; q < threads; q++) {
-			results_dynamic[q] = (pool_dynamic.enqueue([q, N, threads, &change, &input_graph, &component]
-			{	// distribute the tasks to each thread
+			results_dynamic[q] = (pool_dynamic.enqueue([q, N, threads, &change, &input_graph, &component] {	// distribute the tasks to each thread
 				int start = q * N / threads, end = std::min(N - 1, (int)((q + 1) * N / threads)); // each task computes the subgraph
 				for (int u = start; u <= end; u++) {
 					for (auto& x : input_graph[u]) {
@@ -49,8 +48,7 @@ std::vector<int> CPU_connected_components(std::vector<std::vector<std::pair<int,
             result.wait(); // block the process to synchronize the status
         }
 		for (long long q = 0; q < threads; q++) { // dsu path compression
-			results_dynamic[q] = (pool_dynamic.enqueue([q, N, threads, &component]
-			{
+			results_dynamic[q] = (pool_dynamic.enqueue([q, N, threads, &component] {
 				int start = q * N / threads, end = std::min(N - 1, (int)((q + 1) * N / threads));
 				for (int u = start; u <= end; u++) {
 					while (component[u] != component[component[u]]) { // recursively update the root node of node u to a higher-level ancestor
@@ -67,7 +65,7 @@ std::vector<int> CPU_connected_components(std::vector<std::vector<std::pair<int,
 	return component;
 }
 
-std::vector<std::pair<std::string, std::string>> CPU_WCC(graph_structure<double> & graph){
+std::vector<std::pair<std::string, std::string>> CPU_WCC(graph_structure<double> & graph) {
 	std::vector<int> wccVec = CPU_connected_components(graph.OUTs, graph.INs);
 	return graph.res_trans_id_id(wccVec);
 }

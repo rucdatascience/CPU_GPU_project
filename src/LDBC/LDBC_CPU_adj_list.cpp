@@ -85,26 +85,26 @@ int main() {
     printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
 
     // read .e and make data for add edges and delete edges
-    read_edge_file("/home/mdnd/CPU_GPU_project-main/data/" + graph_name);
+    // read_edge_file("/home/mdnd/CPU_GPU_project-main/data/" + graph_name);
 
-    std::vector<std::pair<std::string, std::string>> vector_edge;
-    begin = std::chrono::high_resolution_clock::now();
-    add_edge(graph);
-    end =std::chrono::high_resolution_clock::now();
-    double add_edge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-    vector_edge.push_back(std::make_pair("add-edge", std::to_string(add_edge_time)));
-    printf("add_edge_time cost time: %f s\n", add_edge_time);
+    // std::vector<std::pair<std::string, std::string>> vector_edge;
+    // begin = std::chrono::high_resolution_clock::now();
+    // add_edge(graph);
+    // end =std::chrono::high_resolution_clock::now();
+    // double add_edge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+    // vector_edge.push_back(std::make_pair("add-edge", std::to_string(add_edge_time)));
+    // printf("add_edge_time cost time: %f s\n", add_edge_time);
     
-    std::vector<std::pair<std::string, std::string>> vector_delete_edge;
-    begin = std::chrono::high_resolution_clock::now();
-    delete_edge(graph);
-    end =std::chrono::high_resolution_clock::now();
-    double delete_edge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-    vector_edge.push_back(std::make_pair("delete-edge", std::to_string(delete_edge_time)));
-    printf("delete_edge_time cost time: %f s\n", delete_edge_time);
+    // std::vector<std::pair<std::string, std::string>> vector_delete_edge;
+    // begin = std::chrono::high_resolution_clock::now();
+    // delete_edge(graph);
+    // end =std::chrono::high_resolution_clock::now();
+    // double delete_edge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
+    // vector_edge.push_back(std::make_pair("delete-edge", std::to_string(delete_edge_time)));
+    // printf("delete_edge_time cost time: %f s\n", delete_edge_time);
     
-    graph.save_to_CSV(vector_edge, "./result-cpu-edge.csv");
-    return 0;
+    // graph.save_to_CSV(vector_edge, "./result-cpu-edge.csv");
+    // return 0;
 
     std::vector<std::pair<std::string, std::string>> result_all;
 
@@ -250,8 +250,6 @@ int main() {
     std::cout << std::endl;
 
     graph.save_to_CSV(result_all, "./result-cpu.csv");
-
-    //freopen("/dev/tty", "r", stdin);
 
     return 0;
 }

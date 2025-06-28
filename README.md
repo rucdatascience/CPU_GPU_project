@@ -13,7 +13,7 @@ RucGraph is a lightweight graph database system that uses both CPUs and GPUs to 
 
 ## Graph data structures & algorithms
 
-RucGraph is now using [Adjacency Lists](https://www.geeksforgeeks.org/adjacency-list-meaning-definition-in-dsa/) to store graphs in CPU memory, and using [Sparse Matrix Representations](https://www.geeksforgeeks.org/sparse-matrix-representations-set-3-csr/) (CSRs), GPU Packed Memory Array (GPMA) as well as Adjacency Lists (ADJ) to store graphs in GPU memory. 
+RucGraph is now using [Adjacency Lists](https://www.geeksforgeeks.org/adjacency-list-meaning-definition-in-dsa/) to store graphs in CPU memory, and using [Sparse Matrix Representations](https://www.geeksforgeeks.org/sparse-matrix-representations-set-3-csr/) (CSRs), GPU Packed Memory Array (GPMA) as well as Adjacency Lists to store graphs in GPU memory. 
 
 
 We have implemented 5 graph analysis algorithms on both CPUs and GPUs to date: Breadth-First Search (BFS), PageRank (PR), Weakly Connected Components (WCC), Community Detection using Label Propagation (CDLP), Single-Source Shortest Paths (SSSP). The pseudo codes of these algorithms can be found in the end of [the LDBC Graphalytics Benchmark handbook](https://arxiv.org/pdf/2011.15028). Nevertheless, our implementations are optimized for parallel computation, and may be considerably different from these pseudo codes.
@@ -116,6 +116,7 @@ There are some explanations for the above commands:
 We can run "CPU_example", "GPU_example_adj", "GPU_example_csr" and "GPU_example_gpma" without any graph dataset. The outputs of graph analysis operators will be printed on the terminal. 
 
 Nevertheless, before running "Test_CPU", "Test_GPU_ADJ", "Test_GPU_CSR" and "Test_GPU_GPMA", we need to download the [LDBC Graphalytics datasets](https://repository.surfsara.nl/datasets/cwi/graphalytics) at first. Then, when running "Test_CPU", "Test_GPU_ADJ", "Test_GPU_CSR" and "Test_GPU_GPMA", the program will ask us to input the data path and name sequentially. 
+
 ```shell
 Please input the data directory: # The program asks
 /home/username/data # Input the data path

@@ -20,8 +20,7 @@ std::vector<double> PageRank (std::vector<std::vector<std::pair<int, double>>>& 
     double teleport = (1 - damp) / N; // teleport mechanism
 
     std::vector<int> sink; // the set of sink vertices
-    for (int i = 0; i < N; i++)
-    {
+    for (int i = 0; i < N; i++) {
         if (out_edge[i].size() == 0)
             sink.push_back(i); // record the sink vertices
     }

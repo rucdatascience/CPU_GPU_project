@@ -157,8 +157,7 @@ __global__ void calculate_sink(double *pr, int *N_out_zero_gpu, int out_zero_siz
         sink[stid] = 0; // not the out-degree zero vertex
     __syncthreads(); // wait unitl finish Loading data into shared memory
 
-    for (int i = blockDim.x / 2; i > 0; i >>= 1) // get the sum of sink by reducing kernel function
-    {
+    for (int i = blockDim.x / 2; i > 0; i >>= 1) { // get the sum of sink by reducing kernel function
         if (stid < i)
             sink[stid] += sink[stid + i];
         __syncthreads(); // Synchronize again to ensure that each step of the reduction operation is completed

@@ -146,8 +146,7 @@ void CDLP_GPU(graph_structure<double>& graph, GPU_adj<double>& input_graph, std:
         return;
     }
 
-    while (it < CD_ITERATION) // continue for a fixed number of iterations
-    {
+    while (it < CD_ITERATION) { // continue for a fixed number of iterations
         LabelPropagation<<<init_label_block, init_label_thread>>>(all_pointer, prop_labels, labels, all_edge, N); // calculate the neighbor label array for each vertex
         cudaDeviceSynchronize();  // synchronize, ensure the label propagation is complete
 

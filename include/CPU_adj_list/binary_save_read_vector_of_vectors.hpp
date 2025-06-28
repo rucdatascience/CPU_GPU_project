@@ -11,8 +11,7 @@ template<typename T>
 void binary_read_vector_of_vectors(std::string path, std::vector<std::vector<T>>& myVector);
 
 template<typename T>
-void binary_save_vector_of_vectors(std::string path, const std::vector<std::vector<T> >& myVector)
-{
+void binary_save_vector_of_vectors(std::string path, const std::vector<std::vector<T> >& myVector) {
     std::ofstream FILE(path, std::ios::out | std::ofstream::binary);
 
     // Store size of the outer vector
@@ -35,16 +34,14 @@ void binary_save_vector_of_vectors(std::string path, const std::vector<std::vect
 }
 
 template<typename T>
-void binary_read_vector_of_vectors(std::string path, std::vector<std::vector<T>>& myVector)
-{
+void binary_read_vector_of_vectors(std::string path, std::vector<std::vector<T>>& myVector) {
     std::vector<std::vector<T>>().swap(myVector);
 
     std::ifstream FILE(path, std::ios::in | std::ifstream::binary);
 
     int size = 0;
     FILE.read(reinterpret_cast<char*>(&size), sizeof(size));
-    if (!FILE)
-    {
+    if (!FILE) {
         std::cout << "Unable to open file " << path << std::endl << "Please check the file location or file name." << std::endl; // throw an error message
         exit(1); // end the program
     }

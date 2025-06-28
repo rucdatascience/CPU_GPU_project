@@ -9,8 +9,7 @@
 // Community Detection Using Label Propagation
 // call this function like:ans_cpu = CDLP(graph.INs, graph.OUTs, graph.vertex_id_to_str, graph.cdlp_max_its);
 // Returns label of the graph based on the graph and number of iterations.
-std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
-{
+std::vector<std::string> CDLP(graph_structure<double>& graph, int iters) {
     auto& in_edges = graph.INs; // incoming edges of each vertex in the graph
     auto& out_edges = graph.OUTs; // outgoing edges of each vertex in the graph
 
@@ -22,35 +21,26 @@ std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
     ThreadPool pool_dynamic(100); 
     std::vector<std::future<int>> results_dynamic;
 
-    for (int k = 0; k < iters; k++) // continue for a fixed number of iterations
-    {
-        for (int q = 0; q < 100; q++)
-        {
-            results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &in_edges, &out_edges, &label, &new_label]
-                {
+    for (int k = 0; k < iters; k++) { // continue for a fixed number of iterations
+        for (int q = 0; q < 100; q++) {
+            results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &in_edges, &out_edges, &label, &new_label] {
                     int start = (long long)q * N / 100, end = std::min((long long)N - 1, (long long)(q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
 
                         std::unordered_map<int, int> count; // record the label information of the neighbor vertex. the first keyword is the label and the second keyword is the number of occurrences
-                        for (auto& x : in_edges[i]) // traverse the incoming edges of vertex i
-                        {
+                        for (auto& x : in_edges[i]) { // traverse the incoming edges of vertex i
                             count[label[x.first]]++; // count the number of label occurrences of the neighbor vertices
                         }
-                        for (auto& x : out_edges[i]) // traverse the outcoming edges of vertex i
-                        {
+                        for (auto& x : out_edges[i]) { // traverse the outcoming edges of vertex i
                             count[label[x.first]]++; // count the number of label occurrences of the neighbor vertices
                         }
                         int maxcount = 0; // the maximum number of maxlabel occurrences, the initial value is set to 0, which means that all existing labels can be recorded
                         int maxlabel = label[i]; // consider the possibility of isolated points, the initial label is label[i] instead of 0
-                        for (std::pair<int, int> p : count) // traversal the label statistics protector of the neighbor node
-                        {
-                            if (p.second > maxcount) // the number of label occurrences currently traversed is greater than the recorded value
-                            {
+                        for (std::pair<int, int> p : count) { // traversal the label statistics protector of the neighbor node
+                            if (p.second > maxcount) { // the number of label occurrences currently traversed is greater than the recorded value
                                 maxcount = p.second; // update the label
                                 maxlabel = p.first;
-                            }
-                            else if (p.second == maxcount) // take a smaller value when the number of label occurrences is the same
-                            {
+                            } else if (p.second == maxcount) { // take a smaller value when the number of label occurrences is the same
                                 maxlabel = std::min(p.first, maxlabel);
                             }
                         }
@@ -60,8 +50,7 @@ std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
                     }
                     return 1; }));
         }
-        for (auto&& result : results_dynamic)
-        {
+        for (auto&& result : results_dynamic) {
             result.get();
         }
         std::vector<std::future<int>>().swap(results_dynamic); // clear results dynamic
@@ -70,8 +59,7 @@ std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
     }
 
     std::vector<std::string>res(N);
-    for (int i = 0; i < N; i++)
-    {
+    for (int i = 0; i < N; i++) {
         res[i] = graph.vertex_id_to_str[label[i]].first; // convert the label to string and store it in res
     }
 
@@ -81,8 +69,7 @@ std::vector<std::string> CDLP(graph_structure<double>& graph, int iters)
 // Community Detection Using Label Propagation
 // Returns label of the graph based on the graph and number of iterations.
 // the type of the vertex and label are string
-std::vector<std::pair<std::string, std::string>> CPU_CDLP(graph_structure<double>& graph, int iterations)
-{
+std::vector<std::pair<std::string, std::string>> CPU_CDLP(graph_structure<double>& graph, int iterations) {
     std::vector<std::string> cdlpVec = CDLP(graph, iterations); // get the labels of each vertex. vector index is the id of vertex
 
     std::vector<std::pair<std::string, std::string>> res; // store results, the first value in pair records the vertex id, and the second value records the label

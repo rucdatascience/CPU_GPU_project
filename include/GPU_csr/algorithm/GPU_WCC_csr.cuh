@@ -16,8 +16,7 @@ using namespace std;
 __global__ void parent_init(int *parent, int N) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
 
-    if (tid < N) // tid decides process which vertex
-    {
+    if (tid < N) { // tid decides process which vertex
         parent[tid] = tid; // each vertex is initially labeled by itself
     }
 }
@@ -39,33 +38,10 @@ __global__ void get_freq(int *parent, int *freq, int N) {
     }
 }
 
-// __global__ void get_freq(int *parent, int *freq, int N) {
-//     __shared__ int s_freq[WCCG_THREAD_PER_BLOCK];
-//     int tid = threadIdx.x;
-    
-//     // 初始化共享内存
-//     s_freq[tid] = 0;
-//     __syncthreads();
-    
-//     int gid = blockIdx.x * blockDim.x + threadIdx.x;
-//     if (gid < N) {
-//         int p = parent[gid];
-//         // atomicAdd(&s_freq[tid], (p == parent[p]) ? 1 : 0);  // 仅统计根节点
-//     }
-//     __syncthreads();
-    
-//     // 块级归约
-//     if (tid == 0) {
-//         // for (int i = 0; i < WCCG_THREAD_PER_BLOCK; ++i)
-//             // atomicAdd(freq, s_freq[i]);
-//     }
-// }
-
 __global__ void sampling(int *all_pointer, int *all_edge, int *parent, int N, int neighbor_round) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
     int u = tid;
-    if (tid < N) // tid decides process which vertex
-    {
+    if (tid < N) { // tid decides process which vertex
         int i = all_pointer[u] + neighbor_round;
         if (i < all_pointer[u + 1]) {
             int v = all_edge[i];
@@ -87,11 +63,7 @@ __global__ void sampling(int *all_pointer, int *all_edge, int *parent, int N, in
 __global__ void full_link(int *all_pointer, int *all_edge, int *parent, int most, int N, int neighbor_round) {
     int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
     int u = tid;
-    if (tid < N) // tid decides process which vertex
-    {
-        // if (parent[tid] == most) {
-        //     return;
-        // }
+    if (tid < N) { // tid decides process which vertex
         for (int i = all_pointer[u] + neighbor_round; i < all_pointer[u + 1]; i++) {
             int v = all_edge[i];
             int p1 = parent[u], p2 = parent[v];
@@ -125,11 +97,7 @@ std::vector<int> WCC_GPU(graph_structure<double> &graph, CSR_graph<double> &inpu
     int *parent = nullptr;
     int *freq = nullptr;
 
-    // cudaEventRecord(start_clock);
     cudaMallocManaged((void **)&parent, N * sizeof(int));
-    // cudaMallocManaged((void **)&freq, N * sizeof(int));
-    // cudaMemset(freq, 0, N * sizeof(int));
-    // cudaDeviceSynchronize();
     parent_init<<<init_label_block, init_label_thread>>>(parent, N);
     cudaDeviceSynchronize();
 
@@ -143,14 +111,6 @@ std::vector<int> WCC_GPU(graph_structure<double> &graph, CSR_graph<double> &inpu
         
         it++;
     }
-    // get_freq<<<init_label_block, init_label_thread>>>(parent, freq, N);
-    // thrust::sort(d_data.begin(), d_data.end());
-    // thrust::sort(parent, parent + N);
-    // cudaDeviceSynchronize();
-    
-    // int *c = thrust::max_element(thrust::device, freq, freq + N);
-    // int most_f_element = *c;
-    
     full_link<<<init_label_block, init_label_thread>>>(all_pointer, all_edge, parent, 0, N, ITERATION);
     cudaDeviceSynchronize();
     compress<<<init_label_block, init_label_thread>>>(parent, N);
