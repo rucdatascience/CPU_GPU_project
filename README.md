@@ -13,7 +13,7 @@ RucGraph is a lightweight graph database system that uses both CPUs and GPUs to 
 
 ## Graph data structures & algorithms
 
-RucGraph is now using [Adjacency Lists](https://www.geeksforgeeks.org/adjacency-list-meaning-definition-in-dsa/) to store graphs in CPU memory, and using [Sparse Matrix Representations](https://www.geeksforgeeks.org/sparse-matrix-representations-set-3-csr/) (CSRs) to store graphs in GPU memory. 
+RucGraph is now using [Adjacency Lists](https://www.geeksforgeeks.org/adjacency-list-meaning-definition-in-dsa/) to store graphs in CPU memory, and using [Sparse Matrix Representations](https://www.geeksforgeeks.org/sparse-matrix-representations-set-3-csr/) (CSRs)、GPU Packed Memory Array (GPMA) to store graphs in GPU memory. 
 
 More diversified functions, such as using Adjacency Lists in GPU memory, is now under development.
 
@@ -25,17 +25,33 @@ We have implemented 5 graph analysis algorithms on both CPUs and GPUs to date: B
 
 - `include/`: header files
 
-- `include/CPU_adj_list/`: header files for operating Adjacency Lists on CPUs
+- `include/CPU_adj_list/`: header files for operating **Adjacency Lists** on CPUs
 
-- `include/CPU_adj_list/CPU_adj_list.hpp`: an Adjacency List on CPUs
+- `include/CPU_adj_list/CPU_adj_list.hpp`: An Adjacency List on CPUs
 
 - `include/CPU_adj_list/algorithm/`: header files for graph analysis operators on CPUs, such as Shortest Path, PageRank, Community Detection operators; these operators have passed the LDBC Graphalytics Benchmark test
 
 
 
-- `include/GPU_csr/`: header files for operating CSRs on GPUs
+- `include/GPU_adj_list/`: header files for operating **Adjacency Lists** on GPUs
 
-- `include/GPU_csr/GPU_csr.hpp`: a CSR on GPUs
+- `include/GPU_csr/GPU_csr.hpp`: An Adjacency List on GPUs
+
+- `include/GPU_csr/algorithm/`: header files for graph analysis operators on GPUs, such as Shortest Path, PageRank, Community Detection operators; these operators have also passed the LDBC Graphalytics Benchmark test
+
+  
+
+- `include/GPU_csr/`: header files for operating **CSRs** on GPUs
+
+- `include/GPU_csr/GPU_csr.hpp`: A CSR on GPUs
+
+- `include/GPU_csr/algorithm/`: header files for graph analysis operators on GPUs, such as Shortest Path, PageRank, Community Detection operators; these operators have also passed the LDBC Graphalytics Benchmark test
+
+  
+
+- `include/GPU_adj_list/`: header files for operating **GPMA** on GPUs
+
+- `include/GPU_csr/GPU_csr.hpp`: A GPU Packed Memory Array on GPUs
 
 - `include/GPU_csr/algorithm/`: header files for graph analysis operators on GPUs, such as Shortest Path, PageRank, Community Detection operators; these operators have also passed the LDBC Graphalytics Benchmark test
 
@@ -45,13 +61,17 @@ We have implemented 5 graph analysis algorithms on both CPUs and GPUs to date: B
 
 
  <br /> 
- 
+
 
 - `src/`: source files
 - `src/CPU_adj_list/CPU_example.cpp`: an example of performing graph analysis operators on CPUs
-- `src/GPU_csr/GPU_example.cu`: an example of performing graph analysis operators on GPUs
+- `src/GPU_adj_list/GPU_adj_example.cu`: an example of performing graph analysis operators on GPUs (Adjacency List version)
+- `src/GPU_csr/GPU_csr_example.cu`: an example of performing graph analysis operators on GPUs (CSR version)
+- `src/GPU_gpma/GPU_gpma_example.cu`: an example of performing graph analysis operators on GPUs (GPMA version)
 - `src/LDBC/LDBC_CPU_adj_list.cpp`: the source codes of performing the LDBC Graphalytics Benchmark test on CPUs
-- `src/LDBC/LDBC_GPU_csr.cu`: the source codes of performing the LDBC Graphalytics Benchmark test on GPUs
+- `src/LDBC/LDBC_GPU_adj.cu`: the source codes of performing the LDBC Graphalytics Benchmark test on GPUs (Adjacency List version)
+- `src/LDBC/LDBC_GPU_csr.cu`: the source codes of performing the LDBC Graphalytics Benchmark test on GPUs (CSR version)
+- `src/LDBC/LDBC_GPU_gpma.cu`: the source codes of performing the LDBC Graphalytics Benchmark test on GPUs (GPMA version)
 
 
 
@@ -74,27 +94,27 @@ username@server:~/RucGraph$ cd build
 username@server:~/RucGraph/build$ cmake .. -DBUILD_CPU=ON -DBUILD_GPU=ON
 username@server:~/RucGraph/build$ make
 username@server:~/RucGraph/build$ ./bin_cpu/CPU_example
-username@server:~/RucGraph/build$ ./bin_gpu/GPU_example
+username@server:~/RucGraph/build$ ./bin_gpu/GPU_example_csr
 username@server:~/RucGraph/build$ ./bin_cpu/Test_CPU
-username@server:~/RucGraph/build$ ./bin_gpu/Test_GPU
+username@server:~/RucGraph/build$ ./bin_gpu/Test_GPU_CSR
 ```
 
 There are some explanations for the above commands:
 
-- `-DBUILD_CPU=ON -DBUILD_GPU=ON` is to compile both CPU and GPU codes. If GPUs are not available, then we can change `-DBUILD_GPU=ON` to `-DBUILD_GPU=OFF`.
+- `-DBUILD_CPU=ON -DBUILD_GPU_CSR=ON -DBUILD_GPU_GPMA=ON -DBUILD_GPU_ADJ=ON` is to compile both CPU, GPU (Adjacency List version), GPU (CSR version) and GPU (GPMA version) codes. If GPUs are not available, then we can change `-DBUILD_GPU_CSR=ON` to `-DBUILD_GPU_CSR=OFF`.
 
 
 - `./bin_cpu/CPU_example` is to run the source codes at `src/CPU_adj_list/CPU_example.cpp`
 
-- `./bin_gpu/GPU_example` is to run the source codes at `src/GPU_csr/GPU_example.cu`
+- `./bin_gpu/GPU_example_csr` is to run the source codes at `src/GPU_csr/GPU_csr_example.cu`
 
 - `./bin_cpu/Test_CPU` is to run the source codes at `src/LDBC/LDBC_CPU_adj_list.cpp`
 
-- `./bin_gpu/Test_GPU` is to run the source codes at `src/LDBC/LDBC_GPU_csr.cu`
+- `./bin_gpu/Test_GPU_CSR` is to run the source codes at `src/LDBC/LDBC_GPU_csr.cu`
 
 We can run "CPU_example" and "GPU_example" without any graph dataset. The outputs of graph analysis operators will be printed on the terminal. 
 
-Nevertheless, before running "Test_CPU" and "Test_GPU", we need to download the [LDBC Graphalytics datasets](https://repository.surfsara.nl/datasets/cwi/graphalytics) at first. Then, when running "Test_CPU" and "Test_GPU", the program will ask us to input the data path and name sequentially. 
+Nevertheless, before running "Test_CPU" and "Test_GPU_CSR", we need to download the [LDBC Graphalytics datasets](https://repository.surfsara.nl/datasets/cwi/graphalytics) at first. Then, when running "Test_CPU" and "Test_GPU_CSR", the program will ask us to input the data path and name sequentially. 
 ```shell
 Please input the data directory: # The program asks
 /home/username/data # Input the data path
