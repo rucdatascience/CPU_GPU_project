@@ -108,8 +108,7 @@ __host__ std::vector<int> bfs_pre(int *d_row_offsets_out, int *d_column_indices_
         int *temp = d_frontier;
         d_frontier = d_new_frontier;
         d_new_frontier = temp;
-        // if (current_depth % 10000 == 0) printf("current_depth: %d\n", current_depth);
-        // if (current_depth >= 100000) break;
+        
         current_depth++;
     }
     cudaMemcpy(result.data(), d_depth, num_nodes * sizeof(int), cudaMemcpyDeviceToHost);

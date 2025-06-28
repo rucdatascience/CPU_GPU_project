@@ -203,7 +203,6 @@ __global__ void gpma_bfs_contract_kernel(SIZE_TYPE *edge_queue, SIZE_TYPE *edge_
     SIZE_TYPE cta_offset = blockDim.x * blockIdx.x;
 
     while (cta_offset < edge_queue_offset[0]) {
-        // printf("gpma_sssp_relax_kernel cta_offset: %u\n", cta_offset);
         SIZE_TYPE neighbour;
         SIZE_TYPE valid = 0;
 

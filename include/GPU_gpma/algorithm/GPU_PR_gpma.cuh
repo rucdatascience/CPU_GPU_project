@@ -38,9 +38,6 @@ void GPU_PR (graph_structure<double> &graph, GPMA& gpma_graph_in, GPMA &gpma_gra
     int E = gpma_graph_in.get_size();
     double teleport = (1 - damping) / N; // teleport mechanism
 
-    // int* in_pointer = csr_graph.in_pointer;
-    // int* out_pointer = csr_graph.out_pointer;
-    // int* in_edge = csr_graph.in_edge;
     int* sink_vertex_gpu = nullptr;
     double* sink_sum = nullptr;
     double* pr = nullptr;
@@ -93,7 +90,7 @@ void GPU_PR (graph_structure<double> &graph, GPMA& gpma_graph_in, GPMA &gpma_gra
         cudaDeviceSynchronize();
         *sink_sum = (*sink_sum) * damping / N; // the redistributed value of sink vertices
         Antecedent_division<<<blockPerGrid, threadPerGrid>>>(pr, npr, outs, teleport + (*sink_sum), N);
-        // printf("sink_sum: %lf\n", *sink_sum);
+        
         cudaDeviceSynchronize();
         importance<<<blockPerGrid, threadPerGrid>>>(npr, pr, damping, RAW_PTR(gpma_graph_in.keys), RAW_PTR(gpma_graph_in.values), RAW_PTR(gpma_graph_in.row_offset), N); // calculate importance
         // importance_v2<<<blockPerGrid_E, threadPerGrid>>>(npr, pr, damping, RAW_PTR(gpma_graph_in.keys), RAW_PTR(gpma_graph_in.values), RAW_PTR(gpma_graph_in.row_offset), E); // calculate importance
@@ -101,11 +98,6 @@ void GPU_PR (graph_structure<double> &graph, GPMA& gpma_graph_in, GPMA &gpma_gra
 
         std::swap(pr, npr); // store the updated pagerank in the rank
         iteration++;
-        // ´òÓ¡½á¹û
-        // for (int i = 0; i < N; ++i) {
-        //     printf("%f, ", pr[i]);
-        // }
-        // printf("\n");
     }
     result.resize(N);
     cudaMemcpy(result.data(), pr, N * sizeof(double), cudaMemcpyDeviceToHost); // get gpu PR algorithm result
