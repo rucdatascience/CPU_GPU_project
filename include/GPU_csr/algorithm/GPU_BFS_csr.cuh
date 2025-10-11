@@ -259,7 +259,6 @@ __host__ std::vector<int> csr_bfs(int *keys, double *values, int *row_offsets, i
         int start_node, int max_depth) {
     std::vector<int> result(node_size, std::numeric_limits<double>::max());
     const int THREADS_NUM = 256;
-    int BLOCKS_NUM = (1 + THREADS_NUM - 1) / THREADS_NUM;
     int *results;
     cudaMallocManaged(&results, sizeof(int) * node_size);
     cudaDeviceSynchronize();
@@ -293,7 +292,6 @@ __host__ std::vector<int> csr_bfs(int *keys, double *values, int *row_offsets, i
     cudaDeviceSynchronize();
     
     int level = 1;
-    float time_relax = 0.0, time_compact = 0.0, milliseconds;
     while (true) {
         // gather
         int BLOCKS_NUM = CALC_BLOCKS_NUM(THREADS_NUM, host_num[0]);

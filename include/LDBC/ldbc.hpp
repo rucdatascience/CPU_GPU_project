@@ -36,6 +36,18 @@ class LDBC : public graph_structure<weight_type> {
 	void read_config(std::string config_path);
 
 	void save_to_CSV(std::vector<std::pair<std::string, std::string>>& res, std::string file_path);
+
+	inline size_t getTotalMemory(){
+        size_t total = sizeof(*this);
+		for (int i = 0; i < this->V; i++) {
+			total += this->OUTs[i].capacity() * sizeof(std::pair<int, weight_type>);
+			total += this->INs[i].capacity() * sizeof(std::pair<int, weight_type>);
+		}
+		total += this->invalid_vertex_id.size() * sizeof(int);
+		total += this->vertex_str_to_id.size() * (sizeof(std::string) + sizeof(int));
+		total += this->vertex_id_to_str.capacity() * sizeof(std::pair<std::string, bool>);
+        return total;
+    };
 };
 
 // read config file
@@ -155,7 +167,7 @@ void LDBC<weight_type>::read_config(std::string config_path) {
 				}
 				else {
 					sssp_src_name = value; // get sssp source vertex; eg. graph.datagen-7_5-fb.sssp.source-vertex = 6
-					std::cout << "sssp_source_vertex: " << value  << std::endl;
+					std::cout << "sssp_source_vertex: " << value << std::endl;
 				}
             }
         }

@@ -63,7 +63,7 @@ bool Bfs_checker(graph_structure<double>& graph, std::vector<std::pair<std::stri
                 return false;
             }
         }
-        id++;
+        id ++;
     }
     if (id != size) { // id != size means that more reults item than baseline 
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
@@ -233,7 +233,7 @@ bool SSSP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
                 return false;
             }
         }
-        id++;
+        id ++;
     }
     if (id != size) { // id != size means that more reults item than baseline 
         std::cout << "Size of baseline file is smaller than the result!" << std::endl;
@@ -352,7 +352,7 @@ bool CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         }
 
         if (graph.vertex_str_to_id.find(tokens[0]) == graph.vertex_str_to_id.end()) { // the vertex cannot be found in results
-            std::cout << "Baseline file contains a vertex that is not in the graph!" << std::endl;
+            std::cout << "Baseline file contains a vertex that is not  v           in the graph!" << std::endl;
             base_line.close();
             return false;
         }
@@ -361,7 +361,7 @@ bool CDLP_checker(graph_structure<double>& graph, std::vector<std::pair<std::str
         if (id_res[v_id] != tokens[1]) { // the results are different from the baseline
             std::cout << "Baseline file and CDLP results are not the same!" << std::endl;
             std::cout << "Baseline file: " << tokens[0] << " " << tokens[1] << std::endl;
-            std::cout << "CDLP result: " << id_res[v_id] << std::endl;
+            std::cout << "CDLP result: " << tokens[0] << " " << id_res[v_id] << std::endl;
             base_line.close();
             return false;
         }

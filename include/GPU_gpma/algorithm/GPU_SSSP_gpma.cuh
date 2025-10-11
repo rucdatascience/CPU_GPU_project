@@ -1,161 +1,340 @@
-#ifndef WS_SSSP_H
-#define WS_SSSP_H
-
+#pragma once
+#include "cub/cub.cuh"
 #include <stdio.h>
-
-#include "cuda_runtime.h"
-#include "device_launch_parameters.h"
-
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 #include <GPU_gpma/GPU_gpma.hpp>
 
-__device__ __forceinline__ double atomicMinDouble (double * addr, double value);
+#define FULL_MASK 0xffffffff
 
-__global__ void Relax(int* offsets, int* edges, double* weights, double* dis, int* queue, int* queue_size, int* visited);
-__global__ void CompactQueue(int V, int* next_queue, int* next_queue_size, int* visited);
-void gpu_shortest_paths(GPMA &gpma_graph, int source, std::vector<double>& distance, double max_dis = 10000000000);
-void gpu_sssp_pre(GPMA &gpma_graph, int source, std::vector<double>& distance, std::vector<int>& pre_v, double max_dis = 10000000000);
+// 启动SSSP的主机函数
+std::vector<double> gpma_sssp(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE *row_offsets,
+                             SIZE_TYPE node_size, SIZE_TYPE edge_size, SIZE_TYPE start_node, double INF = 10000000000);
+std::vector<std::pair<std::string, double>> Cuda_SSSP_optimized(graph_structure<double> &graph, GPMA& gpma, std::string src_v, double max_dis = 10000000000);
 
-std::vector<std::pair<std::string, double>> Cuda_SSSP(graph_structure<double>& graph, GPMA &gpma_graph, std::string src_v, double max_dis = 10000000000);
-std::vector<std::pair<std::string, double>> Cuda_SSSP_pre(graph_structure<double>& graph, GPMA &gpma_graph, std::string src_v, std::vector<int>& pre_v, double max_dis = 10000000000);
-
-// this function is used to get the minimum value of double type atomically
-__device__ __forceinline__ double atomicMinDouble (double * addr, double value) {
+__device__ __forceinline__ double _atomicMinDouble(double* address, double value) {
     double old;
-    old = __longlong_as_double(atomicMin((long long *)addr, __double_as_longlong(value)));
+    old = __longlong_as_double(atomicMin((long long *)address, __double_as_longlong(value)));
     return old;
 }
 
-__global__ void Relax (const KEY_TYPE *keys, const VALUE_TYPE *values, const SIZE_TYPE *row_offset, double* dis, int* queue, int* queue_size, int* visited) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+template<SIZE_TYPE THREADS_NUM>
+__global__ void gpma_sssp_gather_kernel(SIZE_TYPE *node_queue, SIZE_TYPE *node_queue_offset,
+                                        KEY_TYPE *edge_queue, SIZE_TYPE *edge_queue_offset,
+                                        KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE *row_offsets, double *distances, int *bitmap) {
+    typedef cub::BlockScan<SIZE_TYPE, THREADS_NUM> BlockScan;
+    __shared__ typename BlockScan::TempStorage block_temp_storage;
 
-    if (idx < *queue_size) {
-        int v = queue[idx];
+    volatile __shared__ SIZE_TYPE comm[THREADS_NUM / 32][3];
+    volatile __shared__ SIZE_TYPE comm2[THREADS_NUM];
+    volatile __shared__ SIZE_TYPE output_cta_offset;
+    volatile __shared__ SIZE_TYPE output_warp_offset[THREADS_NUM / 32];
 
-        SIZE_TYPE start = row_offset[v];
-        SIZE_TYPE end = row_offset[v + 1];
+    typedef cub::WarpScan<SIZE_TYPE> WarpScan;
+    __shared__ typename WarpScan::TempStorage temp_storage[THREADS_NUM / 32];
 
-        // for all adjacent vertices
-        for (int i = start; i < end; i++) {
-            KEY_TYPE new_v = keys[i] & 0xFFFFFFFF;
-            VALUE_TYPE weight = values[i];
-            if (new_v != COL_IDX_NONE && weight != VALUE_NONE) {
-                double new_w = dis[v] + weight;
+    SIZE_TYPE thread_id = threadIdx.x;
+    SIZE_TYPE lane_id = thread_id % 32;
+    SIZE_TYPE warp_id = thread_id / 32;
+    
+    SIZE_TYPE cta_offset = blockDim.x * blockIdx.x;
+    while (cta_offset < node_queue_offset[0]) {
+        SIZE_TYPE node, row_begin, row_end;
+        if (cta_offset + thread_id < node_queue_offset[0]) {
+            node = node_queue[cta_offset + thread_id];
+            row_begin = row_offsets[node];
+            row_end = row_offsets[node + 1];
+            bitmap[node] = 0;
+        } else {
+            row_begin = row_end = 0;
+        }
+        // CTA-based coarse-grained gather
+        while (__syncthreads_or(row_end - row_begin >= THREADS_NUM)) {
+            // vie for control of block
+            if (row_end - row_begin >= THREADS_NUM)
+                comm[0][0] = thread_id;
+            __syncthreads();
 
-                // try doing relaxation
-                double old = atomicMinDouble(&dis[new_v], new_w);
+            // winner describes adjlist
+            if (comm[0][0] == thread_id) {
+                comm[0][1] = row_begin;
+                comm[0][2] = row_end;
+                row_begin = row_end;
+            }
+            __syncthreads();
 
-                if (old <= new_w)
-                    continue;
+            SIZE_TYPE gather = comm[0][1] + thread_id;
+            SIZE_TYPE gather_end = comm[0][2];
+            SIZE_TYPE neighbour, u, v;
+            SIZE_TYPE thread_data_in;
+            SIZE_TYPE thread_data_out;
+            SIZE_TYPE block_aggregate;
+            while (__syncthreads_or(gather < gather_end)) {
+                if (gather < gather_end) {
+                    KEY_TYPE cur_key = keys[gather];
+                    VALUE_TYPE cur_value = values[gather];
+                    neighbour = gather;
+                    
+                    u = (cur_key >> 32);
+                    v = (SIZE_TYPE) (cur_key & COL_IDX_NONE);
+                    if (v == COL_IDX_NONE || cur_value == VALUE_NONE || distances[u] + cur_value >= distances[v]) {
+                        thread_data_in = 0;
+                    } else {
+                        thread_data_in = 1;
+                    }
+                } else
+                    thread_data_in = 0;
 
-                // if the distance is updated, set the vertex as visited
-                atomicExch(&visited[new_v], 1);
+                __syncthreads();
+                BlockScan(block_temp_storage).ExclusiveSum(thread_data_in, thread_data_out, block_aggregate);
+                __syncthreads();
+                if (0 == thread_id) {
+                    output_cta_offset = atomicAdd(edge_queue_offset, block_aggregate);
+                }
+                __syncthreads();
+                if (thread_data_in)
+                    edge_queue[output_cta_offset + thread_data_out] = neighbour;
+                gather += THREADS_NUM;
             }
         }
-    }
-}
 
-__global__ void CompactQueue(int V, int* next_queue, int* next_queue_size, int* visited) {
-    // this function is used to ensure that each necessary vertex is only pushed into the queue once
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if (idx < V && visited[idx]) {
-        int pos = atomicAdd(next_queue_size, 1);
-        next_queue[pos] = idx;
-        // reset the visited flag
-        visited[idx] = 0;
-    }
-}
+        // warp-based coarse-grained gather
+        while (__any_sync(FULL_MASK, row_end - row_begin >= 32)) {
+            // vie for control of warp
+            if (row_end - row_begin >= 32)
+                comm[warp_id][0] = lane_id;
 
-void gpu_shortest_paths(GPMA &gpma_graph, int source, std::vector<double>& distance, double max_dis) {
-    int V = gpma_graph.get_V() - 1;
+            // winner describes adjlist
+            if (comm[warp_id][0] == lane_id) {
+                comm[warp_id][1] = row_begin;
+                comm[warp_id][2] = row_end;
+                row_begin = row_end;
+            }
 
-    double* dis;
-    int* visited;
-    
-    int* queue, * next_queue;
-    int* queue_size, * next_queue_size;
+            SIZE_TYPE gather = comm[warp_id][1] + lane_id;
+            SIZE_TYPE gather_end = comm[warp_id][2];
+            SIZE_TYPE neighbour, u, v;
+            SIZE_TYPE thread_data_in;
+            SIZE_TYPE thread_data_out;
+            SIZE_TYPE warp_aggregate;
+            while (__any_sync(FULL_MASK, gather < gather_end)) {
+                if (gather < gather_end) {
+                    KEY_TYPE cur_key = keys[gather];
+                    VALUE_TYPE cur_value = values[gather];
+                    neighbour = gather;
+                    u = (cur_key >> 32);
+                    v = (SIZE_TYPE) (cur_key & COL_IDX_NONE);
+                    if (v == COL_IDX_NONE || cur_value == VALUE_NONE || distances[u] + cur_value >= distances[v]) {
+                        thread_data_in = 0;
+                    } else {
+                        thread_data_in = 1;
+                    }
+                } else
+                    thread_data_in = 0;
 
-    // allocate memory on GPU
-    cudaMallocManaged((void**)&dis, V * sizeof(double));
-    cudaMallocManaged((void**)&visited, V * sizeof(int));
-    cudaMallocManaged((void**)&queue, V * sizeof(int));
-    cudaMallocManaged((void**)&next_queue, V * sizeof(int));
-    cudaMallocManaged((void**)&queue_size, sizeof(int));
-    cudaMallocManaged((void**)&next_queue_size, sizeof(int));
+                WarpScan(temp_storage[warp_id]).ExclusiveSum(thread_data_in, thread_data_out, warp_aggregate);
 
-    // synchronize the device
-    cudaDeviceSynchronize();
-    cudaError_t cuda_status = cudaGetLastError();
-    if (cuda_status != cudaSuccess) {
-        fprintf(stderr, "Cuda malloc failed: %s\n", cudaGetErrorString(cuda_status));
-        return;
-    }
+                if (0 == lane_id) {
+                    output_warp_offset[warp_id] = atomicAdd(edge_queue_offset, warp_aggregate);
+                }
 
-    for (int i = 0; i < V; i++) {
-        // initialize the distance array and visited array
-		dis[i] = max_dis;
-		visited[i] = 0;
-	}
-    dis[source] = 0;
-
-
-    *queue_size = 1;
-    queue[0] = source;
-    *next_queue_size = 0;
-
-    int threadsPerBlock = 1024;
-    int numBlocks = 0;
-
-    while (*queue_size > 0) {
-		numBlocks = (*queue_size + threadsPerBlock - 1) / threadsPerBlock;
-        // launch the kernel function to relax the edges
-		Relax <<< numBlocks, threadsPerBlock >>> (RAW_PTR(gpma_graph.keys), 
-                                                  RAW_PTR(gpma_graph.values),
-                                                  RAW_PTR(gpma_graph.row_offset), dis, queue, queue_size, visited);
-		cudaDeviceSynchronize();
-
-        cudaError_t cuda_status = cudaGetLastError();
-        if (cuda_status != cudaSuccess) {
-            fprintf(stderr, "Relax kernel launch failed: %s\n", cudaGetErrorString(cuda_status));
-            return;
+                if (thread_data_in)
+                    edge_queue[output_warp_offset[warp_id] + thread_data_out] = neighbour;
+                gather += 32;
+            }
         }
 
-		numBlocks = (V + threadsPerBlock - 1) / threadsPerBlock;
-        // do the compact operation
-		CompactQueue <<< numBlocks, threadsPerBlock >>> (V, next_queue, next_queue_size, visited);
-		cudaDeviceSynchronize();
+        // scan-based fine-grained gather
+        SIZE_TYPE thread_data = row_end - row_begin;
+        SIZE_TYPE rsv_rank;
+        SIZE_TYPE total;
+        SIZE_TYPE remain;
+        __syncthreads();
+        BlockScan(block_temp_storage).ExclusiveSum(thread_data, rsv_rank, total);
+        __syncthreads();
 
-        cuda_status = cudaGetLastError();
-		if (cuda_status != cudaSuccess) {
-			fprintf(stderr, "CompactQueue kernel launch failed: %s\n", cudaGetErrorString(cuda_status));
-			return;
-		}
+        SIZE_TYPE cta_progress = 0;
+        while (cta_progress < total) {
+            remain = total - cta_progress;
 
-        // swap the queue and next_queue
-        std::swap(queue, next_queue);
+            // share batch of gather offsets
+            while ((rsv_rank < cta_progress + THREADS_NUM) && (row_begin < row_end)) {
+                comm2[rsv_rank - cta_progress] = row_begin;
+                rsv_rank ++;
+                row_begin ++;
+            }
+            __syncthreads();
+            SIZE_TYPE neighbour, u, v;
+            // gather batch of adjlist
+            if (thread_id < min(remain, THREADS_NUM)) {
+                KEY_TYPE cur_key = keys[comm2[thread_id]];
+                VALUE_TYPE cur_value = values[comm2[thread_id]];
+                neighbour = comm2[thread_id];
+                
+                u = (cur_key >> 32);
+                v = (SIZE_TYPE) (cur_key & COL_IDX_NONE);
+                if (v == COL_IDX_NONE || cur_value == VALUE_NONE || distances[u] + cur_value >= distances[v]) {
+                    thread_data = 0;
+                } else {
+                    thread_data = 1;
+                }
+            } else
+                thread_data = 0;
+            __syncthreads();
 
-		*queue_size = *next_queue_size;
-        *next_queue_size = 0;
-	}
-    cudaMemcpy(distance.data(), dis, V * sizeof(double), cudaMemcpyDeviceToHost);
+            SIZE_TYPE scatter;
+            SIZE_TYPE block_aggregate;
+
+            BlockScan(block_temp_storage).ExclusiveSum(thread_data, scatter, block_aggregate);
+            __syncthreads();
+
+            if (0 == thread_id) {
+                output_cta_offset = atomicAdd(edge_queue_offset, block_aggregate);
+            }
+            __syncthreads();
+
+            if (thread_data)
+                edge_queue[output_cta_offset + scatter] = neighbour;
+            cta_progress += THREADS_NUM;
+            __syncthreads();
+        }
+
+        cta_offset += blockDim.x * gridDim.x;
+    }
+}
+
+template<SIZE_TYPE THREADS_NUM>
+__global__ void gpma_sssp_relax_kernel(KEY_TYPE *edge_queue, SIZE_TYPE *edge_queue_offset,
+                                      SIZE_TYPE *node_queue, SIZE_TYPE *node_queue_offset,
+                                      double *distances, KEY_TYPE *keys, VALUE_TYPE *values, int *bitmap) {
+    typedef cub::BlockScan<SIZE_TYPE, THREADS_NUM> BlockScan;
+    __shared__ typename BlockScan::TempStorage temp_storage;
+    volatile __shared__ SIZE_TYPE output_cta_offset;
+
+    SIZE_TYPE thread_id = threadIdx.x;
+    SIZE_TYPE cta_offset = blockDim.x * blockIdx.x;
+    
+    while (cta_offset < edge_queue_offset[0]) {
+        SIZE_TYPE neighbour;
+        SIZE_TYPE edge_idx = cta_offset + thread_id;
+        double old_dist, new_dist;
+        SIZE_TYPE u, v;
+        double weight;
+        bool valid = false;
+        
+        if (edge_idx < edge_queue_offset[0]) {
+            edge_idx = edge_queue[cta_offset + thread_id];
+            u = keys[edge_idx] >> 32;
+            v = (SIZE_TYPE) (keys[edge_idx] & COL_IDX_NONE);
+            neighbour = v;
+            
+            weight = values[edge_idx];
+            old_dist = distances[u];
+            new_dist = old_dist + weight;
+            
+            // double expected = _atomicMinDouble(&distances[v], new_dist);
+            _atomicMinDouble(&distances[v], new_dist);
+            if (atomicExch(&bitmap[v], 1) == 0) {
+                valid = 1;
+            }
+        }
+        __syncthreads();
+
+        SIZE_TYPE scatter;
+        SIZE_TYPE total;
+        BlockScan(temp_storage).ExclusiveSum(valid, scatter, total);
+        __syncthreads();
+
+        if (0 == thread_id) {
+            output_cta_offset = atomicAdd(node_queue_offset, total);
+        }
+        __syncthreads();
+
+        if (valid)
+            node_queue[output_cta_offset + scatter] = neighbour;
+
+        cta_offset += blockDim.x * gridDim.x;
+    }
+}
+
+__global__ void init_array(double* array, SIZE_TYPE size, double value) {
+    SIZE_TYPE idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < size) {
+        array[idx] = value;
+    }
+}
+
+__host__ std::vector<double> gpma_sssp(KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE *row_offsets,
+                                     SIZE_TYPE node_size, SIZE_TYPE edge_size, SIZE_TYPE start_node, double INF) {
+    const SIZE_TYPE THREADS_NUM = 256;
+    SIZE_TYPE BLOCKS_NUM = (node_size + THREADS_NUM - 1) / THREADS_NUM;
+
+    double *distances;
+    cudaMalloc(&distances, sizeof(double) * node_size);
+    cudaDeviceSynchronize();
+    init_array<<<BLOCKS_NUM, THREADS_NUM>>>(distances, node_size, INF);
+
+    SIZE_TYPE *node_queue, *node_queue_offset;
+    SIZE_TYPE *edge_queue_offset;
+    KEY_TYPE *edge_queue;
+    int *bitmap;
+    cudaMalloc(&node_queue, sizeof(SIZE_TYPE) * node_size);
+    cudaMalloc(&node_queue_offset, sizeof(SIZE_TYPE));
+    cudaMalloc(&edge_queue, sizeof(KEY_TYPE) * edge_size);
+    cudaMalloc(&edge_queue_offset, sizeof(SIZE_TYPE));
+    cudaMalloc(&bitmap, sizeof(int) * node_size);
+    cudaDeviceSynchronize();
+    cudaMemset(bitmap, 0, sizeof(int) * node_size);
+    
+    // init
+    SIZE_TYPE host_num[1];
+    host_num[0] = start_node;
+    cudaMemcpy(node_queue, host_num, sizeof(SIZE_TYPE), cudaMemcpyHostToDevice);
+    host_num[0] = 1;
+    cudaMemcpy(node_queue_offset, host_num, sizeof(SIZE_TYPE), cudaMemcpyHostToDevice);
+    double host_num_2[1];
+    host_num_2[0] = 0;
+    cudaMemcpy(&distances[start_node], host_num_2, sizeof(double), cudaMemcpyHostToDevice);
     cudaDeviceSynchronize();
 
-    // free the memory
-    cudaFree(dis);
-    cudaFree(visited);
-    cudaFree(queue);
-    cudaFree(next_queue);
-    cudaFree(queue_size);
-    cudaFree(next_queue_size);
-    return;
+    int iter = 0;
+    while (true) {
+        iter ++;
+
+        SIZE_TYPE zero = 0;
+        cudaMemcpy(edge_queue_offset, &zero, sizeof(SIZE_TYPE), cudaMemcpyHostToDevice);
+        cudaDeviceSynchronize();
+        gpma_sssp_gather_kernel<THREADS_NUM><<<BLOCKS_NUM, THREADS_NUM>>>(node_queue, node_queue_offset, edge_queue, edge_queue_offset, keys, values, row_offsets, distances, bitmap);
+        cudaDeviceSynchronize();
+
+        cudaMemcpy(node_queue_offset, &zero, sizeof(SIZE_TYPE), cudaMemcpyHostToDevice);
+        cudaDeviceSynchronize();
+        gpma_sssp_relax_kernel<THREADS_NUM><<<BLOCKS_NUM, THREADS_NUM>>>(edge_queue, edge_queue_offset, node_queue, node_queue_offset, distances, keys, values, bitmap);
+        cudaDeviceSynchronize();
+        
+        cudaMemcpy(&zero, node_queue_offset, sizeof(SIZE_TYPE), cudaMemcpyDeviceToHost);
+        cudaDeviceSynchronize();
+        
+        if (zero == 0) break;
+    }
+
+    std::vector<double> result(node_size);
+    cudaMemcpy(result.data(), distances, node_size * sizeof(double), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
+
+    cudaFree(node_queue);
+    cudaFree(node_queue_offset);
+    cudaFree(edge_queue);
+    cudaFree(edge_queue_offset);
+    cudaFree(bitmap);
+    cudaFree(distances);
+    return result;
 }
 
-std::vector<std::pair<std::string, double>> Cuda_SSSP(graph_structure<double>& graph, GPMA &gpma_graph, std::string src_v, double max_dis) {
+std::vector<std::pair<std::string, double>> Cuda_SSSP_optimized(graph_structure<double> &graph, GPMA& gpma, std::string src_v, double max_dis) {
+    int V = gpma.get_V();
+    int E = gpma.get_size();
     int src_v_id = graph.vertex_str_to_id[src_v];
-    std::vector<double> gpuSSSPvec(graph.V, 0);
-    gpu_shortest_paths(gpma_graph, src_v_id, gpuSSSPvec, max_dis);
-
-    // transfer the vertex id to vertex name
-    return graph.res_trans_id_val(gpuSSSPvec);
+    std::vector<double> ssspVecGPU = gpma_sssp(RAW_PTR(gpma.keys), RAW_PTR(gpma.values), RAW_PTR(gpma.row_offset), V, E, src_v_id, max_dis);
+    return graph.res_trans_id_val(ssspVecGPU);
 }
-
-#endif

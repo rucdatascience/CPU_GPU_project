@@ -4,6 +4,7 @@
 #include <sstream>
 #include <fstream>
 #include <utility>
+#include <malloc.h>
 
 #include <CPU_adj_list/algorithm/CPU_BFS.hpp>
 #include <CPU_adj_list/algorithm/CPU_BFS_pre.hpp>
@@ -12,6 +13,7 @@
 #include <CPU_adj_list/algorithm/CPU_sssp_pre.hpp>
 #include <CPU_adj_list/algorithm/CPU_PageRank.hpp>
 #include <CPU_adj_list/algorithm/CPU_Community_Detection.hpp>
+
 #include <LDBC/checker.hpp>
 #include <LDBC/ldbc.hpp>
 
@@ -44,13 +46,17 @@ inline void read_edge_file (std::string graph_file_path) {
 }
 
 inline void add_edge (graph_structure<double>& graph) {
-    for (int i = 0; i < vec_add.size(); i ++) {
+    // int n = 1000; 
+    int n = vec_add.size();
+    for (int i = 0; i < n; i ++) {
         graph.add_edge(vec_add[i].first, vec_add[i].second, 1);
     }
 }
 
 inline void delete_edge (graph_structure<double>& graph) {
-    for (int i = 0; i < vec_delete.size(); i ++) {
+    // int n = 1000; 
+    int n = vec_delete.size();
+    for (int i = 0; i < n; i ++) {
         graph.remove_edge(vec_delete[i].first, vec_delete[i].second);
     }
 }
@@ -77,20 +83,21 @@ int main() {
 
     LDBC<double> graph(directory, graph_name);
     graph.read_config(config_file_path); //Read the ldbc configuration file to obtain key parameter information in the file
-
+    
     auto begin = std::chrono::high_resolution_clock::now();
     graph.load_graph(); //Read the vertex and edge files corresponding to the configuration file, // The vertex information in graph is converted to csr format for storage   
     auto end = std::chrono::high_resolution_clock::now();
     double load_ldbc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
     printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
+    printf("CPU memory used: %.5lf MB\n", (double)graph.getTotalMemory() / (1024.0 * 1024.0));
 
     // read .e and make data for add edges and delete edges
-    // read_edge_file("/home/mdnd/CPU_GPU_project-main/data/" + graph_name);
+    // read_edge_file("/home/mdnd/CPU_GPU_project-main/data-edge/" + graph_name);
 
     // std::vector<std::pair<std::string, std::string>> vector_edge;
     // begin = std::chrono::high_resolution_clock::now();
     // add_edge(graph);
-    // end =std::chrono::high_resolution_clock::now();
+    // end = std::chrono::high_resolution_clock::now();
     // double add_edge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
     // vector_edge.push_back(std::make_pair("add-edge", std::to_string(add_edge_time)));
     // printf("add_edge_time cost time: %f s\n", add_edge_time);
@@ -98,7 +105,7 @@ int main() {
     // std::vector<std::pair<std::string, std::string>> vector_delete_edge;
     // begin = std::chrono::high_resolution_clock::now();
     // delete_edge(graph);
-    // end =std::chrono::high_resolution_clock::now();
+    // end = std::chrono::high_resolution_clock::now();
     // double delete_edge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
     // vector_edge.push_back(std::make_pair("delete-edge", std::to_string(delete_edge_time)));
     // printf("delete_edge_time cost time: %f s\n", delete_edge_time);
@@ -107,7 +114,7 @@ int main() {
     // return 0;
 
     std::vector<std::pair<std::string, std::string>> result_all;
-
+    int iter = 1;
     if (1) {
         if (graph.sup_bfs) {
             double cpu_bfs_time = 0;
@@ -115,7 +122,8 @@ int main() {
             try{
                 std::vector<std::pair<std::string, int>> cpu_bfs_result;
                 begin = std::chrono::high_resolution_clock::now();
-                cpu_bfs_result = CPU_Bfs(graph, graph.bfs_src_name);
+                for (int i = 0; i < iter; i ++) 
+                    cpu_bfs_result = CPU_Bfs(graph, graph.bfs_src_name);
 
                 /*std::vector<std::tuple<std::string, int, std::string>> cpu_bfs_res;
                 cpu_bfs_res = CPU_Bfs_pre(graph, graph.bfs_src_name);
@@ -124,10 +132,10 @@ int main() {
 
                 end = std::chrono::high_resolution_clock::now();
                 cpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("CPU BFS cost time: %f s\n", cpu_bfs_time);
+                printf("CPU BFS cost time: %f s\n", cpu_bfs_time / (double)iter);
 
                 if(Bfs_checker(graph, cpu_bfs_result, graph.base_path + "-BFS"))
-                    result_all.push_back(std::make_pair("BFS", std::to_string(cpu_bfs_time)));
+                    result_all.push_back(std::make_pair("BFS", std::to_string(cpu_bfs_time / (double)iter)));
                 else
                     result_all.push_back(std::make_pair("BFS", "wrong"));
             }
@@ -140,23 +148,27 @@ int main() {
     }
 
     if (1) {
+        if (!graph.sup_sssp) {
+            graph.sup_sssp = 1;
+        }
         if (graph.sup_sssp) {
             double cpu_sssp_time = 0;
 
             try {
                 //std::vector<int> pre_v;
+                std::vector<std::pair<std::string, double>> cpu_sssp_result;
                 begin = std::chrono::high_resolution_clock::now();
-                std::vector<std::pair<std::string, double>> cpu_sssp_result = CPU_SSSP(graph, graph.sssp_src_name);
+                for (int i = 0; i < iter; i ++) cpu_sssp_result = CPU_SSSP(graph, graph.sssp_src_name);
                 //std::vector<std::pair<std::string, double>> cpu_sssp_result = CPU_SSSP_pre(graph, graph.sssp_src_name, pre_v);
                 end = std::chrono::high_resolution_clock::now();
                 /*std::vector<std::pair<std::string, std::string>> path = path_query(graph, graph.sssp_src_name, "338", pre_v);
                 for (auto p : path)
                     std::cout << p.first << " -> " << p.second << std::endl;*/
                 cpu_sssp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("CPU SSSP cost time: %f s\n", cpu_sssp_time);
+                printf("CPU SSSP cost time: %f s\n", cpu_sssp_time / (double)iter);
 
                 if (SSSP_checker(graph, cpu_sssp_result, graph.base_path + "-SSSP"))
-                    result_all.push_back(std::make_pair("SSSP", std::to_string(cpu_sssp_time)));
+                    result_all.push_back(std::make_pair("SSSP", std::to_string(cpu_sssp_time / (double)iter)));
                 else
                     result_all.push_back(std::make_pair("SSSP", "wrong"));
             }
@@ -173,14 +185,15 @@ int main() {
             double cpu_wcc_time = 0;
 
             try {
+                std::vector<std::pair<std::string, std::string>> cpu_wcc_result;
                 begin = std::chrono::high_resolution_clock::now();
-                std::vector<std::pair<std::string, std::string>> cpu_wcc_result = CPU_WCC(graph);
+                for (int i = 0; i < iter; i ++) cpu_wcc_result = CPU_WCC(graph);
                 end = std::chrono::high_resolution_clock::now();
                 cpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("CPU WCC cost time: %f s\n", cpu_wcc_time);
+                printf("CPU WCC cost time: %f s\n", cpu_wcc_time / (double)iter);
 
                 if (WCC_checker(graph, cpu_wcc_result, graph.base_path + "-WCC"))
-                    result_all.push_back(std::make_pair("WCC", std::to_string(cpu_wcc_time)));
+                    result_all.push_back(std::make_pair("WCC", std::to_string(cpu_wcc_time / (double)iter)));
                 else
                     result_all.push_back(std::make_pair("WCC", "wrong"));
             }
@@ -197,14 +210,15 @@ int main() {
             double cpu_pr_time = 0;
 
             try {
+                std::vector<std::pair<std::string, double>> cpu_pr_result;
                 begin = std::chrono::high_resolution_clock::now();
-                std::vector<std::pair<std::string, double>> cpu_pr_result = CPU_PR(graph, graph.pr_its, graph.pr_damping);
+                for (int i = 0; i < iter; i ++) cpu_pr_result = CPU_PR(graph, graph.pr_its, graph.pr_damping);
                 end = std::chrono::high_resolution_clock::now();
                 cpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("CPU PageRank cost time: %f s\n", cpu_pr_time);
+                printf("CPU PageRank cost time: %f s\n", cpu_pr_time / (double)iter);
 
                 if (PR_checker(graph, cpu_pr_result, graph.base_path + "-PR"))
-                    result_all.push_back(std::make_pair("PageRank", std::to_string(cpu_pr_time)));
+                    result_all.push_back(std::make_pair("PageRank", std::to_string(cpu_pr_time / (double)iter)));
                 else
                     result_all.push_back(std::make_pair("PageRank", "wrong"));
             }
@@ -221,14 +235,15 @@ int main() {
             double cpu_cdlp_time = 0;
 
             try {
+                std::vector<std::pair<std::string, std::string>> cpu_cdlp_result;
                 begin = std::chrono::high_resolution_clock::now();
-                std::vector<std::pair<std::string, std::string>> cpu_cdlp_result = CPU_CDLP(graph, graph.cdlp_max_its);
+                for (int i = 0; i < iter; i ++) cpu_cdlp_result = CPU_CDLP(graph, graph.cdlp_max_its);
                 end = std::chrono::high_resolution_clock::now();
                 cpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time);
+                printf("CPU Community Detection cost time: %f s\n", cpu_cdlp_time / (double)iter);
 
                 if (CDLP_checker(graph, cpu_cdlp_result, graph.base_path + "-CDLP"))
-                    result_all.push_back(std::make_pair("CommunityDetection", std::to_string(cpu_cdlp_time)));
+                    result_all.push_back(std::make_pair("CommunityDetection", std::to_string(cpu_cdlp_time / (double)iter)));
                 else
                     result_all.push_back(std::make_pair("CommunityDetection", "wrong"));
             }

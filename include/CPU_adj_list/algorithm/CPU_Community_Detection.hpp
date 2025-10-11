@@ -26,7 +26,6 @@ std::vector<std::string> CDLP(graph_structure<double>& graph, int iters) {
             results_dynamic.emplace_back(pool_dynamic.enqueue([q, N, &in_edges, &out_edges, &label, &new_label] {
                     int start = (long long)q * N / 100, end = std::min((long long)N - 1, (long long)(q + 1) * N / 100);
                     for (int i = start; i <= end; i++) {
-
                         std::unordered_map<int, int> count; // record the label information of the neighbor vertex. the first keyword is the label and the second keyword is the number of occurrences
                         for (auto& x : in_edges[i]) { // traverse the incoming edges of vertex i
                             count[label[x.first]]++; // count the number of label occurrences of the neighbor vertices
@@ -44,9 +43,7 @@ std::vector<std::string> CDLP(graph_structure<double>& graph, int iters) {
                                 maxlabel = std::min(p.first, maxlabel);
                             }
                         }
-                        
                         new_label[i] = maxlabel; // record the maxlabel
-
                     }
                     return 1; }));
         }

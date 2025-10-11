@@ -9,12 +9,6 @@
 #include <GPU_gpma/algorithm/GPU_PR_gpma.cuh>
 #include <GPU_gpma/algorithm/GPU_CDLP_gpma.cuh>
 
-#include <GPU_gpma/algorithm/GPU_BFS_gpma_optimized.cuh>
-#include <GPU_gpma/algorithm/GPU_WCC_gpma_optimized.cuh>
-#include <GPU_gpma/algorithm/GPU_SSSP_gpma_optimized.cuh>
-#include <GPU_gpma/algorithm/GPU_PR_gpma_optimized.cuh>
-#include <GPU_gpma/algorithm/GPU_CDLP_gpma_optimized.cuh>
-
 #include <LDBC/checker.hpp>
 #include <LDBC/ldbc.hpp>
 
@@ -22,8 +16,18 @@ std::vector<std::pair<std::string, std::string> > vec_add;
 std::vector<std::pair<std::string, std::string> > vec_delete;
 
 inline void read_edge_file (std::string graph_file_path) {
-    std::ifstream infile_add(graph_file_path + "-add-edge.txt");
-    std::ifstream infile_delete(graph_file_path + "-delete-edge.txt");
+    std::string add_file_path = graph_file_path + "-add-edge.txt";
+    std::string delete_file_path = graph_file_path + "-delete-edge.txt";
+
+    std::ifstream infile_add(add_file_path);
+    if (!infile_add.is_open()) {
+        throw std::runtime_error("Failed to open add edge file: " + add_file_path);
+    }
+
+    std::ifstream infile_delete(delete_file_path);
+    if (!infile_delete.is_open()) {
+        throw std::runtime_error("Failed to open delete edge file: " + delete_file_path);
+    }
 
     // read the file
     std::string line;
@@ -42,7 +46,6 @@ inline void read_edge_file (std::string graph_file_path) {
         vec_delete.push_back(std::make_pair(a, b));
     }
     infile_delete.close();
-
     return;
 }
 
@@ -50,44 +53,48 @@ inline KEY_TYPE make_edge_key(KEY_TYPE src, KEY_TYPE dst) {
     return ((KEY_TYPE)src << 32) | (dst & 0xFFFFFFFF);
 }
 
-inline void batch_add_edge(GPMA& gpma_in, GPMA& gpma_out, graph_structure<double>& graph) {
+inline void batch_add_edge(GPMA& gpma_in, GPMA& gpma_out, LDBC<double>& graph) {
     std::string e1, e2;
-    size_t n = vec_add.size();
+    size_t n = 1000; // n = vec_add.size();
     DEV_VEC_KEY keys_in(n), keys_out(n);
     DEV_VEC_VALUE values_in(n), values_out(n);
-    
+
     for (size_t i = 0; i < n; ++i) {
-        e1 = vec_add[i].first, vec_add[i].second;
+        e1 = vec_add[i].first, e2 = vec_add[i].second;
         int v1 = graph.vertex_str_to_id[e1], v2 = graph.vertex_str_to_id[e2];
         keys_in[i] = make_edge_key(v1, v2);
         keys_out[i] = make_edge_key(v2, v1);
+        // printf("edge add u, v: %d, %d\n", v1, v2);
         values_in[i] = 1, values_out[i] = 1;
     }
 
-    update_gpma(gpma_in, keys_in, values_in), update_gpma(gpma_out, keys_out, values_out);
+    update_gpma(gpma_out, keys_out, values_out);
+    if (graph.is_directed) update_gpma(gpma_in, keys_in, values_in);
 }
 
-inline void batch_delete_edge(GPMA& gpma_in, GPMA& gpma_out, graph_structure<double>& graph) {
+inline void batch_delete_edge(GPMA& gpma_in, GPMA& gpma_out, LDBC<double>& graph) {
     std::string e1, e2;
-    size_t n = vec_add.size();
+    size_t n = 1000; // n = vec_add.size();
     DEV_VEC_KEY keys_in(n), keys_out(n);
     DEV_VEC_VALUE values_in(n), values_out(n);
     
     for (size_t i = 0; i < n; ++i) {
-        e1 = vec_delete[i].first, vec_delete[i].second;
+        e1 = vec_delete[i].first, e2 = vec_delete[i].second;
         int v1 = graph.vertex_str_to_id[e1], v2 = graph.vertex_str_to_id[e2];
         keys_in[i] = make_edge_key(v1, v2);
         keys_out[i] = make_edge_key(v2, v1);
+        // printf("edge delete u, v: %d, %d\n", v1, v2);
         values_in[i] = VALUE_NONE, values_out[i] = VALUE_NONE;
     }
 
-    update_gpma(gpma_in, keys_in, values_in), update_gpma(gpma_out, keys_out, values_out);
+    update_gpma(gpma_out, keys_out, values_out);
+    if (graph.is_directed) update_gpma(gpma_in, keys_in, values_in);
 }
 
-inline void add_edge(GPMA& gpma_in, GPMA& gpma_out, graph_structure<double>& graph) {
+inline void add_edge(GPMA& gpma_in, GPMA& gpma_out, LDBC<double>& graph) {
     std::string e1, e2;
     for (int i = 0; i < vec_add.size(); i ++) {
-        e1 = vec_add[i].first, vec_add[i].second;
+        e1 = vec_add[i].first, e2 = vec_add[i].second;
         int v1 = graph.vertex_str_to_id[e1], v2 = graph.vertex_str_to_id[e2];
         
         // Pack in the form of key-value pairs
@@ -95,11 +102,12 @@ inline void add_edge(GPMA& gpma_in, GPMA& gpma_out, graph_structure<double>& gra
         DEV_VEC_VALUE values_in(1, 1), values_out(1, 1);
 
         // Call the function "update_gpma" to update the graph structure
-        update_gpma(gpma_in, keys_in, values_in), update_gpma(gpma_out, keys_out, values_out);
+        update_gpma(gpma_out, keys_out, values_out);
+        if (graph.is_directed) update_gpma(gpma_in, keys_in, values_in);
     }
 }
 
-inline void delete_edge(GPMA& gpma_in, GPMA& gpma_out, graph_structure<double>& graph) {
+inline void delete_edge(GPMA& gpma_in, GPMA& gpma_out, LDBC<double>& graph) {
     std::string e1, e2;
     for (int i = 0; i < vec_delete.size(); i ++) {
         e1 = vec_delete[i].first, e2 = vec_delete[i].second;
@@ -110,11 +118,16 @@ inline void delete_edge(GPMA& gpma_in, GPMA& gpma_out, graph_structure<double>& 
         DEV_VEC_VALUE values_in(1, VALUE_NONE), values_out(1, VALUE_NONE);
 
         // Call the function "update_gpma" to update the graph structure
-        update_gpma(gpma_in, keys_in, values_in), update_gpma(gpma_out, keys_out, values_out);
+        update_gpma(gpma_out, keys_out, values_out);
+        if (graph.is_directed) update_gpma(gpma_in, keys_in, values_in);
     }
 }
 
 int main() {
+    size_t free_before, total_before;
+    size_t free_after, total_after;
+    cudaMemGetInfo(&free_before, &total_before);
+
     std::ios::sync_with_stdio(false);
     std::cin.tie(0);
     std::cout.tie(0);
@@ -212,8 +225,9 @@ int main() {
     gpma_graph_in.row_offset = dev_row_offset_in;
 
     // Step 5: Insert data into GPMA
-    init_gpma_from_csr(gpma_graph_out, dev_keys_out, dev_values_out);
-    
+    // init_gpma_from_csr(gpma_graph_out, dev_keys_out, dev_values_out);
+    update_gpma(gpma_graph_out, dev_keys_out, dev_values_out);
+
     dev_keys_out.clear();
     dev_keys_out.shrink_to_fit();
     dev_values_out.clear();
@@ -227,30 +241,31 @@ int main() {
         dev_values_in.clear(); dev_values_in.shrink_to_fit();
         dev_row_offset_in.clear(); dev_row_offset_in.shrink_to_fit();
     } else {
-        init_gpma_from_csr(gpma_graph_in, dev_keys_in, dev_values_in);
+        // init_gpma_from_csr(gpma_graph_in, dev_keys_in, dev_values_in);
+        update_gpma(gpma_graph_in, dev_keys_in, dev_values_in);
         dev_keys_in.clear(); dev_keys_in.shrink_to_fit();
         dev_values_in.clear(); dev_values_in.shrink_to_fit();
         dev_row_offset_in.clear(); dev_row_offset_in.shrink_to_fit();
     }
-
     // update_gpma(gpma_graph_out, dev_keys_out, dev_values_out);
     // update_gpma(gpma_graph_in, dev_keys_in, dev_values_in);
     
     end = std::chrono::high_resolution_clock::now();
     double ldbc_to_gpma_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
     printf("LDBC to GPMA cost time: %f s\n", ldbc_to_gpma_time);
-
-    // size_t free_mem, total_mem;
-    // cudaMemGetInfo(&free_mem, &total_mem);
-    // std::cout << "Free VRAM: " << free_mem / (1024 * 1024) << " MB" << std::endl;
+    
+    cudaMemGetInfo(&free_after, &total_after);
+    double mem_used = free_before - free_after;
+    printf("GPU usage: %.5f MB / %.5f MB (%.5f%% used)\n",
+               mem_used / (1024.0 * 1024.0), total_after / (1024.0 * 1024.0), mem_used * 100.0 / total_after);
     
     // read .e and make data for add edges and delete edges
-    // read_edge_file("/home/mdnd/CPU_GPU_project-main/data/" + graph_name);
-
+    // read_edge_file("/home/mdnd/CPU_GPU_project-main/data-edge/" + graph_name);
+    
     // std::vector<std::pair<std::string, std::string>> vector_edge;
     // begin = std::chrono::high_resolution_clock::now();
     // batch_add_edge(gpma_graph_in, gpma_graph_out, graph);
-    // end =std::chrono::high_resolution_clock::now();
+    // end = std::chrono::high_resolution_clock::now();
     // double add_edge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
     // vector_edge.push_back(std::make_pair("add-edge", std::to_string(add_edge_time)));
     // printf("add_edge_time cost time: %f s\n", add_edge_time);
@@ -258,21 +273,23 @@ int main() {
     // std::vector<std::pair<std::string, std::string>> vector_delete_edge;
     // begin = std::chrono::high_resolution_clock::now();
     // batch_delete_edge(gpma_graph_in, gpma_graph_out, graph);
-    // end =std::chrono::high_resolution_clock::now();
+    // end = std::chrono::high_resolution_clock::now();
     // double delete_edge_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
     // vector_edge.push_back(std::make_pair("delete-edge", std::to_string(delete_edge_time)));
     // printf("delete_edge_time cost time: %f s\n", delete_edge_time);
-    
-    // graph.save_to_CSV(vector_edge, "./result-gpu-gpma-edge-batch.csv");
+
+    // graph.save_to_CSV(vector_edge, "./result-gpu-gpma-edge.csv");
     // return 0;
 
     int iter = 1;
     if (1) {
         if (graph.sup_bfs) {
             double gpu_bfs_time = 0;
+
             try {
                 std::vector<std::pair<std::string, int>> bfs_result;
                 begin = std::chrono::high_resolution_clock::now();
+                // for (int i = 0; i < iter; i ++) bfs_result = Cuda_BFS(graph, gpma_graph_out, graph.bfs_src_name);
                 for (int i = 0; i < iter; i ++) bfs_result = Cuda_BFS_optimized(graph, gpma_graph_out, graph.bfs_src_name);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
@@ -290,14 +307,19 @@ int main() {
         else
             result_all.push_back(std::make_pair("BFS", "N/A"));
     }
-
+    
     if (1) {
+        if (!graph.sup_sssp) {
+            graph.sup_sssp = 1;
+        }
         if (graph.sup_sssp) {
             double gpu_sssp_time = 0;
+
             try {
                 std::vector<std::pair<std::string, double>> sssp_result;
-                //std::vector<int> pre_v;
+                std::vector<int> pre_v;
                 begin = std::chrono::high_resolution_clock::now();
+                // for (int i = 0; i < iter; i ++) sssp_result = Cuda_SSSP(graph, gpma_graph_out, graph.sssp_src_name, std::numeric_limits<double>::max());
                 for (int i = 0; i < iter; i ++) sssp_result = Cuda_SSSP_optimized(graph, gpma_graph_out, graph.sssp_src_name, std::numeric_limits<double>::max());
                 //sssp_result = Cuda_SSSP_pre(graph, csr_graph, graph.sssp_src_name, pre_v, std::numeric_limits<double>::max());
                 end = std::chrono::high_resolution_clock::now();
@@ -324,9 +346,11 @@ int main() {
     if (1) {
         if (graph.sup_wcc) {
             double gpu_wcc_time = 0;
+            
             try {
                 std::vector<std::pair<std::string, std::string>> wcc_result;
                 begin = std::chrono::high_resolution_clock::now();
+                // for (int i = 0; i < iter; i ++) wcc_result = Cuda_WCC(graph, gpma_graph_out);
                 for (int i = 0; i < iter; i ++) wcc_result = Cuda_WCC_optimized(graph, gpma_graph_out);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_wcc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
@@ -347,9 +371,11 @@ int main() {
     if (1) {
         if (graph.sup_pr) {
             double gpu_pr_time = 0;
+
             try {
                 std::vector<std::pair<std::string, double>> pr_result;
                 begin = std::chrono::high_resolution_clock::now();
+                // for (int i = 0; i < iter; i ++) pr_result = Cuda_PR(graph, gpma_graph_in, gpma_graph_out, graph.pr_its, graph.pr_damping);
                 for (int i = 0; i < iter; i ++) pr_result = Cuda_PR_optimized(graph, gpma_graph_in, gpma_graph_out, graph.pr_its, graph.pr_damping);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_pr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
@@ -370,9 +396,11 @@ int main() {
     if (1) {
         if (graph.sup_cdlp) {
             double gpu_cdlp_time = 0;
+
             try {
                 std::vector<std::pair<std::string, std::string>> cdlp_result;
                 begin = std::chrono::high_resolution_clock::now();
+                // for (int i = 0; i < iter; i ++) cdlp_result = Cuda_CDLP(graph, gpma_graph_in, gpma_graph_out, graph.cdlp_max_its);
                 for (int i = 0; i < iter; i ++) cdlp_result = Cuda_CDLP_optimized(graph, gpma_graph_in, gpma_graph_out, graph.cdlp_max_its);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_cdlp_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;

@@ -48,29 +48,38 @@ int main() {
     double load_ldbc_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
     printf("load_ldbc_time cost time: %f s\n", load_ldbc_time);
 
+    size_t free_before, total_before;
+    size_t free_after, total_after;
+    cudaMemGetInfo(&free_before, &total_before);
+
     begin = std::chrono::high_resolution_clock::now();
     CSR_graph<double> csr_graph = toCSR(graph, graph.is_directed);
     end = std::chrono::high_resolution_clock::now();
     double graph_to_csr_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9; // s
-    std::cout << "Number of vertices: " << csr_graph.OUTs_Neighbor_start_pointers.size()-1 << std::endl;
+    std::cout << "Number of vertices: " << csr_graph.OUTs_Neighbor_start_pointers.size() - 1 << std::endl;
     std::cout << "Number of edges: " << csr_graph.OUTs_Edges.size() << std::endl;
     printf("graph_to_csr_time cost time: %f s\n", graph_to_csr_time);
     
-    EmptyKernel<<<1, 1024>>>();
-    cudaDeviceSynchronize();
+    cudaMemGetInfo(&free_after, &total_after);
+    double mem_used = free_before - free_after;
+    printf("GPU usage: %.5f MB / %.5f MB (%.5f%% used)\n",
+               mem_used / (1024.0 * 1024.0), total_after / (1024.0 * 1024.0), mem_used * 100.0 / total_after);
+    
+    // EmptyKernel<<<1, 1024>>>();
+    // cudaDeviceSynchronize();
 
     int iter = 1;
     if (1) {
         if (graph.sup_bfs) {
             double gpu_bfs_time = 0;
+
             try {
                 std::vector<std::pair<std::string, int>> bfs_result;
                 begin = std::chrono::high_resolution_clock::now();
                 for (int i = 0; i < iter; i ++) bfs_result = Cuda_BFS(graph, csr_graph, graph.bfs_src_name);
                 end = std::chrono::high_resolution_clock::now();
                 gpu_bfs_time = std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin).count() / 1e9;
-                printf("GPU BFS_v2 cost time: %f s\n", gpu_bfs_time / (double)iter);
-                
+                printf("GPU BFS cost time: %f s\n", gpu_bfs_time / (double)iter);
                 if (Bfs_checker(graph, bfs_result, graph.base_path + "-BFS"))
                     result_all.push_back(std::make_pair("BFS", std::to_string(gpu_bfs_time / (double)iter)));
                 else
@@ -85,8 +94,12 @@ int main() {
     }
 
     if (1) {
+        if (!graph.sup_sssp) {
+            graph.sup_sssp = 1;
+        }
         if (graph.sup_sssp) {
             double gpu_sssp_time = 0;
+            
             try {
                 std::vector<std::pair<std::string, double>> sssp_result;
                 begin = std::chrono::high_resolution_clock::now();
@@ -101,7 +114,6 @@ int main() {
                 
                 std::vector<int> pre_v;
                 sssp_result = Cuda_SSSP_pre(graph, csr_graph, graph.sssp_src_name, pre_v, std::numeric_limits<double>::max());
-                
                 /*std::vector<std::pair<std::string, std::string>> path = path_query(graph, graph.sssp_src_name, "338", pre_v);
                 for (auto p : path) {
                     std::cout << p.first << "->" << p.second << std::endl;
@@ -118,6 +130,7 @@ int main() {
     if (1) {
         if (graph.sup_wcc) {
             double gpu_wcc_time = 0;
+
             try {
                 std::vector<std::pair<std::string, std::string>> wcc_result;
                 begin = std::chrono::high_resolution_clock::now();
@@ -141,6 +154,7 @@ int main() {
     if (1) {
         if (graph.sup_pr) {
             double gpu_pr_time = 0;
+
             try {
                 std::vector<std::pair<std::string, double>> pr_result;
                 begin = std::chrono::high_resolution_clock::now();
@@ -164,6 +178,7 @@ int main() {
     if (1) {
         if (graph.sup_cdlp) {
             double gpu_cdlp_time = 0;
+            
             try {
                 std::vector<std::pair<std::string, std::string>> cdlp_result;
                 begin = std::chrono::high_resolution_clock::now();

@@ -2,17 +2,13 @@
 
 #include <GPU_gpma/GPU_gpma.hpp>
 
-#include <GPU_gpma/algorithm/GPU_BFS_gpma_optimized.cuh>
-#include <GPU_gpma/algorithm/GPU_WCC_gpma_optimized.cuh>
-#include <GPU_gpma/algorithm/GPU_SSSP_gpma_optimized.cuh>
-#include <GPU_gpma/algorithm/GPU_PR_gpma_optimized.cuh>
-#include <GPU_gpma/algorithm/GPU_CDLP_gpma_optimized.cuh>
-
 #include <GPU_gpma/algorithm/GPU_BFS_gpma.cuh>
 #include <GPU_gpma/algorithm/GPU_WCC_gpma.cuh>
 #include <GPU_gpma/algorithm/GPU_SSSP_gpma.cuh>
 #include <GPU_gpma/algorithm/GPU_PR_gpma.cuh>
 #include <GPU_gpma/algorithm/GPU_CDLP_gpma.cuh>
+
+using namespace std;
 
 int main() {
     ios::sync_with_stdio(false);
@@ -28,23 +24,16 @@ int main() {
     graph.add_vertice("five");
     graph.add_vertice("R");
 
-    // 0 1
-    // 1 2
-    // 1 3
-    // 0 2
-    // 0 3
-    // 3 2
-    // 3 4
-    graph.add_edge("one", "two", 0.81111111111111111111111111);
-    graph.add_edge("two", "three", 1.111111111111111111111111111111);
-    graph.add_edge("two", "R", 1.1111111111111111111111111);
+    graph.add_edge("one", "two", 0.8);
+    graph.add_edge("two", "three", 1);
+    graph.add_edge("two", "R", 1);
     graph.add_edge("two", "four", 0.1);
-    graph.add_edge("R", "three", 1.11111111111111111111);
-    graph.add_edge("one", "three", 1.1111111111111111111111111111);
-    graph.add_edge("one", "four", 1.1111111111111111111111111);
-    graph.add_edge("four", "three", 1.1111111111111111111111111);
-    graph.add_edge("four", "five", 1.1111111111111111111111111);
-    
+    graph.add_edge("R", "three", 1);
+    graph.add_edge("one", "three", 1);
+    graph.add_edge("one", "four", 1);
+    graph.add_edge("four", "three", 1);
+    graph.add_edge("four", "five", 1);
+
     // Remove a vertex
     graph.remove_vertice("R");
 
@@ -55,18 +44,7 @@ int main() {
     graph.remove_edge("two", "four");
 
     // Add an edge
-    // graph.add_edge("one", "six", 1);
-    
-    // add
-    // graph.add_edge("three", "five", 1);
-    // graph.add_edge("five", "two", 1);
-    // graph.add_edge("six", "three", 1);
-    
-    // remove
-    graph.remove_edge("four", "five");
-    graph.remove_edge("one", "two");
-    graph.remove_edge("one", "three");
-    graph.remove_edge("one", "four");
+    graph.add_edge("one", "six", 1);
     
     // Transform to GPMA
     auto begin = std::chrono::high_resolution_clock::now();

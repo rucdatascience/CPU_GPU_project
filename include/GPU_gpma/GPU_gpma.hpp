@@ -685,6 +685,7 @@ struct kv_tuple_none {
         return KEY_NONE == thrust::get<0>(a) || VALUE_NONE == thrust::get<1>(a);
     }
 };
+
 __host__ int resize_gpma(GPMA &gpma, DEV_VEC_KEY &update_keys, DEV_VEC_VALUE &update_values, SIZE_TYPE update_size) {
     // Move the existing gpma to the front and calculate the length of the compressed and valid content
     auto zip_begin = thrust::make_zip_iterator(thrust::make_tuple(gpma.keys.begin(), gpma.values.begin()));

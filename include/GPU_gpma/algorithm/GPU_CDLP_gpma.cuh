@@ -1,257 +1,359 @@
-#ifndef CDLPGPU
-#define CDLPGPU
-
-#include "cuda_runtime.h"
-#include <cuda_runtime_api.h>
-#include "device_launch_parameters.h"
-
-#include <thrust/device_vector.h>
-#include <thrust/host_vector.h>
-#include <cub/cub.cuh>
-#include <vector>
-#include <string.h>
+#pragma once
+#include "cub/cub.cuh"
+#include <stdio.h>
+#include <cuda_runtime.h>
+#include <device_launch_parameters.h>
 #include <GPU_gpma/GPU_gpma.hpp>
 
-using namespace std;
-#define CD_THREAD_PER_BLOCK 512
+template<SIZE_TYPE THREADS_NUM>
+__global__ void gpma_cdlp_gather_kernel(KEY_TYPE *edge_queue, SIZE_TYPE *edge_queue_offset,
+        KEY_TYPE *keys, VALUE_TYPE *values, SIZE_TYPE *row_offsets,  
+        SIZE_TYPE *label, SIZE_TYPE *node_queue_offset) {
 
-__global__ void Label_init(int *labels, int N);
-__global__ void LabelPropagation(KEY_TYPE *keys_in, VALUE_TYPE *values_in, SIZE_TYPE *row_offset_in, KEY_TYPE *keys_out, VALUE_TYPE *values_out, SIZE_TYPE *row_offset_out, int *prop_labels, int *labels, int N, long long E_in);
-__global__ void Get_New_Label(SIZE_TYPE *row_offset_in, SIZE_TYPE *row_offset_out, int *prop_labels, int *new_labels, int N, long long E_in);
-void checkCudaError(cudaError_t err, const char* msg);
-void checkDeviceProperties();
+    typedef cub::BlockScan<SIZE_TYPE, THREADS_NUM> BlockScan;
+    __shared__ typename BlockScan::TempStorage block_temp_storage;
 
-void CDLP_GPU(graph_structure<double>& graph, CSR_graph<double>& input_graph, std::vector<string>& res, int max_iterations);
+    volatile __shared__ SIZE_TYPE comm[THREADS_NUM / 32][3];
+    volatile __shared__ SIZE_TYPE comm2[THREADS_NUM];
+    volatile __shared__ SIZE_TYPE output_cta_offset;
+    volatile __shared__ SIZE_TYPE output_warp_offset[THREADS_NUM / 32];
 
-std::vector<std::pair<std::string, std::string>> Cuda_CDLP(graph_structure<double>& graph, CSR_graph<double>& input_graph, int max_iterations);
+    typedef cub::WarpScan<SIZE_TYPE> WarpScan;
+    __shared__ typename WarpScan::TempStorage temp_storage[THREADS_NUM / 32];
 
-// propagate the label, the label of the neighbor vertex is propagated in parallel
-__global__ void LabelPropagation(KEY_TYPE *keys_in, VALUE_TYPE *values_in, SIZE_TYPE *row_offset_in, KEY_TYPE *keys_out, VALUE_TYPE *values_out, SIZE_TYPE *row_offset_out, int *prop_labels, int *labels, int N, long long E_in) {
-    int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
+    SIZE_TYPE thread_id = threadIdx.x;
+    SIZE_TYPE lane_id = thread_id % 32;
+    SIZE_TYPE warp_id = thread_id / 32;
 
-    if (tid >= 0 && tid < N) {
-        KEY_TYPE new_v;
-        VALUE_TYPE new_w;
-        
-        SIZE_TYPE start = row_offset_in[tid], end = row_offset_in[tid + 1];
-        for (int c = start; c < end; c ++) { // traverse the neighbor of the tid vertex
-            new_v = keys_in[c] & 0xFFFFFFFF;
-            new_w = values_in[c];
-            if (new_v != COL_IDX_NONE && new_w != VALUE_NONE) {
-                prop_labels[c] = labels[new_v]; // record the label of the neighbor vertex
-            } else {
-                prop_labels[c] = -1;
+    SIZE_TYPE cta_offset = blockDim.x * blockIdx.x;
+    while (cta_offset < node_queue_offset[0]) {
+        SIZE_TYPE node, row_begin, row_end;
+        if (cta_offset + thread_id < node_queue_offset[0]) {
+            node = cta_offset + thread_id;
+            row_begin = row_offsets[node];
+            row_end = row_offsets[node + 1];
+        } else {
+            row_begin = row_end = 0;
+        }
+
+        // CTA-based coarse-grained gather
+        while (__syncthreads_or(row_end - row_begin >= THREADS_NUM)) {
+            // vie for control of block
+            if (row_end - row_begin >= THREADS_NUM)
+                comm[0][0] = thread_id;
+            __syncthreads();
+
+            // winner describes adjlist
+            if (comm[0][0] == thread_id) {
+                comm[0][1] = row_begin;
+                comm[0][2] = row_end;
+                row_begin = row_end;
+            }
+            __syncthreads();
+
+            SIZE_TYPE gather = comm[0][1] + thread_id;
+            SIZE_TYPE gather_end = comm[0][2];
+            KEY_TYPE neighbour;
+            KEY_TYPE cur_key;
+            SIZE_TYPE thread_data_in;
+            SIZE_TYPE thread_data_out;
+            SIZE_TYPE block_aggregate;
+            while (__syncthreads_or(gather < gather_end)) {
+                if (gather < gather_end) {
+                    cur_key = (SIZE_TYPE) (keys[gather] & COL_IDX_NONE);
+                    VALUE_TYPE cur_value = values[gather];
+                    // neighbour = (SIZE_TYPE) (cur_key & COL_IDX_NONE);
+                    thread_data_in = ((SIZE_TYPE)cur_key == COL_IDX_NONE || cur_value == VALUE_NONE) ? 0 : 1;
+                    neighbour = ((SIZE_TYPE)cur_key == COL_IDX_NONE || cur_value == VALUE_NONE) ? 0 : ((keys[gather] & KEY_HIGH) | (KEY_TYPE)label[cur_key]);
+                } else {
+                    thread_data_in = 0;
+                }
+
+                __syncthreads();
+                BlockScan(block_temp_storage).ExclusiveSum(thread_data_in, thread_data_out, block_aggregate);
+                __syncthreads();
+                if (0 == thread_id) {
+                    output_cta_offset = atomicAdd(edge_queue_offset, block_aggregate);
+                }
+                __syncthreads();
+                if (thread_data_in)
+                    edge_queue[output_cta_offset + thread_data_out] = neighbour;
+                gather += THREADS_NUM;
             }
         }
 
-        start = row_offset_out[tid], end = row_offset_out[tid + 1];
-        for (int c = start; c < end; c ++) { // traverse the neighbor of the tid vertex
-            new_v = keys_out[c] & 0xFFFFFFFF;
-            new_w = values_out[c];
-            if (new_v != COL_IDX_NONE && new_w != VALUE_NONE) {
-                prop_labels[E_in + c] = labels[new_v]; // record the label of the neighbor vertex
-            } else {
-                prop_labels[E_in + c] = -1; // record the label of the neighbor vertex
+        // warp-based coarse-grained gather
+        while (__any_sync(FULL_MASK, row_end - row_begin >= 32)) {
+            // vie for control of warp
+            if (row_end - row_begin >= 32)
+                comm[warp_id][0] = lane_id;
+
+            // winner describes adjlist
+            if (comm[warp_id][0] == lane_id) {
+                comm[warp_id][1] = row_begin;
+                comm[warp_id][2] = row_end;
+                row_begin = row_end;
+            }
+
+            SIZE_TYPE gather = comm[warp_id][1] + lane_id;
+            SIZE_TYPE gather_end = comm[warp_id][2];
+            KEY_TYPE neighbour;
+            KEY_TYPE cur_key;
+            SIZE_TYPE thread_data_in;
+            SIZE_TYPE thread_data_out;
+            SIZE_TYPE warp_aggregate;
+            while (__any_sync(FULL_MASK, gather < gather_end)) {
+                if (gather < gather_end) {
+                    cur_key = ((SIZE_TYPE) (keys[gather] & COL_IDX_NONE));
+                    VALUE_TYPE cur_value = values[gather];
+                    thread_data_in = ((SIZE_TYPE)cur_key == COL_IDX_NONE || cur_value == VALUE_NONE) ? 0 : 1;
+                    neighbour = ((SIZE_TYPE)cur_key == COL_IDX_NONE || cur_value == VALUE_NONE) ? 0 : ((keys[gather] & KEY_HIGH) | (KEY_TYPE)label[cur_key]);
+                } else
+                    thread_data_in = 0;
+                
+                WarpScan(temp_storage[warp_id]).ExclusiveSum(thread_data_in, thread_data_out, warp_aggregate);
+
+                if (0 == lane_id) {
+                    output_warp_offset[warp_id] = atomicAdd(edge_queue_offset, warp_aggregate);
+                }
+
+                if (thread_data_in)
+                    edge_queue[output_warp_offset[warp_id] + thread_data_out] = neighbour;
+                gather += 32;
             }
         }
+
+        // scan-based fine-grained gather
+        SIZE_TYPE thread_data = row_end - row_begin;
+        SIZE_TYPE rsv_rank;
+        SIZE_TYPE total;
+        SIZE_TYPE remain;
+        __syncthreads();
+        BlockScan(block_temp_storage).ExclusiveSum(thread_data, rsv_rank, total);
+        __syncthreads();
+
+        SIZE_TYPE cta_progress = 0;
+        while (cta_progress < total) {
+            remain = total - cta_progress;
+
+            // share batch of gather offsets
+            while ((rsv_rank < cta_progress + THREADS_NUM) && (row_begin < row_end)) {
+                comm2[rsv_rank - cta_progress] = row_begin;
+                rsv_rank++;
+                row_begin++;
+            }
+            __syncthreads();
+            KEY_TYPE neighbour;
+            SIZE_TYPE cur_key;
+            // gather batch of adjlist
+            if (thread_id < min(remain, THREADS_NUM)) {
+                cur_key = (SIZE_TYPE) (keys[comm2[thread_id]] & COL_IDX_NONE);
+                VALUE_TYPE cur_value = values[comm2[thread_id]];
+                thread_data = ((SIZE_TYPE)cur_key == COL_IDX_NONE || cur_value == VALUE_NONE) ? 0 : 1;
+                neighbour = ((SIZE_TYPE)cur_key == COL_IDX_NONE || cur_value == VALUE_NONE) ? 0 : ((keys[comm2[thread_id]] & KEY_HIGH) | (KEY_TYPE)label[cur_key]);
+            } else
+                thread_data = 0;
+            __syncthreads();
+
+            SIZE_TYPE scatter;
+            SIZE_TYPE block_aggregate;
+
+            BlockScan(block_temp_storage).ExclusiveSum(thread_data, scatter, block_aggregate);
+            __syncthreads();
+
+            if (0 == thread_id) {
+                output_cta_offset = atomicAdd(edge_queue_offset, block_aggregate);
+            }
+            __syncthreads();
+
+            if (thread_data)
+                edge_queue[output_cta_offset + scatter] = neighbour;
+            cta_progress += THREADS_NUM;
+            __syncthreads();
+        }
+
+        cta_offset += blockDim.x * gridDim.x;
     }
 }
 
 // Initialize all labels at once with GPU.Initially
 // each vertex v is assigned a unique label which matches its identifier.
-__global__ void Label_init(int *labels, int N) {
-    int tid = blockIdx.x * blockDim.x + threadIdx.x; // tid decides process which vertex
-
-    if (tid >= 0 && tid < N) { // tid decides process which vertex
-        labels[tid] = tid; // each vertex is initially labeled by itself
+__global__ void gather_cdlp (KEY_TYPE *input, SIZE_TYPE *labels_begin, SIZE_TYPE *labels_end, SIZE_TYPE count) {
+    SIZE_TYPE tid = blockDim.x * blockIdx.x + threadIdx.x;
+    if (tid > count - 1) {
+        return;
+    }
+    if ((input[tid] & KEY_HIGH) != (input[tid + 1] & KEY_HIGH)) {
+        labels_end[(SIZE_TYPE)(input[tid] >> 32)] = labels_begin[(SIZE_TYPE)(input[tid + 1] >> 32)] = tid + 1;
     }
 }
 
-// each thread is responsible for one vertex
-// every segmentation are sorted
-// count Frequency from the start in the global_space_for_label to the end in the global_space_for_label
-// the new labels are stroed in the new_labels
-__global__ void Get_New_Label(SIZE_TYPE *row_offset_in, SIZE_TYPE *row_offset_out, int *prop_labels, int *new_labels, int N, long long E_in) {
-    // Use GPU to propagate all labels at the same time.
-    int tid = blockDim.x * blockIdx.x + threadIdx.x; // tid decides process which vertex
-    if (tid >= 0 && tid < N) {
-        int maxlabel = -1, maxcount = 0, last_label = -1, last_count = 0; // the label that appears the most times and its number of occurrences
-        SIZE_TYPE start_in = row_offset_in[tid], end_in = row_offset_in[tid + 1];
-        SIZE_TYPE start_out = row_offset_out[tid] + E_in, end_out = row_offset_out[tid + 1] + E_in;
-        SIZE_TYPE p1 = start_in, p2 = start_out;
-        int prop_labels_now;
-        while (p1 < end_in || p2 < end_out) {
-            if (p1 >= end_in) {
-                prop_labels_now = prop_labels[p2 ++];
-            } else if (p2 >= end_out) {
-                prop_labels_now = prop_labels[p1 ++];
+__global__ void prop_labels_kernel (KEY_TYPE *prop_labels, SIZE_TYPE *labels_begin, SIZE_TYPE *labels_end, SIZE_TYPE *labels, SIZE_TYPE N) {
+    SIZE_TYPE tid = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (tid < N) {
+        if (labels_begin[tid] >= labels_end[tid]) return;
+        SIZE_TYPE maxlabel = (SIZE_TYPE)(prop_labels[labels_begin[tid]] & COL_IDX_NONE), maxcount = 0; // the label that appears the most times and its number of occurrences
+        KEY_TYPE last_label = prop_labels[tid];
+        for (SIZE_TYPE c = labels_begin[tid], last_count = 0; c < labels_end[tid]; c ++) { // traverse the neighbor vertex label data in order
+            if (prop_labels[c] == last_label) {
+                last_count++; // add up the number of label occurrences
+                if (last_count > maxcount) { // the number of label occurrences currently traversed is greater than the recorded value
+                    maxcount = last_count; // update maxcount and maxlabel
+                    maxlabel = (SIZE_TYPE)(last_label & COL_IDX_NONE);
+                }
             } else {
-                if (prop_labels[p2] > prop_labels[p1]) {
-                    prop_labels_now = prop_labels[p1 ++];
-                } else {
-                    prop_labels_now = prop_labels[p2 ++];
-                }
-            }
-            if (prop_labels_now != -1) {
-                if (maxlabel == -1) {
-                    maxlabel = prop_labels_now, maxcount = 1;
-                    last_label = prop_labels_now, last_count = 1;
-                } else {
-                    if (prop_labels_now == last_label) {
-                        last_count ++; // add up the number of label occurrences
-                        if (last_count > maxcount) {// the number of label occurrences currently traversed is greater than the recorded value
-                            maxcount = last_count, maxlabel = last_label; // update maxcount and maxlabel
-                        }
-                    } else {
-                        last_label = prop_labels_now, last_count = 1; // a new label appears, updates the label and number of occurrences
-                    }
-                }
+                last_label = prop_labels[c]; // a new label appears, updates the label and number of occurrences
+                last_count = 1;
             }
         }
-        new_labels[tid] = maxlabel; // record the maxlabel
+        labels[tid] = maxlabel; // record the maxlabel
     }
 }
 
-// Community Detection Using Label Propagation on GPU
-// Returns label of the graph based on the graph and number of iterations.
-void CDLP_GPU(graph_structure<double>& graph, GPMA& gpma_in, GPMA &gpma_out, std::vector<string>& res, int max_iterations) {
-    int N = graph.size(); // number of vertices in the graph
-    dim3 init_label_block((N + CD_THREAD_PER_BLOCK - 1) / CD_THREAD_PER_BLOCK, 1, 1); // the number of blocks used in the gpu
-    dim3 init_label_thread(CD_THREAD_PER_BLOCK, 1, 1); // the number of threads used in the gpu
+__global__ void Label_sum_init (SIZE_TYPE *labels_sum, SIZE_TYPE N) {
+    SIZE_TYPE global_thread_id = blockDim.x * blockIdx.x + threadIdx.x;
+    SIZE_TYPE block_offset = gridDim.x * blockDim.x;
+    for (SIZE_TYPE i = global_thread_id; i < N; i += block_offset) {
+        labels_sum[i] = 0;
+    }
+}
 
-    int* prop_labels = nullptr;
-    int* new_prop_labels = nullptr;
-    int* new_labels = nullptr;
-    int* labels = nullptr;
+__global__ void Label_init_v2 (SIZE_TYPE *labels, SIZE_TYPE N) {
+    SIZE_TYPE global_thread_id = blockDim.x * blockIdx.x + threadIdx.x;
+    SIZE_TYPE block_offset = gridDim.x * blockDim.x;
+    for (SIZE_TYPE i = global_thread_id; i < N; i += block_offset) {
+        labels[i] = i;
+    }
+}
 
+__host__ void gpma_cdlp(graph_structure<double> &graph, GPMA& gpma_in, GPMA& gpma_out, std::vector<std::string>& res, int max_iterations) {
+
+    SIZE_TYPE N = graph.size(); // number of vertices in the graph
+    const SIZE_TYPE THREADS_NUM = 256;
+    SIZE_TYPE BLOCKS_NUM = (N + THREADS_NUM - 1) / THREADS_NUM;
+
+    KEY_TYPE *prop_labels = nullptr;
+    SIZE_TYPE *labels = nullptr;
+    SIZE_TYPE *labels_begin = nullptr;
+    SIZE_TYPE *labels_end = nullptr;
+    SIZE_TYPE *node_queue_offset;
+    
     int CD_ITERATION = max_iterations; // fixed number of iterations
     long long E_in = gpma_in.get_size(); // number of edges in the graph_in
     long long E_out = gpma_out.get_size(); // number of edges in the graph_out
 
-    cudaMallocManaged((void**)&new_labels, N * sizeof(int));
-    cudaMallocManaged((void**)&labels, N * sizeof(int));
-    cudaMallocManaged((void**)&prop_labels, (E_in + E_out) * sizeof(int));
-    cudaMallocManaged((void**)&new_prop_labels, (E_in + E_out) * sizeof(int));
-
+    SIZE_TYPE *prop_label_offset;
+    cudaMalloc(&prop_label_offset, sizeof(SIZE_TYPE));
+    cudaMalloc((void**)&labels, (N) * sizeof(SIZE_TYPE));
+    cudaMalloc((void**)&labels_begin, (N) * sizeof(SIZE_TYPE));
+    cudaMalloc((void**)&labels_end, (N) * sizeof(SIZE_TYPE));
+    cudaMalloc((void**)&prop_labels, (E_in + E_out + 1) * sizeof(KEY_TYPE));
+    cudaMalloc(&node_queue_offset, sizeof(SIZE_TYPE));
     cudaDeviceSynchronize(); // synchronize, ensure the cudaMalloc is complete
     cudaError_t cuda_status = cudaGetLastError();
     if (cuda_status != cudaSuccess) { // use the cudaGetLastError to check for possible cudaMalloc errors
         fprintf(stderr, "Cuda malloc failed: %s\n", cudaGetErrorString(cuda_status));
         return;
     }
-
-    Label_init<<<init_label_block, init_label_thread>>>(labels, N); // initialize all labels at once with GPU
-
-    cudaDeviceSynchronize(); // synchronize, ensure the label initialization is complete
-    cuda_status = cudaGetLastError();
-    if (cuda_status != cudaSuccess) { // use the cudaGetLastError to check for possible label initialization errors
-        fprintf(stderr, "Label init failed: %s\n", cudaGetErrorString(cuda_status));
-        return;
-    }
-
-    int it = 0; // number of iterations
-    // Determine temporary device storage requirements
-    void *d_temp_storage = NULL;
+    SIZE_TYPE init_label_block = CALC_BLOCKS_NUM_NOLIMIT(THREADS_NUM, N);
+    Label_init_v2<<<init_label_block, THREADS_NUM>>>(labels, N); // initialize all labels at once with GPU
+    cudaDeviceSynchronize(); // synchronize, ensure the cudaMalloc is complete
+    
     size_t temp_storage_bytes = 0;
-    cub::DeviceSegmentedSort::SortKeys(
-        d_temp_storage, temp_storage_bytes, prop_labels, new_prop_labels, E_in, N,
-        RAW_PTR(gpma_in.row_offset), RAW_PTR(gpma_in.row_offset) + 1); // sort the labels of each vertex's neighbors
+    void* d_temp_storage = nullptr;
+    cub::DeviceRadixSort::SortKeys(d_temp_storage, temp_storage_bytes, prop_labels, prop_labels, E_in + E_out);
     cudaDeviceSynchronize();
-    cub::DeviceSegmentedSort::SortKeys(
-        d_temp_storage, temp_storage_bytes, prop_labels + E_in, new_prop_labels + E_in, E_out, N,
-        RAW_PTR(gpma_out.row_offset), RAW_PTR(gpma_out.row_offset) + 1); // sort the labels of each vertex's neighbors
-    cudaDeviceSynchronize();
+    cudaMalloc(&d_temp_storage, temp_storage_bytes);
     cuda_status = cudaGetLastError();
     if (cuda_status != cudaSuccess) {
-        fprintf(stderr, "Sort failed: %s\n", cudaGetErrorString(cuda_status));
+        std::cerr << "Error: " << "Malloc failed" << " (" << cudaGetErrorString(cuda_status) << ")" << std::endl;
         return;
     }
+    
+    SIZE_TYPE host_num[1];
+    host_num[0] = N;
+    cudaMemcpy(node_queue_offset, host_num, sizeof(SIZE_TYPE), cudaMemcpyHostToDevice);
 
-    cudaError_t err = cudaMalloc(&d_temp_storage, temp_storage_bytes);
-    if (err != cudaSuccess) {
-        cerr << "Error: " << "Malloc failed" << " (" << cudaGetErrorString(err) << ")" << endl;
-        return;
-    }
-
+    int it = 0;
     while (it < CD_ITERATION) { // continue for a fixed number of iterations
-        LabelPropagation<<<init_label_block, init_label_thread>>>(
-            RAW_PTR(gpma_in.keys), RAW_PTR(gpma_in.values), RAW_PTR(gpma_in.row_offset),
-            RAW_PTR(gpma_out.keys), RAW_PTR(gpma_out.values), RAW_PTR(gpma_out.row_offset), prop_labels, labels, N, E_in); // calculate the neighbor label array for each vertex
-        cudaDeviceSynchronize();  // synchronize, ensure the label propagation is complete
+        BLOCKS_NUM = CALC_BLOCKS_NUM_NOLIMIT(THREADS_NUM, N);
+        SIZE_TYPE zero = 0;
 
-        cuda_status = cudaGetLastError(); // check for errors
-        if (cuda_status != cudaSuccess) {
-            fprintf(stderr, "LabelPropagation failed: %s\n", cudaGetErrorString(cuda_status));
+        // step 1: label propagation
+        cudaMemcpy(prop_label_offset, &zero, sizeof(SIZE_TYPE), cudaMemcpyHostToDevice);
+        gpma_cdlp_gather_kernel<THREADS_NUM><<<BLOCKS_NUM, THREADS_NUM>>>(prop_labels, prop_label_offset,
+            RAW_PTR(gpma_in.keys), RAW_PTR(gpma_in.values), RAW_PTR(gpma_in.row_offset), labels, node_queue_offset);
+        cudaDeviceSynchronize();
+        gpma_cdlp_gather_kernel<THREADS_NUM><<<BLOCKS_NUM, THREADS_NUM>>>(prop_labels, prop_label_offset,
+            RAW_PTR(gpma_out.keys), RAW_PTR(gpma_out.values), RAW_PTR(gpma_out.row_offset), labels, node_queue_offset);
+        cudaDeviceSynchronize();
+        cuda_status = cudaGetLastError();
+        if (cuda_status != cudaSuccess) { // use the cudaGetLastError to check for possible cudaMalloc errors
+            fprintf(stderr, "Label propagation failed: %s\n", cudaGetErrorString(cuda_status));
             return;
         }
 
-        // Run sorting operation
-        cub::DeviceSegmentedSort::SortKeys(
-        d_temp_storage, temp_storage_bytes, prop_labels, new_prop_labels, E_in, N,
-        RAW_PTR(gpma_in.row_offset), RAW_PTR(gpma_in.row_offset) + 1); // sort the labels of each vertex's neighbors
+        // step 2: sort
+        SIZE_TYPE offset;
+        cudaMemcpy(&offset, prop_label_offset, sizeof(SIZE_TYPE), cudaMemcpyDeviceToHost);
         cudaDeviceSynchronize();
-        cub::DeviceSegmentedSort::SortKeys(
-        d_temp_storage, temp_storage_bytes, prop_labels + E_in, new_prop_labels + E_in, E_out, N,
-        RAW_PTR(gpma_out.row_offset), RAW_PTR(gpma_out.row_offset) + 1); // sort the labels of each vertex's neighbors
+        cub::DeviceRadixSort::SortKeys(d_temp_storage, temp_storage_bytes, prop_labels, prop_labels, offset);
         cudaDeviceSynchronize();
-
-        cuda_status = cudaGetLastError(); // check for errors
-        if (cuda_status != cudaSuccess) {
+        cuda_status = cudaGetLastError();
+        if (cuda_status != cudaSuccess) { // use the cudaGetLastError to check for possible cudaMalloc errors
             fprintf(stderr, "Sort failed: %s\n", cudaGetErrorString(cuda_status));
             return;
         }
         
-        Get_New_Label<<<init_label_block, init_label_thread>>>(
-            RAW_PTR(gpma_in.row_offset), RAW_PTR(gpma_out.row_offset), new_prop_labels, new_labels, N, E_in); // generate a new vertex label by label propagation information
+        // step3: gather
+        KEY_TYPE tmp = (((KEY_TYPE)N) << 32) | COL_IDX_NONE;
+        cudaMemcpy(prop_labels + offset, &tmp, sizeof(SIZE_TYPE), cudaMemcpyHostToDevice);
         cudaDeviceSynchronize();
-
-        cuda_status = cudaGetLastError(); // check for errors
-        if (cuda_status != cudaSuccess) {
-            fprintf(stderr, "Get_New_Label failed: %s\n", cudaGetErrorString(cuda_status));
+        BLOCKS_NUM = CALC_BLOCKS_NUM_NOLIMIT(THREADS_NUM, offset);
+        gather_cdlp<<<BLOCKS_NUM, THREADS_NUM>>>(prop_labels, labels_begin, labels_end, offset);
+        cudaDeviceSynchronize();
+        cudaMemcpy(labels_begin, &zero, sizeof(SIZE_TYPE), cudaMemcpyHostToDevice);
+        cuda_status = cudaGetLastError();
+        if (cuda_status != cudaSuccess) { // use the cudaGetLastError to check for possible cudaMalloc errors
+            fprintf(stderr, "gather failed: %s\n", cudaGetErrorString(cuda_status));
             return;
         }
 
-        it++; // record number of iterations
-        std::swap(labels, new_labels); // store the updated label in the labels
+        // step4: prop label
+        BLOCKS_NUM = CALC_BLOCKS_NUM_NOLIMIT(THREADS_NUM, N);
+        prop_labels_kernel<<<BLOCKS_NUM, THREADS_NUM>>>(prop_labels, labels_begin, labels_end, labels, N);
+        cudaDeviceSynchronize();
+
+        it ++;
     }
     res.resize(N);
-    for (int i = 0; i < N; i++) {
-        if (labels[i] == -1) {
-            res[i] = graph.vertex_id_to_str[i].first;
-        } else {
-            res[i] = graph.vertex_id_to_str[labels[i]].first; // convert the label to string and store it in res
-        }
-    }
+
+    SIZE_TYPE* label_host = new SIZE_TYPE[N];
+    cudaMemcpy(label_host, labels, N * sizeof(SIZE_TYPE), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
-
-    cudaFree(prop_labels); // free memory
-    cudaFree(new_prop_labels);
-    cudaFree(new_labels);
-    cudaFree(d_temp_storage);
-    cudaFree(labels);
-}
-
-// check whether cuda errors occur and output error information
-void checkCudaError(cudaError_t err, const char *msg) {
-    if (err != cudaSuccess) {
-        cerr << "Error: " << msg << " (" << cudaGetErrorString(err) << ")" << endl; // output error message
-        exit(EXIT_FAILURE);
+    for (int i = 0; i < N; i++) {
+        res[i] = graph.vertex_id_to_str[label_host[i]].first; // convert the label to string and store it in res
     }
+    
+    cudaFree(labels);
+    cudaFree(prop_labels);
+    cudaFree(labels_begin);
+    cudaFree(labels_end);
+    cudaFree(node_queue_offset);
+    cudaFree(prop_label_offset);
+    cudaFree(d_temp_storage);
 }
 
-// Community Detection Using Label Propagation on GPU
-// Returns label of the graph based on the graph and number of iterations.
-// the type of the vertex and label are string
-std::vector<std::pair<std::string, std::string>> Cuda_CDLP(graph_structure<double>& graph, GPMA& gpma_in, GPMA &gpma_out, int max_iterations) {
+std::vector<std::pair<std::string, std::string>> Cuda_CDLP_optimized(graph_structure<double> &graph, GPMA& gpma_in, GPMA& gpma_out, int max_iterations) {
     std::vector<std::string> result;
-    CDLP_GPU(graph, gpma_in, gpma_out, result, max_iterations); // get the labels of each vertex. vector index is the id of vertex
-
+    gpma_cdlp(graph, gpma_in, gpma_out, result, max_iterations);
+    
     std::vector<std::pair<std::string, std::string>> res;
     int size = result.size();
-    for (int i = 0; i < size; i++)
+    for (int i = 0; i < size; i++) {
         res.push_back(std::make_pair(graph.vertex_id_to_str[i].first, result[i])); // for each vertex, get its string number and store it in res
-    
-    return res; // return the results
-}
+    }
 
-#endif
+    return res;    
+}

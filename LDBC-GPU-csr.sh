@@ -20,18 +20,10 @@ filenames=(
     "graph500-23"
     "datagen-8_3-zf"
     "datagen-8_1-fb"
-    "graph500-24"
-    "datagen-8_4-fb"
-    "datagen-8_5-fb"
-    "datagen-8_7-zf"
-    "datagen-8_6-fb"
-    "datagen-8_8-zf"
-    "graph500-25"
-    "datagen-8_9-fb"
 )
 
 # Specify the GPU ID to be used (for example: 0, 1, 2)
-gpu_id=1
+gpu_id=0
 
 for filename in "${filenames[@]}"
 do

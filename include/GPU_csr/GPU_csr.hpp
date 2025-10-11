@@ -104,6 +104,7 @@ CSR_graph<weight_type> toCSR(graph_structure<weight_type>& graph, bool is_direct
         cudaMalloc((void**)&ARRAY.in_edge, E_in * sizeof(int));
         cudaMalloc((void**)&ARRAY.all_edge, E_all * sizeof(int));
         cudaMalloc((void**)&ARRAY.in_edge_weight, E_in * sizeof(double));
+        cudaDeviceSynchronize();
     } else {
         ARRAY.in_pointer = ARRAY.out_pointer;
         ARRAY.all_pointer = ARRAY.out_pointer;
